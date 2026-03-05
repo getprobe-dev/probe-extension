@@ -3,6 +3,7 @@ import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
 
 export function PopupApp() {
   const [apiKey, setApiKey] = useState("");
+  const [githubToken, setGithubToken] = useState("");
   const [proxyUrl, setProxyUrl] = useState(DEFAULT_PROXY_URL);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -10,10 +11,13 @@ export function PopupApp() {
 
   useEffect(() => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL],
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL, STORAGE_KEYS.GITHUB_TOKEN],
       (result) => {
         if (result[STORAGE_KEYS.API_KEY]) {
           setApiKey(result[STORAGE_KEYS.API_KEY] as string);
+        }
+        if (result[STORAGE_KEYS.GITHUB_TOKEN]) {
+          setGithubToken(result[STORAGE_KEYS.GITHUB_TOKEN] as string);
         }
         if (result[STORAGE_KEYS.PROXY_URL]) {
           setProxyUrl(result[STORAGE_KEYS.PROXY_URL] as string);
@@ -32,6 +36,13 @@ export function PopupApp() {
       [STORAGE_KEYS.API_KEY]: trimmedKey,
     };
 
+    const trimmedGithub = githubToken.trim();
+    if (trimmedGithub) {
+      settings[STORAGE_KEYS.GITHUB_TOKEN] = trimmedGithub;
+    } else {
+      chrome.storage.sync.remove(STORAGE_KEYS.GITHUB_TOKEN);
+    }
+
     const trimmedProxy = proxyUrl.trim();
     if (trimmedProxy && trimmedProxy !== DEFAULT_PROXY_URL) {
       settings[STORAGE_KEYS.PROXY_URL] = trimmedProxy;
@@ -47,9 +58,10 @@ export function PopupApp() {
 
   const handleClear = () => {
     chrome.storage.sync.remove(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL],
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL, STORAGE_KEYS.GITHUB_TOKEN],
       () => {
         setApiKey("");
+        setGithubToken("");
         setProxyUrl(DEFAULT_PROXY_URL);
         setSaved(false);
       }
@@ -88,6 +100,21 @@ export function PopupApp() {
       <p className="mt-1 text-xs text-neutral-400">
         Your key is stored locally and sent only through the proxy to
         Anthropic's API.
+      </p>
+
+      <label className="block text-sm font-medium text-neutral-700 mb-1.5 mt-4">
+        GitHub Token
+        <span className="text-neutral-400 font-normal"> (optional)</span>
+      </label>
+      <input
+        type="password"
+        value={githubToken}
+        onChange={(e) => setGithubToken(e.target.value)}
+        placeholder="ghp_..."
+        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+      />
+      <p className="mt-1 text-xs text-neutral-400">
+        Enables posting comments to PRs. Needs <code className="text-xs bg-neutral-100 px-1 rounded">repo</code> scope.
       </p>
 
       <button

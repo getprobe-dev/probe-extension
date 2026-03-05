@@ -8,9 +8,20 @@ interface MessageListProps {
   isStreaming: boolean;
   focusedFile: string | null;
   onPromptSelect: (prompt: string) => void;
+  prOwner?: string;
+  prRepo?: string;
+  prNumber?: number;
 }
 
-export function MessageList({ messages, isStreaming, focusedFile, onPromptSelect }: MessageListProps) {
+export function MessageList({
+  messages,
+  isStreaming,
+  focusedFile,
+  onPromptSelect,
+  prOwner,
+  prRepo,
+  prNumber,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +41,9 @@ export function MessageList({ messages, isStreaming, focusedFile, onPromptSelect
           key={i}
           message={msg}
           isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
+          prOwner={prOwner}
+          prRepo={prRepo}
+          prNumber={prNumber}
         />
       ))}
       <div ref={bottomRef} />

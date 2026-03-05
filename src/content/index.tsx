@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
 function mount() {
-  const hostId = "pr-sidekick-root";
+  const hostId = "probe-root";
   if (document.getElementById(hostId)) return;
 
   const host = document.createElement("div");
@@ -16,7 +16,7 @@ function mount() {
   shadow.appendChild(styleEl);
 
   const appContainer = document.createElement("div");
-  appContainer.id = "pr-sidekick-app";
+  appContainer.id = "probe-app";
   shadow.appendChild(appContainer);
 
   createRoot(appContainer).render(<App />);
@@ -31,7 +31,7 @@ function getShadowStyles(): string {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    #pr-sidekick-app {
+    #probe-app {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       line-height: 1.5;
@@ -122,7 +122,7 @@ function getShadowStyles(): string {
       font-weight: 600;
     }
     .prs-prose a {
-      color: #7c3aed;
+      color: #0d9488;
       text-decoration: underline;
     }
     .prs-prose hr {
@@ -208,9 +208,9 @@ function getShadowStyles(): string {
     .prs-text-red-600 { color: #dc2626; }
     .prs-bg-white { background-color: #ffffff; }
     .prs-bg-neutral-100 { background-color: #f5f5f5; }
-    .prs-bg-purple-100 { background-color: #f3e8ff; }
-    .prs-bg-purple-500 { background-color: #a855f7; }
-    .prs-bg-purple-600 { background-color: #7c3aed; }
+    .prs-bg-teal-100 { background-color: #ccfbf1; }
+    .prs-bg-teal-500 { background-color: #14b8a6; }
+    .prs-bg-teal-600 { background-color: #0d9488; }
     .prs-bg-red-50 { background-color: #fef2f2; }
     .prs-bg-red-500 { background-color: #ef4444; }
     .prs-placeholder-neutral-400::placeholder { color: #a3a3a3; }
@@ -256,9 +256,9 @@ function getShadowStyles(): string {
       gap: 6px;
       padding: 4px 8px 4px 10px;
       border-radius: 9999px;
-      background: #f3e8ff;
-      border: 1px solid #e9d5ff;
-      color: #6d28d9;
+      background: #ccfbf1;
+      border: 1px solid #99f6e4;
+      color: #0f766e;
       font-size: 0.75rem;
       font-weight: 500;
       max-width: 100%;
@@ -273,14 +273,14 @@ function getShadowStyles(): string {
       border-radius: 9999px;
       border: none;
       background: transparent;
-      color: #7c3aed;
+      color: #0d9488;
       cursor: pointer;
       padding: 0;
       flex-shrink: 0;
       transition: background 0.15s ease;
     }
     .prs-file-focus-clear:hover {
-      background: #e9d5ff;
+      background: #99f6e4;
     }
 
     /* Prompt starter bubbles */
@@ -299,9 +299,9 @@ function getShadowStyles(): string {
       font-family: inherit;
     }
     .prs-prompt-starter:hover {
-      border-color: #c084fc;
-      background: #faf5ff;
-      color: #6d28d9;
+      border-color: #2dd4bf;
+      background: #f0fdfa;
+      color: #0f766e;
     }
 
     /* Message action bar */
@@ -342,7 +342,7 @@ function getShadowStyles(): string {
     }
     .prs-msg-action-btn:hover {
       background: #f5f5f5;
-      color: #7c3aed;
+      color: #0d9488;
     }
 
     /* Comment composer */
@@ -415,11 +415,11 @@ function getShadowStyles(): string {
       background: #e5e5e5;
     }
     .prs-comment-composer-btn-post {
-      background: #7c3aed;
+      background: #0d9488;
       color: white;
     }
     .prs-comment-composer-btn-post:hover:not(:disabled) {
-      background: #6d28d9;
+      background: #0f766e;
     }
     .prs-comment-composer-error {
       padding: 6px 12px;
@@ -438,11 +438,11 @@ function getShadowStyles(): string {
       color: #16a34a;
     }
     .prs-comment-composer-link {
-      color: #7c3aed;
+      color: #0d9488;
       text-decoration: underline;
     }
     .prs-comment-composer-link:hover {
-      color: #6d28d9;
+      color: #0f766e;
     }
 
     /* Review queue badge */
@@ -452,9 +452,9 @@ function getShadowStyles(): string {
       gap: 4px;
       padding: 3px 10px;
       border-radius: 9999px;
-      border: 1px solid #e9d5ff;
-      background: #f3e8ff;
-      color: #7c3aed;
+      border: 1px solid #99f6e4;
+      background: #ccfbf1;
+      color: #0d9488;
       font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
@@ -463,7 +463,7 @@ function getShadowStyles(): string {
       line-height: 1;
     }
     .prs-review-badge:hover {
-      background: #e9d5ff;
+      background: #99f6e4;
     }
 
     /* Review dialog */
@@ -558,27 +558,28 @@ function getShadowStyles(): string {
       font-family: inherit;
     }
     .prs-review-event-btn:hover {
-      border-color: #c084fc;
+      border-color: #2dd4bf;
     }
     .prs-review-event-btn-active {
-      background: #7c3aed;
+      background: #0d9488;
       color: white;
-      border-color: #7c3aed;
+      border-color: #0d9488;
     }
     .prs-review-event-btn-active:hover {
-      background: #6d28d9;
-      border-color: #6d28d9;
+      background: #0f766e;
+      border-color: #0f766e;
     }
 
     /* Hover */
-    .hover\\:prs-bg-purple-700:hover { background-color: #6d28d9; }
+    .hover\\:prs-bg-teal-700:hover { background-color: #0f766e; }
     .hover\\:prs-bg-red-600:hover { background-color: #dc2626; }
     .hover\\:prs-bg-neutral-100:hover { background-color: #f5f5f5; }
     .hover\\:prs-text-neutral-600:hover { color: #525252; }
     .hover\\:prs-shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); }
 
     /* Focus */
-    .focus\\:prs-ring-2:focus { box-shadow: 0 0 0 2px #a855f7; }
+    .focus\\:prs-ring-2:focus { box-shadow: 0 0 0 2px #14b8a6; }
+    .focus\\:prs-ring-teal-500:focus { box-shadow: 0 0 0 2px #14b8a6; }
     .focus\\:prs-border-transparent:focus { border-color: transparent; }
 
     /* Disabled */

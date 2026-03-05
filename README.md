@@ -1,2 +1,2 @@
-# pull-request-buddy
-Your sidekick when reviewing pull requests
+# PRobe
+Chat with any GitHub pull request. Your AI-powered PR review companion.

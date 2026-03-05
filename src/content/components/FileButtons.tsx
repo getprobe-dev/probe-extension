@@ -59,7 +59,7 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
     borderRadius: "6px",
     border: "1px solid transparent",
     background: "transparent",
-    color: "#7c3aed",
+    color: "#0d9488",
     cursor: "pointer",
     marginLeft: "8px",
     padding: "0",
@@ -69,8 +69,8 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
   });
 
   btn.addEventListener("mouseenter", () => {
-    btn.style.background = "#f3e8ff";
-    btn.style.borderColor = "#c084fc";
+    btn.style.background = "#ccfbf1";
+    btn.style.borderColor = "#2dd4bf";
   });
   btn.addEventListener("mouseleave", () => {
     btn.style.background = "transparent";

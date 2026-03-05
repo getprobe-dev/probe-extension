@@ -21,8 +21,8 @@ export function PromptStarters({ focusedFile, onSelect }: PromptStartersProps) {
 
   return (
     <div className="prs-flex prs-flex-col prs-items-center prs-justify-center prs-flex-1 prs-p-6 prs-text-center">
-      <div className="prs-w-12 prs-h-12 prs-rounded-full prs-bg-purple-100 prs-flex prs-items-center prs-justify-center prs-mb-3">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="prs-w-12 prs-h-12 prs-rounded-full prs-bg-teal-100 prs-flex prs-items-center prs-justify-center prs-mb-3">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
         </svg>
       </div>

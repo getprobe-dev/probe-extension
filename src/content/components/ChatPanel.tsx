@@ -119,7 +119,7 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
         if (fileContent) contextToSend.focusedFileContent = fileContent;
       }
 
-      const port = chrome.runtime.connect({ name: "sidekick-chat" });
+      const port = chrome.runtime.connect({ name: "probe-chat" });
       portRef.current = port;
 
       port.onMessage.addListener((event: StreamEvent) => {
@@ -179,11 +179,9 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
       {/* Header */}
       <div className="prs-flex prs-items-center prs-justify-between prs-px-4 prs-py-3 prs-border-b prs-border-neutral-200 prs-bg-white">
         <div className="prs-flex prs-items-center prs-gap-2 prs-min-w-0">
-          <div className="prs-w-6 prs-h-6 prs-rounded-md prs-bg-purple-600 prs-flex prs-items-center prs-justify-center prs-text-white prs-text-[10px] prs-font-bold prs-shrink-0">
-            PR
-          </div>
+          <span className="prs-text-sm prs-font-bold" style={{ letterSpacing: "-0.02em" }}>PRobe</span>
           <span className="prs-text-sm prs-font-semibold prs-truncate">
-            {prContext ? `#${prContext.number} ${prContext.title}` : "PR Sidekick"}
+            {prContext ? `#${prContext.number} ${prContext.title}` : ""}
           </span>
         </div>
         <div className="prs-flex prs-items-center prs-gap-1">

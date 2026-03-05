@@ -7,7 +7,7 @@ export function buildSystemPrompt(context: PRContext): string {
         "\n\n... [diff truncated due to length] ..."
       : context.diff;
 
-  return `You are PR Sidekick, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request.
+  return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request.
 
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
@@ -55,7 +55,7 @@ ${truncated}
 \`\`\``;
   }
 
-  return `You are PR Sidekick, an AI assistant that helps developers review GitHub pull requests. You are focused on a specific file within a pull request.
+  return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are focused on a specific file within a pull request.
 
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}

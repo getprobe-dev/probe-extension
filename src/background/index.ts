@@ -93,7 +93,7 @@ async function ghHeaders(): Promise<Record<string, string> | null> {
 
 async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/issues/${msg.number}/comments`;
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ body: msg.body }) });
@@ -105,7 +105,7 @@ async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentRe
 
 async function handlePostReviewComment(msg: PostReviewCommentRequest): Promise<SubmitReviewResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
   const res = await fetch(url, {
@@ -124,7 +124,7 @@ async function handlePostReviewComment(msg: PostReviewCommentRequest): Promise<S
 
 async function handleSubmitReview(msg: SubmitReviewRequest): Promise<SubmitReviewResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
   const res = await fetch(url, {
@@ -165,7 +165,7 @@ async function getGithubToken(): Promise<string | null> {
 }
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== "sidekick-chat") return;
+  if (port.name !== "probe-chat") return;
 
   let abortController: AbortController | null = null;
 
@@ -208,7 +208,7 @@ async function handleChat(
 ) {
   const { apiKey, proxyUrl } = await getSettings();
   if (!apiKey) {
-    send(port, { type: "error", message: "No API key configured. Click the PR Sidekick extension icon to add your Anthropic API key." });
+    send(port, { type: "error", message: "No API key configured. Click the PRobe extension icon to add your Anthropic API key." });
     return;
   }
 

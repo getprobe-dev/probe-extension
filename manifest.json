@@ -29,6 +29,7 @@
   "permissions": ["storage", "activeTab", "declarativeNetRequest"],
   "host_permissions": [
     "https://github.com/*",
+    "https://api.github.com/*",
     "https://*.githubusercontent.com/*",
     "https://*.workers.dev/*"
   ],

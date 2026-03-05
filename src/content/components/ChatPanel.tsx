@@ -250,6 +250,9 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
           isStreaming={isStreaming}
           focusedFile={focusedFile}
           onPromptSelect={handleSend}
+          prOwner={prContext?.owner}
+          prRepo={prContext?.repo}
+          prNumber={prContext?.number}
         />
       )}
 

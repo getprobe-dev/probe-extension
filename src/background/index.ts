@@ -9,53 +9,115 @@ import type {
   FetchDiffResponse,
   FetchFileRequest,
   FetchFileResponse,
+  PostCommentRequest,
+  PostCommentResponse,
 } from "../shared/types";
 
-chrome.runtime.onMessage.addListener((msg: FetchDiffRequest | FetchFileRequest, _sender, sendResponse) => {
-  if (msg.type === "fetch-diff") {
-    const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
+chrome.runtime.onMessage.addListener(
+  (msg: FetchDiffRequest | FetchFileRequest | PostCommentRequest, _sender, sendResponse) => {
+    if (msg.type === "fetch-diff") {
+      const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 
-    fetch(url)
-      .then(async (res) => {
-        if (!res.ok) {
-          sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchDiffResponse);
-          return;
-        }
-        const diff = await res.text();
-        sendResponse({ ok: true, diff } satisfies FetchDiffResponse);
-      })
-      .catch((err) => {
-        sendResponse({
-          ok: false,
-          error: err instanceof Error ? err.message : "Network error",
-        } satisfies FetchDiffResponse);
-      });
+      fetch(url)
+        .then(async (res) => {
+          if (!res.ok) {
+            sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchDiffResponse);
+            return;
+          }
+          const diff = await res.text();
+          sendResponse({ ok: true, diff } satisfies FetchDiffResponse);
+        })
+        .catch((err) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : "Network error",
+          } satisfies FetchDiffResponse);
+        });
 
-    return true;
+      return true;
+    }
+
+    if (msg.type === "fetch-file") {
+      const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
+
+      fetch(url)
+        .then(async (res) => {
+          if (!res.ok) {
+            sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchFileResponse);
+            return;
+          }
+          const content = await res.text();
+          sendResponse({ ok: true, content } satisfies FetchFileResponse);
+        })
+        .catch((err) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : "Network error",
+          } satisfies FetchFileResponse);
+        });
+
+      return true;
+    }
+
+    if (msg.type === "post-comment") {
+      handlePostComment(msg)
+        .then(sendResponse)
+        .catch((err) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : "Unknown error",
+          } satisfies PostCommentResponse);
+        });
+      return true;
+    }
+  }
+);
+
+async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentResponse> {
+  const token = await getGithubToken();
+  if (!token) {
+    return {
+      ok: false,
+      error: "No GitHub token configured. Click the PR Sidekick extension icon to add one.",
+    };
   }
 
-  if (msg.type === "fetch-file") {
-    const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
+  const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/issues/${msg.number}/comments`;
 
-    fetch(url)
-      .then(async (res) => {
-        if (!res.ok) {
-          sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchFileResponse);
-          return;
-        }
-        const content = await res.text();
-        sendResponse({ ok: true, content } satisfies FetchFileResponse);
-      })
-      .catch((err) => {
-        sendResponse({
-          ok: false,
-          error: err instanceof Error ? err.message : "Network error",
-        } satisfies FetchFileResponse);
-      });
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    body: JSON.stringify({ body: msg.body }),
+  });
 
-    return true;
+  if (!res.ok) {
+    const errorBody = await res.text();
+    let detail = `GitHub API error (${res.status})`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      detail = parsed?.message ?? detail;
+    } catch {
+      // use default
+    }
+    return { ok: false, error: detail };
   }
-});
+
+  const data = await res.json();
+  return { ok: true, url: data.html_url };
+}
+
+async function getGithubToken(): Promise<string | null> {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get([STORAGE_KEYS.GITHUB_TOKEN], (result) => {
+      resolve((result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? null);
+    });
+  });
+}
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== "sidekick-chat") return;

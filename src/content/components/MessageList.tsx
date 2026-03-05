@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { PromptStarters } from "./PromptStarters";
-import type { ChatMessage } from "../../shared/types";
+import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -11,6 +11,9 @@ interface MessageListProps {
   prOwner?: string;
   prRepo?: string;
   prNumber?: number;
+  fileLine: number;
+  fileSide: "LEFT" | "RIGHT";
+  onAddToReview: (comment: ReviewPendingComment) => void;
 }
 
 export function MessageList({
@@ -21,6 +24,9 @@ export function MessageList({
   prOwner,
   prRepo,
   prNumber,
+  fileLine,
+  fileSide,
+  onAddToReview,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +50,10 @@ export function MessageList({
           prOwner={prOwner}
           prRepo={prRepo}
           prNumber={prNumber}
+          focusedFile={focusedFile}
+          fileLine={fileLine}
+          fileSide={fileSide}
+          onAddToReview={onAddToReview}
         />
       ))}
       <div ref={bottomRef} />

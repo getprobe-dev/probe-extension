@@ -11,104 +11,149 @@ import type {
   FetchFileResponse,
   PostCommentRequest,
   PostCommentResponse,
+  PostReviewCommentRequest,
+  SubmitReviewRequest,
+  SubmitReviewResponse,
 } from "../shared/types";
 
+type IncomingMessage =
+  | FetchDiffRequest
+  | FetchFileRequest
+  | PostCommentRequest
+  | PostReviewCommentRequest
+  | SubmitReviewRequest;
+
 chrome.runtime.onMessage.addListener(
-  (msg: FetchDiffRequest | FetchFileRequest | PostCommentRequest, _sender, sendResponse) => {
+  (msg: IncomingMessage, _sender, sendResponse) => {
     if (msg.type === "fetch-diff") {
       const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
-
       fetch(url)
         .then(async (res) => {
           if (!res.ok) {
             sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchDiffResponse);
             return;
           }
-          const diff = await res.text();
-          sendResponse({ ok: true, diff } satisfies FetchDiffResponse);
+          sendResponse({ ok: true, diff: await res.text() } satisfies FetchDiffResponse);
         })
         .catch((err) => {
-          sendResponse({
-            ok: false,
-            error: err instanceof Error ? err.message : "Network error",
-          } satisfies FetchDiffResponse);
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : "Network error" } satisfies FetchDiffResponse);
         });
-
       return true;
     }
 
     if (msg.type === "fetch-file") {
       const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
-
       fetch(url)
         .then(async (res) => {
           if (!res.ok) {
             sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchFileResponse);
             return;
           }
-          const content = await res.text();
-          sendResponse({ ok: true, content } satisfies FetchFileResponse);
+          sendResponse({ ok: true, content: await res.text() } satisfies FetchFileResponse);
         })
         .catch((err) => {
-          sendResponse({
-            ok: false,
-            error: err instanceof Error ? err.message : "Network error",
-          } satisfies FetchFileResponse);
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : "Network error" } satisfies FetchFileResponse);
         });
-
       return true;
     }
 
     if (msg.type === "post-comment") {
-      handlePostComment(msg)
-        .then(sendResponse)
-        .catch((err) => {
-          sendResponse({
-            ok: false,
-            error: err instanceof Error ? err.message : "Unknown error",
-          } satisfies PostCommentResponse);
-        });
+      handlePostComment(msg).then(sendResponse).catch((err) => {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies PostCommentResponse);
+      });
+      return true;
+    }
+
+    if (msg.type === "post-review-comment") {
+      handlePostReviewComment(msg).then(sendResponse).catch((err) => {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies SubmitReviewResponse);
+      });
+      return true;
+    }
+
+    if (msg.type === "submit-review") {
+      handleSubmitReview(msg).then(sendResponse).catch((err) => {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies SubmitReviewResponse);
+      });
       return true;
     }
   }
 );
 
-async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentResponse> {
+async function ghHeaders(): Promise<Record<string, string> | null> {
   const token = await getGithubToken();
-  if (!token) {
-    return {
-      ok: false,
-      error: "No GitHub token configured. Click the PR Sidekick extension icon to add one.",
-    };
-  }
+  if (!token) return null;
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
+async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentResponse> {
+  const headers = await ghHeaders();
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/issues/${msg.number}/comments`;
+  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ body: msg.body }) });
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    body: JSON.stringify({ body: msg.body }),
-  });
-
-  if (!res.ok) {
-    const errorBody = await res.text();
-    let detail = `GitHub API error (${res.status})`;
-    try {
-      const parsed = JSON.parse(errorBody);
-      detail = parsed?.message ?? detail;
-    } catch {
-      // use default
-    }
-    return { ok: false, error: detail };
-  }
-
+  if (!res.ok) return { ok: false, error: await extractGhError(res) };
   const data = await res.json();
   return { ok: true, url: data.html_url };
+}
+
+async function handlePostReviewComment(msg: PostReviewCommentRequest): Promise<SubmitReviewResponse> {
+  const headers = await ghHeaders();
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
+
+  const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      event: "COMMENT",
+      comments: [{ path: msg.path, body: msg.body, line: msg.line, side: msg.side }],
+    }),
+  });
+
+  if (!res.ok) return { ok: false, error: await extractGhError(res) };
+  const data = await res.json();
+  return { ok: true, url: data.html_url };
+}
+
+async function handleSubmitReview(msg: SubmitReviewRequest): Promise<SubmitReviewResponse> {
+  const headers = await ghHeaders();
+  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PR Sidekick extension icon to add one." };
+
+  const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      body: msg.body || undefined,
+      event: msg.event,
+      comments: msg.comments.map((c) => ({
+        path: c.path,
+        body: c.body,
+        line: c.line,
+        side: c.side,
+      })),
+    }),
+  });
+
+  if (!res.ok) return { ok: false, error: await extractGhError(res) };
+  const data = await res.json();
+  return { ok: true, url: data.html_url };
+}
+
+async function extractGhError(res: Response): Promise<string> {
+  let detail = `GitHub API error (${res.status})`;
+  try {
+    const parsed = JSON.parse(await res.text());
+    detail = parsed?.message ?? detail;
+  } catch { /* use default */ }
+  return detail;
 }
 
 async function getGithubToken(): Promise<string | null> {
@@ -129,7 +174,6 @@ chrome.runtime.onConnect.addListener((port) => {
       abortController?.abort();
       return;
     }
-
     if (msg.type === "chat") {
       abortController = new AbortController();
       await handleChat(port, msg.payload.messages, msg.payload.context, abortController.signal);
@@ -153,11 +197,7 @@ async function getSettings(): Promise<{ apiKey: string | null; proxyUrl: string 
 }
 
 function send(port: chrome.runtime.Port, event: StreamEvent) {
-  try {
-    port.postMessage(event);
-  } catch {
-    // Port disconnected
-  }
+  try { port.postMessage(event); } catch { /* Port disconnected */ }
 }
 
 async function handleChat(
@@ -172,13 +212,9 @@ async function handleChat(
     return;
   }
 
-  let systemPrompt: string;
-  if (context.focusedFile) {
-    const fileDiff = context.diff;
-    systemPrompt = buildFileSystemPrompt(context, context.focusedFile, fileDiff, context.focusedFileContent);
-  } else {
-    systemPrompt = buildSystemPrompt(context);
-  }
+  const systemPrompt = context.focusedFile
+    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent)
+    : buildSystemPrompt(context);
 
   const anthropicMessages = messages.map((m) => ({
     role: m.role as "user" | "assistant",
@@ -211,18 +247,13 @@ async function handleChat(
       try {
         const parsed = JSON.parse(errorBody);
         errorMessage = parsed?.error?.message ?? errorMessage;
-      } catch {
-        // Use default error message
-      }
+      } catch { /* use default */ }
       send(port, { type: "error", message: errorMessage });
       return;
     }
 
     const reader = response.body?.getReader();
-    if (!reader) {
-      send(port, { type: "error", message: "No response body" });
-      return;
-    }
+    if (!reader) { send(port, { type: "error", message: "No response body" }); return; }
 
     const decoder = new TextDecoder();
     let buffer = "";
@@ -239,25 +270,18 @@ async function handleChat(
         if (!line.startsWith("data: ")) continue;
         const data = line.slice(6).trim();
         if (data === "[DONE]") continue;
-
         try {
           const event = JSON.parse(data);
-          if (
-            event.type === "content_block_delta" &&
-            event.delta?.type === "text_delta"
-          ) {
+          if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
             send(port, { type: "chunk", content: event.delta.text });
           }
-        } catch {
-          // Skip malformed SSE events
-        }
+        } catch { /* skip malformed SSE */ }
       }
     }
 
     send(port, { type: "done" });
   } catch (err: unknown) {
     if (signal.aborted) return;
-    const message = err instanceof Error ? err.message : "Unknown error";
-    send(port, { type: "error", message });
+    send(port, { type: "error", message: err instanceof Error ? err.message : "Unknown error" });
   }
 }

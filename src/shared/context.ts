@@ -58,6 +58,40 @@ export function extractDiffForFile(fullDiff: string, filePath: string): string {
   return result.join("\n");
 }
 
+export function extractFirstChangedLine(
+  fullDiff: string,
+  filePath: string
+): { line: number; side: "LEFT" | "RIGHT" } {
+  const fileDiff = extractDiffForFile(fullDiff, filePath);
+  const lines = fileDiff.split("\n");
+
+  let currentNewLine = 0;
+  let currentOldLine = 0;
+
+  for (const line of lines) {
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      currentOldLine = parseInt(hunkMatch[1], 10);
+      currentNewLine = parseInt(hunkMatch[2], 10);
+      continue;
+    }
+
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      return { line: currentNewLine, side: "RIGHT" };
+    }
+    if (line.startsWith("-") && !line.startsWith("---")) {
+      currentOldLine++;
+      continue;
+    }
+    if (!line.startsWith("\\")) {
+      currentNewLine++;
+      currentOldLine++;
+    }
+  }
+
+  return { line: 1, side: "RIGHT" };
+}
+
 async function fetchDiff(
   owner: string,
   repo: string,

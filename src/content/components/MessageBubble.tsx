@@ -2,7 +2,7 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CommentComposer } from "./CommentComposer";
-import type { ChatMessage } from "../../shared/types";
+import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -10,6 +10,10 @@ interface MessageBubbleProps {
   prOwner?: string;
   prRepo?: string;
   prNumber?: number;
+  focusedFile: string | null;
+  fileLine: number;
+  fileSide: "LEFT" | "RIGHT";
+  onAddToReview: (comment: ReviewPendingComment) => void;
 }
 
 export function MessageBubble({
@@ -18,6 +22,10 @@ export function MessageBubble({
   prOwner,
   prRepo,
   prNumber,
+  focusedFile,
+  fileLine,
+  fileSide,
+  onAddToReview,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [showComposer, setShowComposer] = useState(false);
@@ -93,7 +101,11 @@ export function MessageBubble({
             owner={prOwner}
             repo={prRepo}
             number={prNumber}
+            focusedFile={focusedFile}
+            fileLine={fileLine}
+            fileSide={fileSide}
             onClose={() => setShowComposer(false)}
+            onAddToReview={onAddToReview}
           />
         </div>
       )}

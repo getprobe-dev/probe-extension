@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChatPanel } from "./components/ChatPanel";
+import { FileButtons } from "./components/FileButtons";
 
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
+  const [focusedFile, setFocusedFile] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -15,8 +17,19 @@ export function App() {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
+  const handleFileSelect = useCallback((filePath: string) => {
+    setFocusedFile(filePath);
+    setIsOpen(true);
+  }, []);
+
+  const handleClearFocus = useCallback(() => {
+    setFocusedFile(null);
+  }, []);
+
   return (
     <>
+      <FileButtons onFileSelect={handleFileSelect} />
+
       {/* Floating toggle button */}
       {!isOpen && (
         <button
@@ -38,7 +51,11 @@ export function App() {
           onKeyUp={(e) => e.stopPropagation()}
           onKeyPress={(e) => e.stopPropagation()}
         >
-          <ChatPanel onClose={() => setIsOpen(false)} />
+          <ChatPanel
+            onClose={() => setIsOpen(false)}
+            focusedFile={focusedFile}
+            onClearFocus={handleClearFocus}
+          />
         </div>
       )}
     </>

@@ -5,6 +5,9 @@ export interface PRContext {
   title: string;
   description: string;
   diff: string;
+  headBranch: string;
+  focusedFile?: string;
+  focusedFileContent?: string;
 }
 
 export interface ChatMessage {
@@ -27,6 +30,20 @@ export interface FetchDiffRequest {
 export interface FetchDiffResponse {
   ok: boolean;
   diff?: string;
+  error?: string;
+}
+
+export interface FetchFileRequest {
+  type: "fetch-file";
+  owner: string;
+  repo: string;
+  branch: string;
+  path: string;
+}
+
+export interface FetchFileResponse {
+  ok: boolean;
+  content?: string;
   error?: string;
 }
 

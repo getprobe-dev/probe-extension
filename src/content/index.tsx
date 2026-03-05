@@ -246,6 +246,64 @@ function getShadowStyles(): string {
     .prs-z-\\[2147483646\\] { z-index: 2147483646; }
     .prs-z-\\[2147483647\\] { z-index: 2147483647; }
 
+    /* Flex wrap */
+    .prs-flex-wrap { flex-wrap: wrap; }
+
+    /* File focus pill */
+    .prs-file-focus-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px 4px 10px;
+      border-radius: 9999px;
+      background: #f3e8ff;
+      border: 1px solid #e9d5ff;
+      color: #6d28d9;
+      font-size: 0.75rem;
+      font-weight: 500;
+      max-width: 100%;
+      line-height: 1.2;
+    }
+    .prs-file-focus-clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: #7c3aed;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+    .prs-file-focus-clear:hover {
+      background: #e9d5ff;
+    }
+
+    /* Prompt starter bubbles */
+    .prs-prompt-starter {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid #e5e5e5;
+      background: #ffffff;
+      color: #404040;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+    .prs-prompt-starter:hover {
+      border-color: #c084fc;
+      background: #faf5ff;
+      color: #6d28d9;
+    }
+
     /* Hover */
     .hover\\:prs-bg-purple-700:hover { background-color: #6d28d9; }
     .hover\\:prs-bg-red-600:hover { background-color: #dc2626; }

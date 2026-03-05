@@ -1,4 +1,4 @@
-import type { PRContext, FetchDiffRequest, FetchDiffResponse } from "./types";
+import type { PRContext, FetchDiffRequest, FetchDiffResponse, FetchFileRequest, FetchFileResponse } from "./types";
 
 export function parsePRUrl(
   url: string
@@ -24,6 +24,40 @@ export function scrapePRMetadata(): { title: string; description: string } {
   return { title, description };
 }
 
+export function scrapeHeadBranch(): string {
+  const headRef = document.querySelector<HTMLElement>(".head-ref");
+  if (headRef) {
+    const branchName = headRef.getAttribute("title") || headRef.textContent?.trim();
+    if (branchName) return branchName;
+  }
+  const clipboardCopy = document.querySelector<HTMLElement>(".head-ref clipboard-copy");
+  if (clipboardCopy) {
+    const val = clipboardCopy.getAttribute("value");
+    if (val) return val;
+  }
+  return "main";
+}
+
+export function extractDiffForFile(fullDiff: string, filePath: string): string {
+  const lines = fullDiff.split("\n");
+  const result: string[] = [];
+  let capturing = false;
+
+  for (const line of lines) {
+    if (line.startsWith("diff --git")) {
+      if (capturing) break;
+      if (line.includes(`b/${filePath}`)) {
+        capturing = true;
+      }
+    }
+    if (capturing) {
+      result.push(line);
+    }
+  }
+
+  return result.join("\n");
+}
+
 async function fetchDiff(
   owner: string,
   repo: string,
@@ -45,12 +79,31 @@ async function fetchDiff(
   });
 }
 
+export async function fetchFileContent(
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string
+): Promise<string | null> {
+  const msg: FetchFileRequest = { type: "fetch-file", owner, repo, branch, path };
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(msg, (response: FetchFileResponse) => {
+      if (chrome.runtime.lastError || !response?.ok) {
+        resolve(null);
+        return;
+      }
+      resolve(response.content!);
+    });
+  });
+}
+
 export async function extractPRContext(): Promise<PRContext> {
   const parsed = parsePRUrl(window.location.href);
   if (!parsed) throw new Error("Not on a GitHub PR page");
 
   const { title, description } = scrapePRMetadata();
   const diff = await fetchDiff(parsed.owner, parsed.repo, parsed.number);
+  const headBranch = scrapeHeadBranch();
 
-  return { ...parsed, title, description, diff };
+  return { ...parsed, title, description, diff, headBranch };
 }

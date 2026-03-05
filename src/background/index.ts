@@ -1,8 +1,17 @@
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
-import { buildSystemPrompt } from "../shared/constants";
-import type { BackgroundMessage, StreamEvent, ChatMessage, PRContext, FetchDiffRequest, FetchDiffResponse } from "../shared/types";
+import { buildSystemPrompt, buildFileSystemPrompt } from "../shared/constants";
+import type {
+  BackgroundMessage,
+  StreamEvent,
+  ChatMessage,
+  PRContext,
+  FetchDiffRequest,
+  FetchDiffResponse,
+  FetchFileRequest,
+  FetchFileResponse,
+} from "../shared/types";
 
-chrome.runtime.onMessage.addListener((msg: FetchDiffRequest, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg: FetchDiffRequest | FetchFileRequest, _sender, sendResponse) => {
   if (msg.type === "fetch-diff") {
     const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 
@@ -20,6 +29,28 @@ chrome.runtime.onMessage.addListener((msg: FetchDiffRequest, _sender, sendRespon
           ok: false,
           error: err instanceof Error ? err.message : "Network error",
         } satisfies FetchDiffResponse);
+      });
+
+    return true;
+  }
+
+  if (msg.type === "fetch-file") {
+    const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
+
+    fetch(url)
+      .then(async (res) => {
+        if (!res.ok) {
+          sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchFileResponse);
+          return;
+        }
+        const content = await res.text();
+        sendResponse({ ok: true, content } satisfies FetchFileResponse);
+      })
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        } satisfies FetchFileResponse);
       });
 
     return true;
@@ -79,7 +110,13 @@ async function handleChat(
     return;
   }
 
-  const systemPrompt = buildSystemPrompt(context);
+  let systemPrompt: string;
+  if (context.focusedFile) {
+    const fileDiff = context.diff;
+    systemPrompt = buildFileSystemPrompt(context, context.focusedFile, fileDiff, context.focusedFileContent);
+  } else {
+    systemPrompt = buildSystemPrompt(context);
+  }
 
   const anthropicMessages = messages.map((m) => ({
     role: m.role as "user" | "assistant",

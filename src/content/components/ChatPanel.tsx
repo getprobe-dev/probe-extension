@@ -3,13 +3,15 @@ import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
-import { extractPRContext } from "../../shared/context";
+import { extractPRContext, extractDiffForFile, fetchFileContent } from "../../shared/context";
 
 interface ChatPanelProps {
   onClose: () => void;
+  focusedFile: string | null;
+  onClearFocus: () => void;
 }
 
-export function ChatPanel({ onClose }: ChatPanelProps) {
+export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,13 +50,18 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    setMessages([]);
+    setError(null);
+  }, [focusedFile]);
+
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (!storageKeyRef.current) return;
     chrome.storage.local.set({ [storageKeyRef.current]: msgs });
   }, []);
 
   const handleSend = useCallback(
-    (content: string) => {
+    async (content: string) => {
       if (!prContext || isStreaming) return;
 
       const userMessage: ChatMessage = {
@@ -73,6 +80,27 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
       setMessages(newMessages);
       setIsStreaming(true);
       setError(null);
+
+      let contextToSend: PRContext = { ...prContext };
+
+      if (focusedFile) {
+        const fileDiff = extractDiffForFile(prContext.diff, focusedFile);
+        contextToSend = {
+          ...prContext,
+          diff: fileDiff,
+          focusedFile,
+        };
+
+        const fileContent = await fetchFileContent(
+          prContext.owner,
+          prContext.repo,
+          prContext.headBranch,
+          focusedFile
+        );
+        if (fileContent) {
+          contextToSend.focusedFileContent = fileContent;
+        }
+      }
 
       const port = chrome.runtime.connect({ name: "sidekick-chat" });
       portRef.current = port;
@@ -115,12 +143,12 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         type: "chat",
         payload: {
           messages: [...messages, userMessage],
-          context: prContext,
+          context: contextToSend,
         },
       };
       port.postMessage(payload);
     },
-    [prContext, isStreaming, messages, persistMessages]
+    [prContext, isStreaming, messages, persistMessages, focusedFile]
   );
 
   const handleStop = useCallback(() => {
@@ -140,6 +168,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
       chrome.storage.local.remove(storageKeyRef.current);
     }
   }, []);
+
+  const fileName = focusedFile?.split("/").pop() ?? focusedFile;
 
   return (
     <div className="prs-flex prs-flex-col prs-h-full prs-bg-white prs-text-neutral-900">
@@ -179,6 +209,29 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         </div>
       </div>
 
+      {/* File focus pill */}
+      {focusedFile && (
+        <div className="prs-flex prs-items-center prs-px-4 prs-py-2 prs-border-b prs-border-neutral-200 prs-bg-neutral-100">
+          <div className="prs-file-focus-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
+              <polyline points="13 2 13 9 20 9" />
+            </svg>
+            <span className="prs-truncate" title={focusedFile}>{fileName}</span>
+            <button
+              onClick={onClearFocus}
+              className="prs-file-focus-clear"
+              title="Return to whole-PR mode"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error banner */}
       {error && (
         <div className="prs-px-4 prs-py-2 prs-bg-red-50 prs-border-b prs-border-red-100 prs-text-xs prs-text-red-600">
@@ -192,7 +245,12 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           Loading PR context…
         </div>
       ) : (
-        <MessageList messages={messages} isStreaming={isStreaming} />
+        <MessageList
+          messages={messages}
+          isStreaming={isStreaming}
+          focusedFile={focusedFile}
+          onPromptSelect={handleSend}
+        />
       )}
 
       {/* Input */}

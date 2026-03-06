@@ -170,8 +170,8 @@ export function ReviewQueue({
                       onClick={() => setEvent(ev)}
                       className={`flex-1 py-1.5 px-2 rounded-lg border text-[0.65rem] font-medium text-center cursor-pointer transition-all ${
                         event === ev
-                          ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white border-transparent shadow-sm'
-                          : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                          ? 'bg-[#1a2e2b] text-[#5eead4] border-transparent shadow-sm'
+                          : 'border-border bg-background text-muted-foreground hover:border-[#5eead4] hover:text-foreground'
                       }`}
                     >
                       {ev === 'COMMENT'
@@ -206,7 +206,7 @@ export function ReviewQueue({
                   size='sm'
                   onClick={handleSubmit}
                   disabled={state === 'submitting'}
-                  className='text-xs h-7 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-sm'
+                  className='text-xs h-7 rounded-lg bg-[#1a2e2b] hover:bg-[#243d39] text-[#5eead4] cursor-pointer shadow-[0_2px_0_0_rgba(0,0,0,0.15)] active:shadow-[inset_0_2px_3px_rgba(0,0,0,0.3)] active:translate-y-px transition-all'
                 >
                   {state === 'submitting'
                     ? 'Submitting...'

@@ -13,6 +13,7 @@ export interface PRContext {
   description: string;
   diff: string;
   headBranch: string;
+  author?: string;
   focusedFile?: string;
   focusedFileContent?: string;
   focusedLineRange?: FocusedLineRange;
@@ -98,6 +99,49 @@ export interface SubmitReviewRequest {
 export interface SubmitReviewResponse {
   ok: boolean;
   url?: string;
+  error?: string;
+}
+
+export interface FetchPRStatsRequest {
+  type: "fetch-pr-stats";
+  owner: string;
+  repo: string;
+  number: number;
+}
+
+export interface PRStats {
+  additions: number;
+  deletions: number;
+  commits: number;
+  changedFiles: number;
+  comments: number;
+  author: { login: string; avatarUrl: string };
+  createdAt: string;
+  labels: string[];
+  reviewers: Array<{ login: string; avatarUrl: string; state: string }>;
+  commitAuthors: Array<{ login: string; avatarUrl: string }>;
+  files: Array<{ filename: string; additions: number; deletions: number }>;
+}
+
+export interface FetchPRStatsResponse {
+  ok: boolean;
+  stats?: PRStats;
+  error?: string;
+}
+
+export interface GeneratePRSummaryRequest {
+  type: "generate-pr-summary";
+  owner: string;
+  repo: string;
+  number: number;
+  title: string;
+  description: string;
+  stats: PRStats;
+}
+
+export interface GeneratePRSummaryResponse {
+  ok: boolean;
+  bullets?: string[];
   error?: string;
 }
 

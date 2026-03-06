@@ -1,57 +1,57 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
-import { PromptStarters } from "./PromptStarters";
-import type { ChatMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
+import { PRDashboard } from "./PRDashboard";
+import type { ChatMessage, PRContext, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   focusedFile: string | null;
   focusedLineRange: FocusedLineRange | null;
-  onPromptSelect: (prompt: string) => void;
-  prOwner?: string;
-  prRepo?: string;
-  prNumber?: number;
+  prContext?: PRContext | null;
   fileLine: number;
   fileSide: "LEFT" | "RIGHT";
   onAddToReview: (comment: ReviewPendingComment) => void;
+  onSummaryReady?: (bullets: string[]) => void;
 }
 
 export function MessageList({
   messages,
   isStreaming,
   focusedFile,
-  focusedLineRange,
-  onPromptSelect,
-  prOwner,
-  prRepo,
-  prNumber,
+  prContext,
   fileLine,
   fileSide,
   onAddToReview,
+  onSummaryReady,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, messages[messages.length - 1]?.content]);
+  }, [messages, lastMsg?.content]);
 
   if (messages.length === 0) {
+    if (prContext) return <PRDashboard prContext={prContext} onSummaryReady={onSummaryReady} />;
     return (
-      <PromptStarters focusedFile={focusedFile} focusedLineRange={focusedLineRange} onSelect={onPromptSelect} />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex-1 overflow-y-auto px-4 py-3">
       {messages.map((msg, i) => (
         <MessageBubble
           key={i}
           message={msg}
           isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
-          prOwner={prOwner}
-          prRepo={prRepo}
-          prNumber={prNumber}
+          prOwner={prContext?.owner}
+          prRepo={prContext?.repo}
+          prNumber={prContext?.number}
           focusedFile={focusedFile}
           fileLine={fileLine}
           fileSide={fileSide}

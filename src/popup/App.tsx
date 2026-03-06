@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
 
@@ -8,20 +8,27 @@ export function PopupApp() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const storedRef = useRef({ apiKey: "", githubToken: "" });
+
   useEffect(() => {
     chrome.storage.sync.get(
       [STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN],
       (result) => {
-        if (result[STORAGE_KEYS.API_KEY]) {
-          setApiKey(result[STORAGE_KEYS.API_KEY] as string);
-        }
-        if (result[STORAGE_KEYS.GITHUB_TOKEN]) {
-          setGithubToken(result[STORAGE_KEYS.GITHUB_TOKEN] as string);
-        }
+        const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
+        const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
+        setApiKey(key);
+        setGithubToken(token);
+        storedRef.current = { apiKey: key, githubToken: token };
         setLoading(false);
       }
     );
   }, []);
+
+  const hasDelta =
+    apiKey.trim() !== storedRef.current.apiKey ||
+    githubToken.trim() !== storedRef.current.githubToken;
+
+  const hasStored = !!storedRef.current.apiKey;
 
   const handleSave = () => {
     const trimmedKey = apiKey.trim();
@@ -39,8 +46,8 @@ export function PopupApp() {
     }
 
     chrome.storage.sync.set(settings, () => {
+      storedRef.current = { apiKey: trimmedKey, githubToken: trimmedGithub };
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
     });
   };
 
@@ -50,6 +57,7 @@ export function PopupApp() {
       () => {
         setApiKey("");
         setGithubToken("");
+        storedRef.current = { apiKey: "", githubToken: "" };
         setSaved(false);
       }
     );
@@ -64,8 +72,10 @@ export function PopupApp() {
   }
 
   const logoUrl = chrome.runtime.getURL("icon-48.png");
-
   const inputClass = "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
+
+  const showSave = hasDelta && apiKey.trim().length > 0;
+  const showClear = hasStored || apiKey.trim().length > 0;
 
   return (
     <div className="w-80 font-sans">
@@ -78,7 +88,7 @@ export function PopupApp() {
           height={30}
           className="rounded-lg ring-1 ring-white/10"
         />
-        <h1 className="text-lg font-bold tracking-tight">PRobe</h1>
+        <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>PRobe</h1>
       </div>
 
       <div className="px-5 pb-5">
@@ -88,7 +98,7 @@ export function PopupApp() {
         <input
           type="password"
           value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          onChange={(e) => { setApiKey(e.target.value); setSaved(false); }}
           placeholder="sk-ant-..."
           className={inputClass}
         />
@@ -104,7 +114,7 @@ export function PopupApp() {
         <input
           type="password"
           value={githubToken}
-          onChange={(e) => setGithubToken(e.target.value)}
+          onChange={(e) => { setGithubToken(e.target.value); setSaved(false); }}
           placeholder="ghp_..."
           className={inputClass}
         />
@@ -113,18 +123,26 @@ export function PopupApp() {
         </p>
 
         <div className="flex gap-2 mt-5">
-          <Button
-            onClick={handleSave}
-            disabled={!apiKey.trim()}
-            className="flex-1 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-sm cursor-pointer"
-          >
-            {saved ? "Saved!" : "Save"}
-          </Button>
-          {apiKey && (
+          {saved ? (
+            <Button
+              disabled
+              className="flex-1 rounded-xl text-white bg-teal-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] translate-y-px transition-all"
+            >
+              Saved!
+            </Button>
+          ) : showSave ? (
+            <Button
+              onClick={handleSave}
+              className="flex-1 rounded-xl text-white cursor-pointer bg-gradient-to-b from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-[0_2px_0_0_rgba(0,0,0,0.15),0_2px_6px_rgba(0,0,0,0.1)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-px transition-all"
+            >
+              Save
+            </Button>
+          ) : null}
+          {showClear && !saved && (
             <Button
               variant="secondary"
               onClick={handleClear}
-              className="rounded-xl cursor-pointer"
+              className={`rounded-xl cursor-pointer shadow-[0_2px_0_0_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.06)] active:shadow-[inset_0_2px_3px_rgba(0,0,0,0.1)] active:translate-y-px transition-all ${!showSave ? "flex-1" : ""}`}
             >
               Clear
             </Button>

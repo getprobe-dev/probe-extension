@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FocusedLineRange, FocusedItem } from '../shared/types';
 import { ChatPanel } from './components/ChatPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { FileButtons } from './components/FileButtons';
 import { LineCommentButton } from './components/LineCommentButton';
 import { getIconUrl } from './utils/theme';
@@ -95,15 +96,16 @@ export function App() {
           style={{ zIndex: 2147483647 }}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}
-          onKeyPress={(e) => e.stopPropagation()}
         >
-          <ChatPanel
-            onClose={() => setIsOpen(false)}
-            focusedItems={focusedItems}
-            onClearFocus={handleClearFocus}
-            onRemoveItem={handleRemoveItem}
-            onDiffLoaded={setPrDiff}
-          />
+          <ErrorBoundary>
+            <ChatPanel
+              onClose={() => setIsOpen(false)}
+              focusedItems={focusedItems}
+              onClearFocus={handleClearFocus}
+              onRemoveItem={handleRemoveItem}
+              onDiffLoaded={setPrDiff}
+            />
+          </ErrorBoundary>
         </div>
       )}
     </>

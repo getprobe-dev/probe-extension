@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { subscribeMutation } from "./utils/domObserver";
 import shadowStyles from "../styles/content-shadow.css?inline";
 
 const PR_URL_RE = /github\.com\/[^/]+\/[^/]+\/pull\/\d+/;
@@ -47,10 +48,12 @@ function unmount() {
   document.getElementById("probe-root")?.remove();
 }
 
+let unsubscribe: (() => void) | null = null;
+
 function syncWithUrl() {
   if (!isContextValid()) {
     unmount();
-    observer.disconnect();
+    unsubscribe?.();
     return;
   }
   if (PR_URL_RE.test(location.href)) {
@@ -63,10 +66,9 @@ function syncWithUrl() {
 syncWithUrl();
 
 let lastHref = location.href;
-const observer = new MutationObserver(() => {
+unsubscribe = subscribeMutation(() => {
   if (location.href !== lastHref) {
     lastHref = location.href;
     syncWithUrl();
   }
 });
-observer.observe(document.body, { childList: true, subtree: true });

@@ -191,6 +191,47 @@ async function getGithubToken(): Promise<string | null> {
   });
 }
 
+interface GHUser {
+  login: string;
+  avatar_url: string;
+}
+
+interface GHPullResponse {
+  additions: number;
+  deletions: number;
+  commits: number;
+  changed_files: number;
+  comments: number;
+  review_comments: number;
+  user: GHUser | null;
+  created_at: string;
+  labels: Array<{ name: string }>;
+}
+
+interface GHFileEntry {
+  filename: string;
+  additions: number;
+  deletions: number;
+}
+
+interface GHCommitEntry {
+  sha: string;
+  author: GHUser | null;
+  commit: {
+    message: string;
+    author: { name: string; date: string } | null;
+  };
+}
+
+interface GHCommitDetailResponse {
+  stats?: { additions: number; deletions: number };
+}
+
+interface GHReviewEntry {
+  user: GHUser | null;
+  state: string;
+}
+
 async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStatsResponse> {
   const headers = await ghHeaders();
   if (!headers) return { ok: false, error: "No GitHub token configured." };
@@ -206,10 +247,10 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
 
   if (!prRes.ok) return { ok: false, error: await extractGhError(prRes) };
 
-  const pr = await prRes.json();
-  const files = filesRes.ok ? await filesRes.json() : [];
-  const commits = commitsRes.ok ? await commitsRes.json() : [];
-  const reviews = reviewsRes.ok ? await reviewsRes.json() : [];
+  const pr: GHPullResponse = await prRes.json();
+  const files: GHFileEntry[] = filesRes.ok ? await filesRes.json() : [];
+  const commits: GHCommitEntry[] = commitsRes.ok ? await commitsRes.json() : [];
+  const reviews: GHReviewEntry[] = reviewsRes.ok ? await reviewsRes.json() : [];
 
   const authorSet = new Map<string, { login: string; avatarUrl: string }>();
   for (const c of commits) {
@@ -219,7 +260,7 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
   }
 
   const commitDetailResults = await Promise.all(
-    (commits as Array<{ sha: string }>).slice(0, 30).map(async (c) => {
+    commits.slice(0, 30).map(async (c): Promise<GHCommitDetailResponse | null> => {
       try {
         const res = await fetch(
           `https://api.github.com/repos/${msg.owner}/${msg.repo}/commits/${c.sha}`,
@@ -231,16 +272,16 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
     }),
   );
 
-  const commitDetails: import("../shared/types").CommitDetail[] = (commits as Array<Record<string, unknown>>).map((c, i) => {
+  const commitDetails: import("../shared/types").CommitDetail[] = commits.map((c, i) => {
     const detail = commitDetailResults[i];
     return {
-      sha: (c.sha as string) ?? "",
-      message: ((c.commit as Record<string, unknown>)?.message as string) ?? "",
-      author: ((c.author as Record<string, unknown>)?.login as string) ?? ((c.commit as Record<string, unknown>)?.author as Record<string, unknown>)?.name as string ?? "unknown",
-      avatarUrl: ((c.author as Record<string, unknown>)?.avatar_url as string) ?? "",
-      date: (((c.commit as Record<string, unknown>)?.author as Record<string, unknown>)?.date as string) ?? "",
-      additions: (detail?.stats?.additions as number) ?? 0,
-      deletions: (detail?.stats?.deletions as number) ?? 0,
+      sha: c.sha ?? "",
+      message: c.commit?.message ?? "",
+      author: c.author?.login ?? c.commit?.author?.name ?? "unknown",
+      avatarUrl: c.author?.avatar_url ?? "",
+      date: c.commit?.author?.date ?? "",
+      additions: detail?.stats?.additions ?? 0,
+      deletions: detail?.stats?.deletions ?? 0,
     };
   });
 
@@ -262,12 +303,10 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
     comments: (pr.comments ?? 0) + (pr.review_comments ?? 0),
     author: { login: pr.user?.login ?? "", avatarUrl: pr.user?.avatar_url ?? "" },
     createdAt: pr.created_at ?? "",
-    labels: (pr.labels ?? []).map((l: { name: string }) => l.name),
+    labels: (pr.labels ?? []).map((l) => l.name),
     reviewers: Array.from(reviewerMap.values()),
     commitAuthors: Array.from(authorSet.values()),
-    files: (files as Array<{ filename: string; additions: number; deletions: number }>).map(
-      (f) => ({ filename: f.filename, additions: f.additions, deletions: f.deletions })
-    ),
+    files: files.map((f) => ({ filename: f.filename, additions: f.additions, deletions: f.deletions })),
     commitDetails,
   };
 

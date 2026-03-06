@@ -14,7 +14,8 @@
     },
     "condition": {
       "urlFilter": "||patch-diff.githubusercontent.com",
-      "resourceTypes": ["xmlhttprequest"]
+      "resourceTypes": ["xmlhttprequest"],
+      "initiatorDomains": ["github.com"]
     }
   }
 ]

@@ -74,9 +74,9 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
     <div className="shrink-0 bg-background">
       {showStarters && (
         <div className="px-3 pt-3 space-y-2 border-t border-border">
-          {hasFocusBullets && (
+          {hasFocusBullets && focusBullets && (
             <div className="flex flex-col gap-1.5">
-              {focusBullets!.map((text, i) => (
+              {focusBullets.map((text, i) => (
                 <button
                   key={i}
                   onClick={() => onSend(text)}

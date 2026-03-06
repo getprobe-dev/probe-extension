@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { subscribeMutation } from "../utils/domObserver";
 
 interface FileButtonsProps {
   onFileSelect: (filePath: string) => void;
@@ -108,11 +109,9 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
 
 export function FileButtons({ onFileSelect }: FileButtonsProps) {
   const callbackRef = useRef(onFileSelect);
-  callbackRef.current = onFileSelect;
+  useEffect(() => { callbackRef.current = onFileSelect; });
 
   useEffect(() => {
-    let rafId = 0;
-
     function inject() {
       const headers = document.querySelectorAll(FILE_PATH_SELECTOR);
       headers.forEach((header) => {
@@ -120,21 +119,11 @@ export function FileButtons({ onFileSelect }: FileButtonsProps) {
       });
     }
 
-    function scheduleInject() {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(inject);
-    }
-
     inject();
-
-    // GitHub lazy-loads diffs as you scroll; #files no longer exists in the
-    // new UI, so observe document.body. RAF debounces the high mutation volume.
-    const observer = new MutationObserver(scheduleInject);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const unsubscribe = subscribeMutation(inject);
 
     return () => {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
+      unsubscribe();
       document.querySelectorAll(`.${BUTTON_CLASS}`).forEach((btn) => btn.remove());
     };
   }, []);

@@ -31,7 +31,7 @@
     "https://github.com/*",
     "https://api.github.com/*",
     "https://*.githubusercontent.com/*",
-    "https://*.workers.dev/*"
+    "https://pr-sidekick-proxy.sgunturi.workers.dev/*"
   ],
   "web_accessible_resources": [
     {

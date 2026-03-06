@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { PRDashboard } from "./PRDashboard";
-import type { ChatMessage, PRContext, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
+import type { ChatMessage, PRContext, ReviewPendingComment } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   focusedFile: string | null;
-  focusedLineRange: FocusedLineRange | null;
   prContext?: PRContext | null;
   fileLine: number;
   fileSide: "LEFT" | "RIGHT";
@@ -46,7 +45,7 @@ export function MessageList({
     <div className="flex-1 overflow-y-auto px-4 py-3">
       {messages.map((msg, i) => (
         <MessageBubble
-          key={i}
+          key={`${msg.role}-${msg.timestamp}-${i}`}
           message={msg}
           isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
           prOwner={prContext?.owner}

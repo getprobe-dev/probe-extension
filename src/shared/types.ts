@@ -181,7 +181,8 @@ export type StreamEvent =
   | { type: "done" }
   | { type: "error"; message: string };
 
-export const DEFAULT_PROXY_URL = "https://pr-sidekick-proxy.sgunturi.workers.dev";
+export const DEFAULT_PROXY_URL: string =
+  import.meta.env.VITE_PROXY_URL || "https://pr-sidekick-proxy.sgunturi.workers.dev";
 
 export const STORAGE_KEYS = {
   API_KEY: "anthropic_api_key",

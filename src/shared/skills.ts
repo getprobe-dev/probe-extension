@@ -97,16 +97,15 @@ export const SKILL_REGISTRY: SkillEntry[] = [
   },
 ];
 
-const DIFF_FILE_HEADER = /^\+\+\+ b\/(.+)$/gm;
-
 /**
  * Extract unique file extensions from a unified diff.
  */
 export function detectExtensionsFromDiff(diff: string): Set<string> {
   const extensions = new Set<string>();
+  const re = /^\+\+\+ b\/(.+)$/gm;
   let match: RegExpExecArray | null;
 
-  while ((match = DIFF_FILE_HEADER.exec(diff)) !== null) {
+  while ((match = re.exec(diff)) !== null) {
     const filePath = match[1];
     const dotIdx = filePath.lastIndexOf(".");
     if (dotIdx !== -1) {

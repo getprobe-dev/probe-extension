@@ -69,12 +69,12 @@ export function extractFirstChangedLine(
   const lines = fileDiff.split("\n");
 
   let currentNewLine = 0;
-  let currentOldLine = 0;
+  let _currentOldLine = 0;
 
   for (const line of lines) {
     const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
     if (hunkMatch) {
-      currentOldLine = parseInt(hunkMatch[1], 10);
+      _currentOldLine = parseInt(hunkMatch[1], 10);
       currentNewLine = parseInt(hunkMatch[2], 10);
       continue;
     }
@@ -83,12 +83,12 @@ export function extractFirstChangedLine(
       return { line: currentNewLine, side: "RIGHT" };
     }
     if (line.startsWith("-") && !line.startsWith("---")) {
-      currentOldLine++;
+      _currentOldLine++;
       continue;
     }
     if (!line.startsWith("\\")) {
       currentNewLine++;
-      currentOldLine++;
+      _currentOldLine++;
     }
   }
 
@@ -188,11 +188,11 @@ async function fetchDiff(
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
-      if (!response.ok) {
-        reject(new Error(`Failed to fetch diff: ${response.error}`));
+      if (!response.ok || !response.diff) {
+        reject(new Error(`Failed to fetch diff: ${response.error ?? "empty response"}`));
         return;
       }
-      resolve(response.diff!);
+      resolve(response.diff);
     });
   });
 }
@@ -206,11 +206,11 @@ export async function fetchFileContent(
   const msg: FetchFileRequest = { type: "fetch-file", owner, repo, branch, path };
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(msg, (response: FetchFileResponse) => {
-      if (chrome.runtime.lastError || !response?.ok) {
+      if (chrome.runtime.lastError || !response?.ok || !response.content) {
         resolve(null);
         return;
       }
-      resolve(response.content!);
+      resolve(response.content);
     });
   });
 }

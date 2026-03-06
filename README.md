@@ -275,4 +275,8 @@ PRobe requests the minimum permissions needed:
 
 ## License
 
-MIT
+PRobe is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
+
+You are free to use, modify, and distribute this software under the terms of the AGPL-3.0. Any modified versions must also be made available under the same license.
+
+For commercial licensing inquiries, contact [sgunturi@protonmail.com](mailto:sgunturi@protonmail.com).

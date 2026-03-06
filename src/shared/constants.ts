@@ -1,6 +1,31 @@
 import type { PRContext, FocusedLineRange } from "./types";
+import type { ResolvedSkill } from "./skills";
 
-export function buildSystemPrompt(context: PRContext): string {
+function buildSkillSection(skills?: ResolvedSkill[]): string {
+  if (!skills || skills.length === 0) return "";
+
+  const blocks = skills
+    .map((s) => `### ${s.name}\n${s.content}`)
+    .join("\n\n");
+
+  return `
+
+## Review Guidelines
+The following best-practice guidelines apply to the technologies detected in this PR.
+When reviewing, check the diff against these rules and **cite specific rule names** when flagging issues.
+
+${blocks}`;
+}
+
+function buildSkillRoleInstructions(skills?: ResolvedSkill[]): string {
+  if (!skills || skills.length === 0) return "";
+  return `\n- When the Review Guidelines section is present, proactively check the diff against those rules and cite rule names (e.g. "async-parallel", "architecture-avoid-boolean-props") when flagging issues.`;
+}
+
+export function buildSystemPrompt(
+  context: PRContext,
+  skills?: ResolvedSkill[]
+): string {
   const diffTruncated =
     context.diff.length > 80_000
       ? context.diff.slice(0, 80_000) +
@@ -19,13 +44,13 @@ ${context.description || "(No description provided)"}
 ## Diff
 \`\`\`diff
 ${diffTruncated}
-\`\`\`
+\`\`\`${buildSkillSection(skills)}
 
 ## Your Role
 - Answer questions about the changes in this PR clearly and concisely.
 - When asked about specific code, reference the relevant parts of the diff.
 - Explain the intent behind changes when you can infer it from context.
-- Flag potential issues only when the reviewer asks or when something is clearly wrong.
+- Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.`;
 }
@@ -35,7 +60,8 @@ export function buildFileSystemPrompt(
   filePath: string,
   fileDiff: string,
   fileContent?: string,
-  lineRange?: FocusedLineRange
+  lineRange?: FocusedLineRange,
+  skills?: ResolvedSkill[]
 ): string {
   const diffSection =
     fileDiff.length > 40_000
@@ -89,14 +115,14 @@ ${context.description || "(No description provided)"}
 ## Changes to this file
 \`\`\`diff
 ${diffSection}
-\`\`\`${fullFileSection}
+\`\`\`${fullFileSection}${buildSkillSection(skills)}
 
 ## Your Role
 - Answer questions about the changes in **${filePath}** clearly and concisely.${lineRange ? `\n- Prioritize the selected lines (${lineRange.startLine}–${lineRange.endLine}) in your analysis.` : ""}
 - Reference specific line changes from the diff when relevant.
 - If full file content is provided, use it for broader context (e.g., understanding what a function does beyond the changed lines).
 - Explain the intent behind changes when you can infer it from context.
-- Flag potential issues only when the reviewer asks or when something is clearly wrong.
+- Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.`;
 }

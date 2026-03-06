@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Zap, ExternalLink } from "lucide-react";
 import { getIconUrl } from "../utils/theme";
-import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedItem } from "../../shared/types";
+import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedItem, SkillIndicator } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
 import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
 
@@ -24,6 +24,7 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
   const [prContext, setPrContext] = useState<PRContext | null>(null);
   const [pendingReview, setPendingReview] = useState<ReviewPendingComment[]>([]);
   const [focusBullets, setFocusBullets] = useState<string[] | null>(null);
+  const [activeSkills, setActiveSkills] = useState<SkillIndicator[]>([]);
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const storageKeyRef = useRef<string>("");
   const reviewKeyRef = useRef<string>("");
@@ -183,6 +184,10 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
       portRef.current = port;
 
       port.onMessage.addListener((event: StreamEvent) => {
+        if (event.type === "skills") {
+          setActiveSkills(event.skills);
+          return;
+        }
         if (event.type === "chunk") {
           setMessages((prev) => {
             const updated = [...prev];
@@ -284,6 +289,26 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
           </button>
         </div>
       </div>
+
+      {/* Active skills indicator */}
+      {activeSkills.length > 0 && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#15231f] border-b border-mint/10 overflow-x-auto shrink-0">
+          <Zap className="size-3 text-mint shrink-0" />
+          {activeSkills.map((skill) => (
+            <a
+              key={skill.name}
+              href={skill.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={skill.description}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-mint/15 text-mint whitespace-nowrap hover:bg-mint/25 transition-colors cursor-pointer"
+            >
+              {skill.name}
+              <ExternalLink className="size-2.5" />
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Error banner */}
       {error && (

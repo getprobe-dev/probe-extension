@@ -169,7 +169,14 @@ export interface ReviewPendingComment {
   timestamp: number;
 }
 
+export interface SkillIndicator {
+  name: string;
+  sourceUrl: string;
+  description: string;
+}
+
 export type StreamEvent =
+  | { type: "skills"; skills: SkillIndicator[] }
   | { type: "chunk"; content: string }
   | { type: "done" }
   | { type: "error"; message: string };

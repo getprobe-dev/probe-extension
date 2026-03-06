@@ -1,5 +1,11 @@
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
 import { buildSystemPrompt, buildFileSystemPrompt } from "../shared/constants";
+import {
+  detectExtensionsFromDiff,
+  matchSkills,
+  type SkillEntry,
+  type ResolvedSkill,
+} from "../shared/skills";
 import type {
   BackgroundMessage,
   StreamEvent,
@@ -362,6 +368,77 @@ function send(port: chrome.runtime.Port, event: StreamEvent) {
   try { port.postMessage(event); } catch { /* Port disconnected */ }
 }
 
+// ── Skill resolution ──
+
+const SKILL_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 h
+
+interface CachedSkill {
+  content: string;
+  fetchedAt: number;
+}
+
+function stripYamlFrontmatter(md: string): string {
+  return md.replace(/^---[\s\S]*?---\s*/, "");
+}
+
+async function fetchSkillContent(skill: SkillEntry): Promise<string | null> {
+  const cacheKey = `skill:${skill.id}`;
+
+  const cached = await new Promise<CachedSkill | null>((resolve) => {
+    chrome.storage.local.get([cacheKey], (result) => {
+      const data = result[cacheKey] as CachedSkill | undefined;
+      if (data && Date.now() - data.fetchedAt < SKILL_CACHE_TTL) {
+        resolve(data);
+      } else {
+        resolve(null);
+      }
+    });
+  });
+
+  if (cached) return cached.content;
+
+  try {
+    const res = await fetch(skill.rawUrl);
+    if (!res.ok) return null;
+
+    let content = stripYamlFrontmatter(await res.text());
+
+    if (content.length > skill.maxContentLength) {
+      const cutoff = content.lastIndexOf("\n", skill.maxContentLength);
+      content =
+        content.slice(0, cutoff > 0 ? cutoff : skill.maxContentLength) +
+        "\n\n… [truncated for brevity]";
+    }
+
+    chrome.storage.local.set({
+      [cacheKey]: { content, fetchedAt: Date.now() } satisfies CachedSkill,
+    });
+
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveSkillsForDiff(diff: string): Promise<ResolvedSkill[]> {
+  const extensions = detectExtensionsFromDiff(diff);
+  const matched = matchSkills(extensions);
+  if (matched.length === 0) return [];
+
+  const results = await Promise.all(
+    matched.map(async (skill) => {
+      const content = await fetchSkillContent(skill);
+      return content
+        ? { name: skill.name, content, sourceUrl: skill.sourceUrl, description: skill.description }
+        : null;
+    })
+  );
+
+  return results.filter((r): r is ResolvedSkill => r !== null);
+}
+
+// ── Chat handler ──
+
 async function handleChat(
   port: chrome.runtime.Port,
   messages: ChatMessage[],
@@ -374,9 +451,22 @@ async function handleChat(
     return;
   }
 
+  const skills = await resolveSkillsForDiff(context.diff);
+
+  if (skills.length > 0) {
+    send(port, {
+      type: "skills",
+      skills: skills.map((s) => ({
+        name: s.name,
+        sourceUrl: s.sourceUrl,
+        description: s.description,
+      })),
+    });
+  }
+
   const systemPrompt = context.focusedFile
-    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent, context.focusedLineRange)
-    : buildSystemPrompt(context);
+    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent, context.focusedLineRange, skills)
+    : buildSystemPrompt(context, skills);
 
   const anthropicMessages = messages.map((m) => ({
     role: m.role as "user" | "assistant",

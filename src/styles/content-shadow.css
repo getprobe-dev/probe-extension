@@ -324,7 +324,36 @@
 }
 .review-summary-textarea:disabled { opacity: 0.5; }
 
-/* ── Review discard button ─────────────────────────────── */
+/* ── Composer secondary button (neutral) ───────────────── */
+.composer-secondary-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 0 0 #e2e8f0;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.composer-secondary-btn:hover {
+  color: #1a2e2b;
+  border-color: #cbd5e1;
+  background: #f8fafb;
+  box-shadow: 0 2px 0 0 #cbd5e1;
+}
+.composer-secondary-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.08);
+}
+.composer-secondary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Review discard button (destructive) ───────────────── */
 .review-discard-btn {
   padding: 5px 12px;
   border-radius: 8px;
@@ -346,6 +375,11 @@
 .review-discard-btn:active {
   transform: translateY(2px);
   box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.08);
+}
+.review-discard-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ── Review submit button ──────────────────────────────── */

@@ -153,22 +153,24 @@ export function CommentComposer({
       )}
 
       <div className="p-2.5 border-t border-border/50 bg-background space-y-2">
-        <span className="block text-[0.68rem] text-muted-foreground truncate">
-          {focusedFile ? `On ${fileName}` : `PR #${number}`}
-        </span>
-        <div className="flex justify-end gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[0.68rem] text-muted-foreground truncate">
+            {focusedFile ? `On ${fileName}` : `PR #${number}`}
+          </span>
           <button
             onClick={onClose}
             disabled={state === "posting"}
-            className="composer-secondary-btn"
+            className="text-[0.68rem] font-medium text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
+        </div>
+        <div className="flex gap-1.5">
           {focusedFile && (
             <button
               onClick={handleAddToReview}
               disabled={!content.trim() || state === "posting"}
-              className="composer-secondary-btn"
+              className="composer-secondary-btn flex-1"
             >
               Add to Review
             </button>
@@ -176,7 +178,7 @@ export function CommentComposer({
           <button
             onClick={handlePost}
             disabled={!content.trim() || state === "posting"}
-            className="review-submit-btn"
+            className="review-submit-btn flex-1"
           >
             {state === "posting" ? "Posting..." : "Post Comment"}
           </button>

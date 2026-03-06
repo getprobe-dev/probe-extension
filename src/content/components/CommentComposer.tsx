@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import type {
   PostCommentRequest,
@@ -153,39 +152,36 @@ export function CommentComposer({
         </div>
       )}
 
-      <div className="flex items-center justify-between p-2.5 border-t border-border/50 bg-background">
-        <span className="text-[0.7rem] text-muted-foreground">
-          {focusedFile ? `On ${fileName}` : `PR #${number}`}
-        </span>
-        <div className="flex gap-1.5">
-          <Button
-            variant="secondary"
-            size="sm"
+      <div className="p-2.5 border-t border-border/50 bg-background space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[0.68rem] text-muted-foreground truncate">
+            {focusedFile ? `On ${fileName}` : `PR #${number}`}
+          </span>
+          <button
             onClick={onClose}
             disabled={state === "posting"}
-            className="text-xs h-7"
+            className="text-[0.68rem] font-medium text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
-          </Button>
+          </button>
+        </div>
+        <div className="flex gap-1.5">
           {focusedFile && (
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
               onClick={handleAddToReview}
               disabled={!content.trim() || state === "posting"}
-              className="text-xs h-7"
+              className="composer-secondary-btn flex-1"
             >
               Add to Review
-            </Button>
+            </button>
           )}
-          <Button
-            size="sm"
+          <button
             onClick={handlePost}
             disabled={!content.trim() || state === "posting"}
-            className="text-xs h-7 rounded-lg bg-[#1a2e2b] hover:bg-[#243d39] text-[#5eead4] cursor-pointer shadow-[0_2px_0_0_rgba(0,0,0,0.15)] active:shadow-[inset_0_2px_3px_rgba(0,0,0,0.3)] active:translate-y-px transition-all"
+            className="review-submit-btn flex-1"
           >
             {state === "posting" ? "Posting..." : "Post Comment"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

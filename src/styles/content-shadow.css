@@ -288,14 +288,125 @@
   position: absolute;
   top: 48px;
   right: 8px;
-  width: 340px;
-  max-height: 460px;
+  width: 300px;
+  max-height: 420px;
   overflow-y: auto;
   background: white;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.1), 0 2px 8px rgb(0 0 0 / 0.05);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.04);
   z-index: 10;
+}
+
+/* ── Review summary textarea ───────────────────────────── */
+.review-summary-textarea {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  max-height: 120px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #1a2e2b;
+  background: #f8fafb;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.review-summary-textarea:focus {
+  background: white;
+  border-color: #5eead4;
+  box-shadow: 0 0 0 3px rgb(94 234 212 / 0.12);
+}
+.review-summary-textarea:disabled { opacity: 0.5; }
+
+/* ── Composer secondary button (neutral) ───────────────── */
+.composer-secondary-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 0 0 #e2e8f0;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.composer-secondary-btn:hover {
+  color: #1a2e2b;
+  border-color: #cbd5e1;
+  background: #f8fafb;
+  box-shadow: 0 2px 0 0 #cbd5e1;
+}
+.composer-secondary-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.08);
+}
+.composer-secondary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Review discard button (destructive) ───────────────── */
+.review-discard-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 0 0 #e2e8f0;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.review-discard-btn:hover {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
+  box-shadow: 0 2px 0 0 #fecaca;
+}
+.review-discard-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.08);
+}
+.review-discard-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Review submit button ──────────────────────────────── */
+.review-submit-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #5eead4;
+  background: linear-gradient(to bottom, #243d39, #1a2e2b);
+  border: 1px solid #2f5550;
+  box-shadow: 0 2px 0 0 #0c1816, 0 2px 6px rgba(0,0,0,0.12);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.review-submit-btn:hover {
+  background: linear-gradient(to bottom, #2f5550, #1a2e2b);
+  border-color: #3a6b64;
+}
+.review-submit-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+  background: #172926;
+}
+.review-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Panel border ───────────────────────────────────────── */

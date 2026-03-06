@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { FocusedLineRange } from "../../shared/types";
 import { parseLineRangeFromHash, getFilePathFromDiffId, extractLinesFromDiff } from "../../shared/context";
+import { getIconUrl } from "../utils/theme";
 
 interface LineCommentButtonProps {
   onLineSelect: (filePath: string, lineRange: FocusedLineRange) => void;
   diff: string | null;
 }
-
-import { getIconUrl } from "../utils/theme";
 
 const BUTTON_CLASS = "prs-line-probe-btn";
 
@@ -69,41 +68,39 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
       btn.type = "button";
 
       const img = document.createElement("img");
-      img.src = getIconUrl(48);
-      img.width = 18;
-      img.height = 18;
+      img.src = getIconUrl(16);
+      img.width = 16;
+      img.height = 16;
       img.style.borderRadius = "3px";
       img.style.display = "block";
       btn.appendChild(img);
 
       const label = document.createElement("span");
       label.textContent = "PRobe";
-      label.style.fontSize = "12px";
-      label.style.fontWeight = "600";
       btn.appendChild(label);
 
       Object.assign(btn.style, {
         display: "inline-flex",
         alignItems: "center",
-        gap: "5px",
-        padding: "4px 10px",
+        gap: "4px",
+        padding: "5px 12px",
         borderRadius: "6px",
-        border: "1px solid #99f6e4",
-        background: "#ccfbf1",
-        color: "#0f766e",
+        border: "1px solid rgba(31,35,40,0.15)",
+        background: "transparent",
+        color: "inherit",
         cursor: "pointer",
         fontFamily: "inherit",
-        transition: "all 0.15s ease",
-        marginRight: "auto",
+        fontSize: "inherit",
+        fontWeight: "inherit",
+        lineHeight: "inherit",
+        transition: "background 0.12s ease",
       });
 
       btn.addEventListener("mouseenter", () => {
-        btn.style.background = "#99f6e4";
-        btn.style.borderColor = "#2dd4bf";
+        btn.style.background = "rgba(31,35,40,0.04)";
       });
       btn.addEventListener("mouseleave", () => {
-        btn.style.background = "#ccfbf1";
-        btn.style.borderColor = "#99f6e4";
+        btn.style.background = "transparent";
       });
 
       btn.addEventListener("click", (e) => {

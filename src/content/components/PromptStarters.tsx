@@ -1,4 +1,6 @@
-import type { FocusedLineRange } from "../../shared/types";
+import { Button } from '@/components/ui/button';
+import { getIconUrl } from '../utils/theme';
+import type { FocusedLineRange } from '../../shared/types';
 
 interface PromptStartersProps {
   focusedFile: string | null;
@@ -7,26 +9,30 @@ interface PromptStartersProps {
 }
 
 const WHOLE_PR_STARTERS = [
-  "Summarize this PR",
-  "What are the most important changes?",
-  "Are there any potential issues?",
-  "What does this PR not cover?",
+  'Summarize this PR',
+  'What are the most important changes?',
+  'Are there any potential issues?',
+  'What does this PR not cover?',
 ];
 
 const FILE_STARTERS = [
-  "Explain the changes in this file",
-  "Any bugs or edge cases here?",
-  "How does this fit into the broader PR?",
+  'Explain the changes in this file',
+  'Any bugs or edge cases here?',
+  'How does this fit into the broader PR?',
 ];
 
 const LINE_STARTERS = [
-  "What does this code do?",
-  "Any bugs or edge cases in these lines?",
-  "How could this be improved?",
-  "Explain the intent behind this change",
+  'What does this code do?',
+  'Any bugs or edge cases in these lines?',
+  'How could this be improved?',
+  'Explain the intent behind this change',
 ];
 
-export function PromptStarters({ focusedFile, focusedLineRange, onSelect }: PromptStartersProps) {
+export function PromptStarters({
+  focusedFile,
+  focusedLineRange,
+  onSelect,
+}: PromptStartersProps) {
   const starters = focusedLineRange
     ? LINE_STARTERS
     : focusedFile
@@ -34,39 +40,39 @@ export function PromptStarters({ focusedFile, focusedLineRange, onSelect }: Prom
       : WHOLE_PR_STARTERS;
 
   const heading = focusedLineRange
-    ? "Chat about these lines"
+    ? 'Chat about these lines'
     : focusedFile
-      ? "Chat about this file"
-      : "Chat with this PR";
+      ? 'Chat about this file'
+      : 'Chat with this PR';
 
   const subheading = focusedLineRange
-    ? "Ask about the selected code, logic, or potential issues."
+    ? 'Probe the selected code, logic, or potential issues.'
     : focusedFile
-      ? "Ask about the changes, logic, or potential issues."
-      : "Ask questions about the changes, understand the intent, or spot issues.";
+      ? 'Probe the changes, logic, or potential issues.'
+      : 'Probe questions about the changes, understand the intent, or spot issues.';
 
   return (
-    <div className="prs-flex prs-flex-col prs-items-center prs-justify-center prs-flex-1 prs-p-6 prs-text-center">
-      <div className="prs-w-12 prs-h-12 prs-rounded-full prs-bg-teal-100 prs-flex prs-items-center prs-justify-center prs-mb-3">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
-      </div>
-      <p className="prs-text-sm prs-font-medium prs-text-neutral-700 prs-mb-1">
-        {heading}
-      </p>
-      <p className="prs-text-xs prs-text-neutral-400 prs-mb-3">
-        {subheading}
-      </p>
-      <div className="prs-flex prs-flex-wrap prs-justify-center prs-gap-2">
+    <div className='flex flex-col items-center justify-center flex-1 p-6 text-center'>
+      <img
+        src={getIconUrl(48)}
+        alt="PRobe"
+        width={40}
+        height={40}
+        className="rounded-xl mb-3"
+      />
+      <p className='text-sm font-medium text-navy mb-1'>{heading}</p>
+      <p className='text-xs text-muted-foreground mb-4'>{subheading}</p>
+      <div className='flex flex-wrap justify-center gap-2'>
         {starters.map((text) => (
-          <button
+          <Button
             key={text}
+            variant='outline'
+            size='sm'
             onClick={() => onSelect(text)}
-            className="prs-prompt-starter"
+            className='rounded-full text-xs font-medium h-auto py-1.5 px-3.5 hover:border-mint hover:bg-mint-faint hover:text-navy transition-all'
           >
             {text}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

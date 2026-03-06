@@ -76,8 +76,8 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
   });
 
   btn.addEventListener("mouseenter", () => {
-    btn.style.background = "#ccfbf1";
-    btn.style.borderColor = "#2dd4bf";
+    btn.style.background = "oklch(0.96 0.03 180)";
+    btn.style.borderColor = "oklch(0.78 0.12 180)";
     btn.style.opacity = "1";
   });
   btn.addEventListener("mouseleave", () => {

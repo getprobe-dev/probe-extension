@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FileText, X, Check } from "lucide-react";
 import type { ReviewPendingComment, SubmitReviewRequest, SubmitReviewResponse } from "../../shared/types";
 
 interface ReviewQueueProps {
@@ -44,10 +47,14 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
 
     try {
       const res = await new Promise<SubmitReviewResponse>((resolve, reject) => {
-        chrome.runtime.sendMessage(msg, (r: SubmitReviewResponse) => {
-          if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
-          resolve(r);
-        });
+        try {
+          chrome.runtime.sendMessage(msg, (r: SubmitReviewResponse) => {
+            if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+            resolve(r);
+          });
+        } catch {
+          reject(new Error("Extension context invalidated. Please refresh the page."));
+        }
       });
 
       if (res.ok) {
@@ -72,79 +79,78 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="prs-review-badge"
+        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-mint/40 bg-mint-faint text-primary text-[0.7rem] font-semibold cursor-pointer transition-all hover:bg-mint-light/50 leading-none"
         title={`${pending.length} pending review comment${pending.length > 1 ? "s" : ""}`}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-        </svg>
+        <FileText className="size-3" />
         <span>{pending.length}</span>
       </button>
 
       {isOpen && (
-        <div className="prs-review-dialog">
-          <div className="prs-review-dialog-header">
-            <span className="prs-text-sm prs-font-semibold">
+        <div className="review-dialog animate-fade-in">
+          <div className="flex items-center justify-between p-3 border-b border-border/50">
+            <span className="text-sm font-semibold text-foreground">
               {state === "submitted" ? "Review submitted" : "Submit Review"}
             </span>
-            <button onClick={() => setIsOpen(false)} className="prs-msg-action-btn" title="Close">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setIsOpen(false)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Close"
+            >
+              <X className="size-3" />
+            </Button>
           </div>
 
           {state === "submitted" ? (
-            <div className="prs-comment-composer-success" style={{ padding: "16px" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+            <div className="flex items-center gap-1.5 p-4 text-sm font-medium text-emerald-600">
+              <Check className="size-3.5" />
               <span>Review submitted successfully</span>
             </div>
           ) : (
             <>
-              <div className="prs-review-comments-list">
+              <div className="max-h-[180px] overflow-y-auto p-2">
                 {pending.map((c, i) => (
-                  <div key={i} className="prs-review-comment-item">
-                    <div className="prs-review-comment-file">
+                  <div key={i} className="p-2.5 rounded-lg bg-muted mb-1.5 last:mb-0">
+                    <div className="flex items-center justify-between text-[0.7rem] font-semibold text-muted-foreground mb-0.5">
                       {c.path.split("/").pop()}
                       <button
                         onClick={() => onRemove(i)}
-                        className="prs-review-comment-remove"
+                        className="inline-flex items-center justify-center size-4.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                         title="Remove"
                       >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        <X className="size-2.5" />
                       </button>
                     </div>
-                    <div className="prs-review-comment-body">{c.body.slice(0, 120)}{c.body.length > 120 ? "..." : ""}</div>
+                    <div className="text-[0.7rem] text-muted-foreground leading-snug wrap-break-word">
+                      {c.body.slice(0, 120)}{c.body.length > 120 ? "..." : ""}
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="prs-review-body-section">
+              <div className="p-2 border-t border-border/50">
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className="prs-comment-composer-textarea"
+                  className="comment-composer-textarea"
                   rows={3}
                   placeholder="Overall review summary (optional)..."
                   disabled={state === "submitting"}
                 />
               </div>
 
-              <div className="prs-review-event-selector">
+              <div className="flex gap-1 px-2 pb-2">
                 {(["COMMENT", "APPROVE", "REQUEST_CHANGES"] as const).map((ev) => (
                   <button
                     key={ev}
                     onClick={() => setEvent(ev)}
-                    className={`prs-review-event-btn ${event === ev ? "prs-review-event-btn-active" : ""}`}
+                    className={`flex-1 py-1.5 px-2 rounded-md border text-[0.65rem] font-medium text-center cursor-pointer transition-all ${
+                      event === ev
+                        ? "bg-linear-to-br from-teal-500 to-teal-600 text-white border-transparent"
+                        : "border-border bg-background text-muted-foreground hover:border-mint"
+                    }`}
                   >
                     {ev === "COMMENT" ? "Comment" : ev === "APPROVE" ? "Approve" : "Request Changes"}
                   </button>
@@ -152,23 +158,28 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
               </div>
 
               {state === "error" && (
-                <div className="prs-comment-composer-error">{error}</div>
+                <div className="px-3 py-1.5 text-xs text-destructive bg-destructive/10 border-t border-destructive/20">
+                  {error}
+                </div>
               )}
 
-              <div className="prs-comment-composer-actions">
-                <button
+              <div className="flex items-center justify-between p-2.5 border-t border-border/50">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => { onClear(); setIsOpen(false); }}
-                  className="prs-comment-composer-btn prs-comment-composer-btn-cancel"
+                  className="text-xs h-7"
                 >
                   Discard All
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
                   onClick={handleSubmit}
                   disabled={state === "submitting"}
-                  className="prs-comment-composer-btn prs-comment-composer-btn-post"
+                  className="text-xs h-7 bg-linear-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white"
                 >
                   {state === "submitting" ? "Submitting..." : `Submit Review (${pending.length})`}
-                </button>
+                </Button>
               </div>
             </>
           )}

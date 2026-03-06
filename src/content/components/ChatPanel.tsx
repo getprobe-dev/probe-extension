@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
+import { Button } from "@/components/ui/button";
+import { X, Trash2, FileText } from "lucide-react";
+import { getIconUrl } from "../utils/theme";
 import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
 import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
@@ -125,7 +128,17 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
         if (fileContent) contextToSend.focusedFileContent = fileContent;
       }
 
-      const port = chrome.runtime.connect({ name: "probe-chat" });
+      let port: chrome.runtime.Port;
+      try {
+        port = chrome.runtime.connect({ name: "probe-chat" });
+      } catch {
+        setIsStreaming(false);
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          { role: "assistant" as const, content: "Extension was reloaded. Please refresh the page.", timestamp: Date.now() },
+        ]);
+        return;
+      }
       portRef.current = port;
 
       port.onMessage.addListener((event: StreamEvent) => {
@@ -181,16 +194,22 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
   const fileName = focusedFile?.split("/").pop() ?? focusedFile;
 
   return (
-    <div className="prs-flex prs-flex-col prs-h-full prs-bg-white prs-text-neutral-900">
+    <div className="flex flex-col h-full bg-background text-foreground">
       {/* Header */}
-      <div className="prs-flex prs-items-center prs-justify-between prs-px-4 prs-py-3 prs-border-b prs-border-neutral-200 prs-bg-white">
-        <div className="prs-flex prs-items-center prs-gap-2 prs-min-w-0">
-          <span className="prs-text-sm prs-font-bold" style={{ letterSpacing: "-0.02em" }}>PRobe</span>
-          <span className="prs-text-sm prs-font-semibold prs-truncate">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-navy text-white shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src={getIconUrl(48)}
+            alt="PRobe"
+            width={24}
+            height={24}
+            className="rounded-md shrink-0"
+          />
+          <span className="text-sm font-medium text-white/60 truncate">
             {prContext ? `#${prContext.number} ${prContext.title}` : ""}
           </span>
         </div>
-        <div className="prs-flex prs-items-center prs-gap-1">
+        <div className="flex items-center gap-0.5">
           {prContext && (
             <ReviewQueue
               pending={pendingReview}
@@ -202,58 +221,50 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
             />
           )}
           {messages.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={handleClear}
-              className="prs-p-1.5 prs-rounded-md hover:prs-bg-neutral-100 prs-text-neutral-400 hover:prs-text-neutral-600 prs-transition-colors"
+              className="text-white/50 hover:text-white hover:bg-white/10"
               title="Clear chat"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-              </svg>
-            </button>
+              <Trash2 className="size-3.5" />
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={onClose}
-            className="prs-p-1.5 prs-rounded-md hover:prs-bg-neutral-100 prs-text-neutral-400 hover:prs-text-neutral-600 prs-transition-colors"
+            className="text-white/50 hover:text-white hover:bg-white/10"
             title="Close panel"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+            <X className="size-3.5" />
+          </Button>
         </div>
       </div>
 
       {/* File focus pill */}
       {focusedFile && (
-        <div className="prs-flex prs-items-center prs-px-4 prs-py-2 prs-border-b prs-border-neutral-200 prs-bg-neutral-100">
-          <div className="prs-file-focus-pill">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
-              <polyline points="13 2 13 9 20 9" />
-            </svg>
-            <span className="prs-truncate" title={focusedFile}>
+        <div className="flex items-center px-4 py-2 border-b border-border bg-mint-faint">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-mint-light/50 border border-mint/30 text-navy text-xs font-medium max-w-full leading-tight">
+            <FileText className="size-3 shrink-0" />
+            <span className="truncate" title={focusedFile}>
               {fileName}
               {focusedLineRange && (
-                <span style={{ color: "#0d9488", fontWeight: 600 }}>
+                <span className="text-primary font-semibold">
                   {" "}L{focusedLineRange.startLine}
                   {focusedLineRange.endLine !== focusedLineRange.startLine
-                    ? `–L${focusedLineRange.endLine}`
+                    ? `\u2013L${focusedLineRange.endLine}`
                     : ""}
                 </span>
               )}
             </span>
             <button
               onClick={onClearFocus}
-              className="prs-file-focus-clear"
+              className="inline-flex items-center justify-center size-4 rounded-full hover:bg-mint/30 text-navy/60 hover:text-navy transition-colors shrink-0"
               title="Return to whole-PR mode"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X className="size-2.5" />
             </button>
           </div>
         </div>
@@ -261,14 +272,14 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
 
       {/* Error banner */}
       {error && (
-        <div className="prs-px-4 prs-py-2 prs-bg-red-50 prs-border-b prs-border-red-100 prs-text-xs prs-text-red-600">
+        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {/* Messages */}
       {isLoading ? (
-        <div className="prs-flex-1 prs-flex prs-items-center prs-justify-center prs-text-sm prs-text-neutral-400">
+        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
           Loading PR context…
         </div>
       ) : (

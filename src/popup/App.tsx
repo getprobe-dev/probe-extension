@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
 
 export function PopupApp() {
@@ -70,7 +71,7 @@ export function PopupApp() {
 
   if (loading) {
     return (
-      <div className="w-80 p-5 font-sans text-sm text-neutral-500">
+      <div className="w-80 p-5 font-sans text-sm text-muted-foreground">
         Loading...
       </div>
     );
@@ -79,12 +80,12 @@ export function PopupApp() {
   return (
     <div className="w-80 p-5 font-sans">
       <div className="flex items-center gap-2 mb-4">
-        <h1 className="text-base font-semibold text-neutral-900">
+        <h1 className="text-base font-bold tracking-tight text-foreground">
           PRobe
         </h1>
       </div>
 
-      <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+      <label className="block text-sm font-medium text-foreground mb-1.5">
         Anthropic API Key
       </label>
       <input
@@ -92,38 +93,38 @@ export function PopupApp() {
         value={apiKey}
         onChange={(e) => setApiKey(e.target.value)}
         placeholder="sk-ant-..."
-        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
       />
-      <p className="mt-1 text-xs text-neutral-400">
+      <p className="mt-1 text-xs text-muted-foreground">
         Your key is stored locally and sent only through the proxy to
         Anthropic's API.
       </p>
 
-      <label className="block text-sm font-medium text-neutral-700 mb-1.5 mt-4">
+      <label className="block text-sm font-medium text-foreground mb-1.5 mt-4">
         GitHub Token
-        <span className="text-neutral-400 font-normal"> (optional)</span>
+        <span className="text-muted-foreground font-normal"> (optional)</span>
       </label>
       <input
         type="password"
         value={githubToken}
         onChange={(e) => setGithubToken(e.target.value)}
         placeholder="ghp_..."
-        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
       />
-      <p className="mt-1 text-xs text-neutral-400">
-        Enables posting comments to PRs. Needs <code className="text-xs bg-neutral-100 px-1 rounded">repo</code> scope.
+      <p className="mt-1 text-xs text-muted-foreground">
+        Enables posting comments to PRs. Needs <code className="text-xs bg-muted px-1 rounded">repo</code> scope.
       </p>
 
       <button
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="mt-3 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+        className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         {showAdvanced ? "Hide" : "Show"} advanced settings
       </button>
 
       {showAdvanced && (
         <div className="mt-2">
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             Proxy URL
           </label>
           <input
@@ -131,9 +132,9 @@ export function PopupApp() {
             value={proxyUrl}
             onChange={(e) => setProxyUrl(e.target.value)}
             placeholder={DEFAULT_PROXY_URL}
-            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
           />
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-muted-foreground">
             Requests are routed through this proxy to avoid browser CORS
             restrictions. You can self-host your own.
           </p>
@@ -141,24 +142,24 @@ export function PopupApp() {
       )}
 
       <div className="flex gap-2 mt-4">
-        <button
+        <Button
           onClick={handleSave}
           disabled={!apiKey.trim()}
-          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 bg-linear-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white"
         >
           {saved ? "Saved!" : "Save"}
-        </button>
+        </Button>
         {apiKey && (
-          <button
+          <Button
+            variant="secondary"
             onClick={handleClear}
-            className="px-3 py-2 text-sm font-medium text-neutral-600 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors"
           >
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-neutral-100 text-xs text-neutral-400">
+      <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
         Open any GitHub PR and click the floating button to start chatting.
       </div>
     </div>

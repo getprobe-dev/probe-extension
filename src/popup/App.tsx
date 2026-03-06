@@ -88,7 +88,7 @@ export function PopupApp() {
           height={30}
           className="rounded-lg ring-1 ring-white/10"
         />
-        <h1 className="text-lg font-bold tracking-tight">PRobe</h1>
+        <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>PRobe</h1>
       </div>
 
       <div className="px-5 pb-5">

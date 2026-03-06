@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
-import { Button } from "@/components/ui/button";
 import { X, Trash2, FileText } from "lucide-react";
 import { getIconUrl } from "../utils/theme";
 import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
@@ -24,6 +23,7 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
   const [error, setError] = useState<string | null>(null);
   const [prContext, setPrContext] = useState<PRContext | null>(null);
   const [pendingReview, setPendingReview] = useState<ReviewPendingComment[]>([]);
+  const [focusBullets, setFocusBullets] = useState<string[] | null>(null);
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const storageKeyRef = useRef<string>("");
   const reviewKeyRef = useRef<string>("");
@@ -192,31 +192,30 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
   }, []);
 
   const fileName = focusedFile?.split("/").pop() ?? focusedFile;
+  const isEmpty = messages.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       {/* Header */}
-      <div className="header-gradient flex items-center justify-between px-3.5 py-2.5 text-white shrink-0">
+      <div className="flex items-center justify-between px-4 h-12 bg-[#1a2e2b] text-white shrink-0 border-b border-[#5eead4]/10">
         <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={getIconUrl(48)}
             alt="PRobe"
-            width={26}
-            height={26}
-            className="rounded-lg shrink-0 ring-1 ring-white/10"
+            width={22}
+            height={22}
+            className="rounded-md shrink-0"
           />
-          <div className="min-w-0">
-            <span className="text-[0.8rem] font-semibold tracking-tight text-white/90 truncate block">
-              {prContext ? `#${prContext.number}` : ""}
+          <span className="text-sm font-bold tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            PRobe
+          </span>
+          {prContext && (
+            <span className="text-xs font-medium text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
+              #{prContext.number}
             </span>
-            {prContext && (
-              <span className="text-[0.68rem] text-white/45 truncate block leading-tight">
-                {prContext.title}
-              </span>
-            )}
-          </div>
+          )}
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           {prContext && (
             <ReviewQueue
               pending={pendingReview}
@@ -228,37 +227,33 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
             />
           )}
           {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
+            <button
               onClick={handleClear}
-              className="text-white/40 hover:text-white hover:bg-white/10 rounded-lg"
+              className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
               title="Clear chat"
             >
               <Trash2 className="size-3.5" />
-            </Button>
+            </button>
           )}
-          <Button
-            variant="ghost"
-            size="icon-xs"
+          <button
             onClick={onClose}
-            className="text-white/40 hover:text-white hover:bg-white/10 rounded-lg"
+            className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
             title="Close panel"
           >
-            <X className="size-3.5" />
-          </Button>
+            <X className="size-4" />
+          </button>
         </div>
       </div>
 
       {/* File focus pill */}
       {focusedFile && (
-        <div className="flex items-center px-3.5 py-2 border-b border-border/60 bg-surface">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/8 border border-primary/15 text-foreground text-xs font-medium max-w-full leading-tight">
-            <FileText className="size-3 shrink-0 text-primary" />
+        <div className="flex items-center px-3 py-1.5 border-b border-border bg-secondary">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#5eead4]/10 border border-[#5eead4]/20 text-foreground text-xs font-medium max-w-full">
+            <FileText className="size-3 shrink-0 text-[#5eead4]" />
             <span className="truncate" title={focusedFile}>
               {fileName}
               {focusedLineRange && (
-                <span className="text-primary font-semibold">
+                <span className="text-[#1a2e2b] font-semibold">
                   {" "}L{focusedLineRange.startLine}
                   {focusedLineRange.endLine !== focusedLineRange.startLine
                     ? `\u2013L${focusedLineRange.endLine}`
@@ -268,7 +263,7 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
             </span>
             <button
               onClick={onClearFocus}
-              className="inline-flex items-center justify-center size-4 rounded-md hover:bg-primary/15 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              className="inline-flex items-center justify-center size-4 rounded hover:bg-[#5eead4]/20 text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer"
               title="Return to whole-PR mode"
             >
               <X className="size-2.5" />
@@ -279,15 +274,15 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
 
       {/* Error banner */}
       {error && (
-        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive">
+        <div className="px-3 py-1.5 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive">
           {error}
         </div>
       )}
 
-      {/* Messages */}
+      {/* Main content */}
       {isLoading ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-[#5eead4]/30 border-t-[#5eead4] rounded-full animate-spin" />
           <span className="text-xs text-muted-foreground">Loading PR context…</span>
         </div>
       ) : (
@@ -296,13 +291,11 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
           isStreaming={isStreaming}
           focusedFile={focusedFile}
           focusedLineRange={focusedLineRange}
-          onPromptSelect={handleSend}
-          prOwner={prContext?.owner}
-          prRepo={prContext?.repo}
-          prNumber={prContext?.number}
+          prContext={prContext}
           fileLine={fileLine.line}
           fileSide={fileLine.side}
           onAddToReview={handleAddToReview}
+          onSummaryReady={setFocusBullets}
         />
       )}
 
@@ -312,6 +305,10 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
         onStop={handleStop}
         disabled={isLoading || !prContext}
         isStreaming={isStreaming}
+        showStarters={isEmpty && !isLoading}
+        focusedFile={focusedFile}
+        focusedLineRange={focusedLineRange}
+        focusBullets={focusBullets}
       />
     </div>
   );

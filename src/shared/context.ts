@@ -10,7 +10,7 @@ export function parsePRUrl(
   return { owner: match[1], repo: match[2], number: parseInt(match[3], 10) };
 }
 
-export function scrapePRMetadata(): { title: string; description: string } {
+export function scrapePRMetadata(): { title: string; description: string; author: string } {
   const titleEl = document.querySelector<HTMLElement>(
     ".gh-header-title .js-issue-title"
   );
@@ -21,7 +21,10 @@ export function scrapePRMetadata(): { title: string; description: string } {
   );
   const description = descriptionEl?.textContent?.trim() ?? "";
 
-  return { title, description };
+  const authorEl = document.querySelector<HTMLElement>(".gh-header-meta .author");
+  const author = authorEl?.textContent?.trim() ?? "";
+
+  return { title, description, author };
 }
 
 export function scrapeHeadBranch(): string {
@@ -216,9 +219,9 @@ export async function extractPRContext(): Promise<PRContext> {
   const parsed = parsePRUrl(window.location.href);
   if (!parsed) throw new Error("Not on a GitHub PR page");
 
-  const { title, description } = scrapePRMetadata();
+  const { title, description, author } = scrapePRMetadata();
   const diff = await fetchDiff(parsed.owner, parsed.repo, parsed.number);
   const headBranch = scrapeHeadBranch();
 
-  return { ...parsed, title, description, diff, headBranch };
+  return { ...parsed, title, description, diff, headBranch, author };
 }

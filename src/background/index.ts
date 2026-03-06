@@ -14,6 +14,11 @@ import type {
   PostReviewCommentRequest,
   SubmitReviewRequest,
   SubmitReviewResponse,
+  FetchPRStatsRequest,
+  FetchPRStatsResponse,
+  PRStats,
+  GeneratePRSummaryRequest,
+  GeneratePRSummaryResponse,
 } from "../shared/types";
 
 type IncomingMessage =
@@ -21,7 +26,9 @@ type IncomingMessage =
   | FetchFileRequest
   | PostCommentRequest
   | PostReviewCommentRequest
-  | SubmitReviewRequest;
+  | SubmitReviewRequest
+  | FetchPRStatsRequest
+  | GeneratePRSummaryRequest;
 
 chrome.runtime.onMessage.addListener(
   (msg: IncomingMessage, _sender, sendResponse) => {
@@ -74,6 +81,20 @@ chrome.runtime.onMessage.addListener(
     if (msg.type === "submit-review") {
       handleSubmitReview(msg).then(sendResponse).catch((err) => {
         sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies SubmitReviewResponse);
+      });
+      return true;
+    }
+
+    if (msg.type === "fetch-pr-stats") {
+      handleFetchPRStats(msg).then(sendResponse).catch((err) => {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies FetchPRStatsResponse);
+      });
+      return true;
+    }
+
+    if (msg.type === "generate-pr-summary") {
+      handleGeneratePRSummary(msg).then(sendResponse).catch((err) => {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies GeneratePRSummaryResponse);
       });
       return true;
     }
@@ -162,6 +183,120 @@ async function getGithubToken(): Promise<string | null> {
       resolve((result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? null);
     });
   });
+}
+
+async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStatsResponse> {
+  const headers = await ghHeaders();
+  if (!headers) return { ok: false, error: "No GitHub token configured." };
+
+  const base = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}`;
+
+  const [prRes, filesRes, commitsRes, reviewsRes] = await Promise.all([
+    fetch(base, { headers }),
+    fetch(`${base}/files?per_page=100`, { headers }),
+    fetch(`${base}/commits?per_page=100`, { headers }),
+    fetch(`${base}/reviews?per_page=100`, { headers }),
+  ]);
+
+  if (!prRes.ok) return { ok: false, error: await extractGhError(prRes) };
+
+  const pr = await prRes.json();
+  const files = filesRes.ok ? await filesRes.json() : [];
+  const commits = commitsRes.ok ? await commitsRes.json() : [];
+  const reviews = reviewsRes.ok ? await reviewsRes.json() : [];
+
+  const authorSet = new Map<string, { login: string; avatarUrl: string }>();
+  for (const c of commits) {
+    const login = c.author?.login ?? c.commit?.author?.name ?? "unknown";
+    const avatarUrl = c.author?.avatar_url ?? "";
+    if (!authorSet.has(login)) authorSet.set(login, { login, avatarUrl });
+  }
+
+  const reviewerMap = new Map<string, { login: string; avatarUrl: string; state: string }>();
+  for (const r of reviews) {
+    if (!r.user?.login || r.user.login === pr.user?.login) continue;
+    reviewerMap.set(r.user.login, {
+      login: r.user.login,
+      avatarUrl: r.user.avatar_url ?? "",
+      state: r.state,
+    });
+  }
+
+  const stats: PRStats = {
+    additions: pr.additions ?? 0,
+    deletions: pr.deletions ?? 0,
+    commits: pr.commits ?? commits.length,
+    changedFiles: pr.changed_files ?? files.length,
+    comments: (pr.comments ?? 0) + (pr.review_comments ?? 0),
+    author: { login: pr.user?.login ?? "", avatarUrl: pr.user?.avatar_url ?? "" },
+    createdAt: pr.created_at ?? "",
+    labels: (pr.labels ?? []).map((l: { name: string }) => l.name),
+    reviewers: Array.from(reviewerMap.values()),
+    commitAuthors: Array.from(authorSet.values()),
+    files: (files as Array<{ filename: string; additions: number; deletions: number }>).map(
+      (f) => ({ filename: f.filename, additions: f.additions, deletions: f.deletions })
+    ),
+  };
+
+  return { ok: true, stats };
+}
+
+async function handleGeneratePRSummary(msg: GeneratePRSummaryRequest): Promise<GeneratePRSummaryResponse> {
+  const { apiKey, proxyUrl } = await getSettings();
+  if (!apiKey) return { ok: false, error: "No API key configured." };
+
+  const topFiles = [...msg.stats.files]
+    .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
+    .slice(0, 10)
+    .map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`)
+    .join("\n");
+
+  const prompt = `You are helping a code reviewer quickly understand a pull request.
+
+PR #${msg.number}: ${msg.title}
+${msg.description ? `Description: ${msg.description.slice(0, 500)}` : ""}
+
+Stats: ${msg.stats.commits} commits, ${msg.stats.changedFiles} files, +${msg.stats.additions}/-${msg.stats.deletions} lines, ${msg.stats.comments} comments
+Authors: ${msg.stats.commitAuthors.map((a) => a.login).join(", ")}
+Reviewers: ${msg.stats.reviewers.map((r) => `${r.login} (${r.state})`).join(", ") || "none yet"}
+
+Top changed files:
+${topFiles}
+
+Provide exactly 3 concise bullet points (each under 80 chars) about what a reviewer should focus on. Be specific about file paths and risk areas. Return ONLY the 3 bullets, one per line, starting with "- ". No other text.`;
+
+  const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 300,
+        system: "You are a concise code review assistant. Output only bullet points.",
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) return { ok: false, error: `LLM error (${response.status})` };
+
+    const data = await response.json();
+    const text: string = data.content?.[0]?.text ?? "";
+    const bullets = text
+      .split("\n")
+      .map((l: string) => l.replace(/^[-•*]\s*/, "").trim())
+      .filter((l: string) => l.length > 0)
+      .slice(0, 3);
+
+    return { ok: true, bullets };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "LLM call failed" };
+  }
 }
 
 chrome.runtime.onConnect.addListener((port) => {

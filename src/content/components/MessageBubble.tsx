@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CommentComposer } from "./CommentComposer";
@@ -31,6 +31,13 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const [showComposer, setShowComposer] = useState(false);
   const [copied, setCopied] = useState(false);
+  const composerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showComposer && composerRef.current) {
+      composerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [showComposer]);
 
   const canPost = !isUser && !isStreaming && message.content.length > 0;
 
@@ -88,7 +95,7 @@ export function MessageBubble({
       </div>
 
       {showComposer && prOwner && prRepo && prNumber && (
-        <div className="w-full max-w-[85%] mt-1.5">
+        <div ref={composerRef} className="w-full max-w-[85%] mt-1.5">
           <CommentComposer
             initialContent={message.content}
             owner={prOwner}

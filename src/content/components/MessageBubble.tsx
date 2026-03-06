@@ -52,14 +52,17 @@ export function MessageBubble({
         >
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : message.content.length === 0 && isStreaming ? (
+            <div className="flex items-center gap-1.5 py-0.5">
+              <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:0ms]" />
+              <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:150ms]" />
+              <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:300ms]" />
+            </div>
           ) : (
-            <div className="prose-chat max-w-none">
+            <div className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}>
               <Markdown remarkPlugins={[remarkGfm]}>
                 {message.content}
               </Markdown>
-              {isStreaming && (
-                <span className="inline-block w-1.5 h-4 bg-[#5eead4] rounded-sm ml-0.5 align-middle animate-pulse-cursor" />
-              )}
             </div>
           )}
         </div>

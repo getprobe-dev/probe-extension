@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
-import { X, Trash2, FileText } from "lucide-react";
+import { X, Plus, FileText } from "lucide-react";
 import { getIconUrl } from "../utils/theme";
 import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
@@ -230,9 +230,9 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
             <button
               onClick={handleClear}
               className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
-              title="Clear chat"
+              title="New chat"
             >
-              <Trash2 className="size-3.5" />
+              <Plus className="size-3.5" />
             </button>
           )}
           <button

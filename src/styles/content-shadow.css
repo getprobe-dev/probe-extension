@@ -112,12 +112,17 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
-.animate-pulse-cursor {
-  animation: pulse-cursor 0.8s ease-in-out infinite;
+
+@keyframes logoPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.92); }
+}
+.animate-logo-pulse {
+  animation: logoPulse 1.6s ease-in-out infinite;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
@@ -205,6 +210,25 @@
   border: none;
   border-top: 1px solid var(--border);
   margin: 0.75em 0;
+}
+
+/* ── Inline streaming cursor ───────────────────────────── */
+.prose-chat-streaming > :last-child::after,
+.prose-chat-streaming > ul:last-child > li:last-child::after,
+.prose-chat-streaming > ol:last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  background: #5eead4;
+  border-radius: 2px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: pulse-cursor 0.8s ease-in-out infinite;
+}
+.prose-chat-streaming > ul:last-child::after,
+.prose-chat-streaming > ol:last-child::after {
+  display: none;
 }
 
 /* ── Message action bar ─────────────────────────────────── */
@@ -309,13 +333,16 @@
   border: 1px solid #94a3b8;
   color: #475569;
   white-space: nowrap;
+  box-shadow: 0 2px 0 0 #cbd5e1;
+  position: relative;
 }
 .starter-pill:hover {
   background: #ecfdf5;
   border-color: #5eead4;
   color: #1a2e2b;
+  box-shadow: 0 2px 0 0 #5eead4;
 }
 .starter-pill:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1);
 }

@@ -69,9 +69,9 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
   const hasContent = value.trim().length > 0;
 
   return (
-    <div className="shrink-0 border-t border-border bg-background">
+    <div className="shrink-0 bg-background">
       {showStarters && (
-        <div className="px-3 pt-3 space-y-2">
+        <div className="px-3 pt-3 space-y-2 border-t border-border">
           {hasFocusBullets && (
             <div className="flex flex-col gap-1.5">
               {focusBullets!.map((text, i) => (
@@ -100,7 +100,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
         </div>
       )}
 
-      <div className="p-3">
+      <div className="p-3 border-t border-border">
         <div className="relative rounded-xl border border-[#94a3b8] bg-[#f1f5f9] shadow-sm focus-within:border-[#5eead4] focus-within:shadow-[0_0_0_3px_rgb(94_234_212/0.15)] transition-all">
           <textarea
             ref={textareaRef}

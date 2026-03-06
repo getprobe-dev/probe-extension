@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { PRContext, PRStats, FetchPRStatsResponse, GeneratePRSummaryResponse } from "../../shared/types";
+import { getIconUrl } from "../utils/theme";
 
 interface PRDashboardProps {
   prContext: PRContext;
@@ -10,11 +11,6 @@ interface PRDashboardProps {
 function formatNumber(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
-}
-
-function getFileExtension(filename: string): string {
-  const parts = filename.split(".");
-  return parts.length > 1 ? `.${parts[parts.length - 1]}` : "other";
 }
 
 function timeAgo(dateStr: string): string {
@@ -82,9 +78,12 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-2">
-        <div className="size-5 border-2 border-[#5eead4]/30 border-t-[#5eead4] rounded-full animate-spin" />
-        <span className="text-xs text-muted-foreground">Loading PR stats…</span>
+      <div className="flex-1 flex items-center justify-center">
+        <img
+          src={getIconUrl(128)}
+          alt="PRobe"
+          className="size-14 rounded-2xl animate-logo-pulse"
+        />
       </div>
     );
   }
@@ -101,21 +100,6 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
 
   const totalLines = stats.additions + stats.deletions;
   const addPct = totalLines > 0 ? (stats.additions / totalLines) * 100 : 50;
-
-  const extMap = new Map<string, { count: number; additions: number; deletions: number }>();
-  for (const f of stats.files) {
-    const ext = getFileExtension(f.filename);
-    const prev = extMap.get(ext) || { count: 0, additions: 0, deletions: 0 };
-    extMap.set(ext, {
-      count: prev.count + 1,
-      additions: prev.additions + f.additions,
-      deletions: prev.deletions + f.deletions,
-    });
-  }
-  const fileTypes = Array.from(extMap.entries())
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 5);
-  const maxTypeCount = fileTypes.length > 0 ? fileTypes[0][1].count : 1;
 
   const topFiles = [...stats.files]
     .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
@@ -231,36 +215,13 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
         </div>
       )}
 
-      {/* File type breakdown */}
-      {fileTypes.length > 0 && (
-        <div className="dash-card p-3 space-y-1.5">
-          <h4 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">
-            By file type
-          </h4>
-          {fileTypes.map(([ext, data]) => (
-            <div key={ext} className="flex items-center gap-2 text-[0.7rem]">
-              <span className="w-10 text-right font-mono text-muted-foreground shrink-0">{ext}</span>
-              <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#5eead4]"
-                  style={{ width: `${(data.count / maxTypeCount) * 100}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-muted-foreground shrink-0">
-                {data.count} {data.count === 1 ? "file" : "files"}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* AI focus points loading indicator */}
+      {/* AI suggested prompts loading indicator */}
       {summaryLoading && (
         <div className="dash-card p-3 border-l-2 border-l-[#5eead4]">
           <div className="flex items-center gap-2 py-1">
             <Sparkles className="size-3 text-[#5eead4]" />
             <div className="size-3 border border-[#5eead4]/30 border-t-[#5eead4] rounded-full animate-spin" />
-            <span className="text-[0.7rem] text-muted-foreground">Generating focus points…</span>
+            <span className="text-[0.7rem] text-muted-foreground">Generating suggested prompts…</span>
           </div>
         </div>
       )}

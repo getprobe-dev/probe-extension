@@ -5,6 +5,11 @@ export interface FocusedLineRange {
   content: string;
 }
 
+export interface FocusedItem {
+  file: string;
+  lineRange?: FocusedLineRange;
+}
+
 export interface PRContext {
   owner: string;
   repo: string;

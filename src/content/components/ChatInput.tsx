@@ -1,6 +1,6 @@
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Square, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import type { FocusedLineRange } from "../../shared/types";
+import type { FocusedItem } from "../../shared/types";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -8,9 +8,10 @@ interface ChatInputProps {
   disabled: boolean;
   isStreaming: boolean;
   showStarters?: boolean;
-  focusedFile?: string | null;
-  focusedLineRange?: FocusedLineRange | null;
+  focusedItems?: FocusedItem[];
   focusBullets?: string[] | null;
+  onRemoveItem?: (index: number) => void;
+  onClearFocus?: () => void;
 }
 
 const QUICK_STARTERS = [
@@ -30,7 +31,7 @@ const LINE_STARTERS = [
   "How to improve this?",
 ];
 
-export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters, focusedFile, focusedLineRange, focusBullets }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters, focusedItems = [], focusBullets, onRemoveItem, onClearFocus }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,9 +59,10 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   };
 
-  const contextStarters = focusedLineRange
+  const hasLineRange = focusedItems.some((it) => it.lineRange);
+  const contextStarters = hasLineRange
     ? LINE_STARTERS
-    : focusedFile
+    : focusedItems.length > 0
       ? FILE_STARTERS
       : null;
 
@@ -101,6 +103,40 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
       )}
 
       <div className="p-3 border-t border-border">
+        {focusedItems.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            {focusedItems.map((item, idx) => (
+              <div
+                key={`${item.file}-${item.lineRange?.startLine ?? "f"}-${idx}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#5eead4]/10 border border-[#5eead4]/20 text-foreground text-xs font-medium"
+              >
+                <span className="truncate max-w-[160px]" title={item.file}>
+                  {item.file.split("/").pop() ?? item.file}
+                  {item.lineRange && (
+                    <span className="text-[#1a2e2b] font-semibold">
+                      {" "}L{item.lineRange.startLine}
+                      {item.lineRange.endLine !== item.lineRange.startLine
+                        ? `\u2013L${item.lineRange.endLine}`
+                        : ""}
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (focusedItems.length === 1) onClearFocus?.();
+                    else onRemoveItem?.(idx);
+                  }}
+                  className="inline-flex items-center justify-center size-4 rounded hover:bg-[#5eead4]/20 text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer"
+                  title="Remove"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="relative rounded-xl border border-[#94a3b8] bg-[#f1f5f9] shadow-sm focus-within:border-[#5eead4] focus-within:shadow-[0_0_0_3px_rgb(94_234_212/0.15)] transition-all">
           <textarea
             ref={textareaRef}

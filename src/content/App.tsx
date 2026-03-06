@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { FileButtons } from "./components/FileButtons";
 import { LineCommentButton } from "./components/LineCommentButton";
+import { getIconUrl } from "./utils/theme";
 import type { FocusedLineRange } from "../shared/types";
 
 export function App() {
@@ -52,7 +53,7 @@ export function App() {
           title="Open PRobe (Ctrl+Shift+P)"
         >
           <img
-            src={chrome.runtime.getURL("dark-mode/icon-48.png")}
+            src={getIconUrl(48)}
             alt="PRobe"
             width={48}
             height={48}

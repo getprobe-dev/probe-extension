@@ -6,7 +6,7 @@ interface FileButtonsProps {
 
 const BUTTON_CLASS = "prs-file-chat-btn";
 
-const LOGO_URL = chrome.runtime.getURL("dark-mode/icon-48.png");
+import { getIconUrl } from "../utils/theme";
 
 // New GitHub UI (Jan 2026): uses CSS Modules with hashed suffixes.
 // Match on the stable prefix — the hash (e.g. __Zcm) changes per deploy.
@@ -50,7 +50,7 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
   btn.title = `PRobe ${filePath}`;
 
   const img = document.createElement("img");
-  img.src = LOGO_URL;
+  img.src = getIconUrl(48);
   img.width = 20;
   img.height = 20;
   img.style.borderRadius = "4px";

@@ -7,8 +7,9 @@ interface LineCommentButtonProps {
   diff: string | null;
 }
 
+import { getIconUrl } from "../utils/theme";
+
 const BUTTON_CLASS = "prs-line-probe-btn";
-const LOGO_URL = chrome.runtime.getURL("dark-mode/icon-48.png");
 
 const EDITOR_SELECTOR = '[class*="AddCommentEditor-module__AddCommentEditor"]';
 const FOOTER_SELECTOR = '[class*="Footer-module__childrenStyling"]';
@@ -68,7 +69,7 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
       btn.type = "button";
 
       const img = document.createElement("img");
-      img.src = LOGO_URL;
+      img.src = getIconUrl(48);
       img.width = 18;
       img.height = 18;
       img.style.borderRadius = "3px";

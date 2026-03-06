@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button';
 import { getIconUrl } from '../utils/theme';
 import type { FocusedLineRange } from '../../shared/types';
+import { Sparkles, FileSearch, Code2 } from 'lucide-react';
 
 interface PromptStartersProps {
   focusedFile: string | null;
@@ -51,28 +51,34 @@ export function PromptStarters({
       ? 'Probe the changes, logic, or potential issues.'
       : 'Probe questions about the changes, understand the intent, or spot issues.';
 
+  const Icon = focusedLineRange ? Code2 : focusedFile ? FileSearch : Sparkles;
+
   return (
-    <div className='flex flex-col items-center justify-center flex-1 p-6 text-center'>
-      <img
-        src={getIconUrl(48)}
-        alt="PRobe"
-        width={40}
-        height={40}
-        className="rounded-xl mb-3"
-      />
-      <p className='text-sm font-medium text-navy mb-1'>{heading}</p>
-      <p className='text-xs text-muted-foreground mb-4'>{subheading}</p>
-      <div className='flex flex-wrap justify-center gap-2'>
+    <div className='flex flex-col items-center justify-center flex-1 p-6'>
+      <div className="relative mb-4">
+        <div className="absolute inset-0 rounded-2xl bg-mint/15 blur-xl scale-150" />
+        <img
+          src={getIconUrl(48)}
+          alt="PRobe"
+          width={44}
+          height={44}
+          className="relative rounded-xl ring-1 ring-black/5"
+        />
+      </div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="size-3.5 text-primary" />
+        <p className='text-sm font-semibold tracking-tight text-foreground'>{heading}</p>
+      </div>
+      <p className='text-xs text-muted-foreground mb-5 max-w-[260px] text-center leading-relaxed'>{subheading}</p>
+      <div className='flex flex-col gap-1.5 w-full max-w-[280px]'>
         {starters.map((text) => (
-          <Button
+          <button
             key={text}
-            variant='outline'
-            size='sm'
             onClick={() => onSelect(text)}
-            className='rounded-full text-xs font-medium h-auto py-1.5 px-3.5 hover:border-mint hover:bg-mint-faint hover:text-navy transition-all'
+            className='starter-card text-left w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-[0.8rem] text-foreground/80 hover:text-foreground cursor-pointer'
           >
             {text}
-          </Button>
+          </button>
         ))}
       </div>
     </div>

@@ -40,7 +40,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
   const hasContent = value.trim().length > 0;
 
   return (
-    <div className="p-3 bg-background shrink-0">
+    <div className="chat-input-area px-3 pb-3 pt-2 shrink-0 border-t border-border/50">
       <div className="flex gap-2 items-end relative">
         <div className="flex-1 relative">
           <textarea
@@ -51,14 +51,14 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             placeholder="Ask about this PR…"
             rows={1}
             disabled={disabled && !isStreaming}
-            className="w-full resize-none rounded-2xl border border-input bg-secondary/40 pl-3.5 pr-12 py-2.5 text-sm leading-relaxed outline-none transition-all placeholder:text-muted-foreground focus:bg-background focus:border-ring/50 focus:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full resize-none rounded-2xl border border-border bg-surface pl-3.5 pr-12 py-2.5 text-sm leading-relaxed outline-none transition-all placeholder:text-muted-foreground/70 focus:bg-surface-elevated focus:border-primary/30 focus:shadow-[0_0_0_3px_oklch(0.55_0.14_175/0.08)] disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <div className="absolute right-1.5 bottom-1.5">
             {isStreaming ? (
               <Button
                 onClick={onStop}
                 size="icon-xs"
-                className="bg-foreground hover:bg-foreground/80 text-background rounded-lg"
+                className="bg-foreground hover:bg-foreground/80 text-background rounded-xl transition-all"
                 title="Stop generating"
               >
                 <Square className="size-3" />
@@ -68,7 +68,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 onClick={handleSubmit}
                 disabled={!hasContent || disabled}
                 size="icon-xs"
-                className="bg-foreground hover:bg-foreground/80 text-background rounded-lg disabled:opacity-30"
+                className="bg-primary hover:bg-primary/85 text-primary-foreground rounded-xl transition-all disabled:opacity-25 disabled:bg-muted-foreground"
                 title="Send message"
               >
                 <ArrowUp className="size-3.5" strokeWidth={2.5} />

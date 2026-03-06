@@ -39,33 +39,35 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --color-navy: oklch(0.155 0.026 264);
-  --color-navy-light: oklch(0.21 0.026 264);
-  --color-mint: oklch(0.78 0.12 180);
-  --color-mint-light: oklch(0.87 0.09 180);
-  --color-mint-faint: oklch(0.96 0.03 180);
+  --color-navy: #1a2e2b;
+  --color-navy-light: #243d39;
+  --color-mint: #5eead4;
+  --color-mint-light: oklch(0.87 0.09 175);
+  --color-mint-faint: oklch(0.96 0.03 175);
+  --color-surface: oklch(0.985 0.003 260);
+  --color-surface-elevated: oklch(0.995 0.001 260);
 }
 
 :host {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.195 0.02 260);
+  --background: oklch(0.993 0.001 260);
+  --foreground: oklch(0.16 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.195 0.02 260);
+  --card-foreground: oklch(0.16 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.195 0.02 260);
-  --primary: oklch(0.57 0.13 175);
+  --popover-foreground: oklch(0.16 0.02 260);
+  --primary: oklch(0.55 0.14 175);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.965 0.01 260);
-  --secondary-foreground: oklch(0.195 0.02 260);
-  --muted: oklch(0.965 0.01 260);
-  --muted-foreground: oklch(0.52 0.015 260);
-  --accent: oklch(0.965 0.01 260);
-  --accent-foreground: oklch(0.195 0.02 260);
+  --secondary: oklch(0.96 0.008 260);
+  --secondary-foreground: oklch(0.16 0.02 260);
+  --muted: oklch(0.96 0.008 260);
+  --muted-foreground: oklch(0.50 0.015 260);
+  --accent: oklch(0.96 0.008 260);
+  --accent-foreground: oklch(0.16 0.02 260);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.008 260);
-  --input: oklch(0.915 0.008 260);
-  --ring: oklch(0.57 0.13 175);
+  --border: oklch(0.92 0.006 260);
+  --input: oklch(0.92 0.006 260);
+  --ring: oklch(0.55 0.14 175);
 }
 
 @layer base {
@@ -86,6 +88,7 @@
   line-height: 1.5;
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── Animations ─────────────────────────────────────────── */
@@ -94,15 +97,15 @@
   to { transform: translateX(0); opacity: 1; }
 }
 .animate-slide-in {
-  animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.25s ease-out;
 }
 
 @keyframes pulse-cursor {
@@ -113,11 +116,24 @@
   animation: pulse-cursor 0.8s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.14 175 / 0.3); }
+  50% { box-shadow: 0 0 0 8px oklch(0.55 0.14 175 / 0); }
+}
+
 /* ── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.85 0 0); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.7 0 0); }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.87 0 0);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background: oklch(0.72 0 0); }
 
 /* ── Prose (markdown rendering) ─────────────────────────── */
 .prose-chat {
@@ -128,21 +144,23 @@
 .prose-chat p:first-child { margin-top: 0; }
 .prose-chat p:last-child { margin-bottom: 0; }
 .prose-chat code {
-  background: oklch(0.965 0.005 260);
-  padding: 0.15em 0.35em;
-  border-radius: 5px;
-  font-size: 0.85em;
+  background: oklch(0.96 0.005 260);
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  font-size: 0.84em;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  border: 1px solid oklch(0.92 0.005 260);
+  border: 1px solid oklch(0.925 0.005 260);
+  color: oklch(0.35 0.06 175);
 }
 .prose-chat pre {
-  background: oklch(0.17 0.02 265);
+  background: oklch(0.15 0.02 265);
   color: oklch(0.88 0 0);
-  padding: 0.875em 1em;
-  border-radius: 10px;
+  padding: 1em 1.125em;
+  border-radius: 12px;
   overflow-x: auto;
-  margin: 0.5em 0;
-  font-size: 0.85em;
+  margin: 0.625em 0;
+  font-size: 0.84em;
+  border: 1px solid oklch(0.22 0.015 265);
 }
 .prose-chat pre code {
   background: none;
@@ -159,15 +177,16 @@
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
   font-weight: 600;
   margin: 0.75em 0 0.25em;
+  letter-spacing: -0.01em;
 }
 .prose-chat h1 { font-size: 1.2em; }
 .prose-chat h2 { font-size: 1.1em; }
 .prose-chat h3 { font-size: 1em; }
 .prose-chat blockquote {
-  border-left: 3px solid oklch(0.85 0 0);
-  padding-left: 0.75em;
+  border-left: 3px solid oklch(0.55 0.14 175 / 0.4);
+  padding-left: 0.875em;
   margin: 0.5em 0;
-  color: oklch(0.55 0 0);
+  color: oklch(0.50 0.01 260);
 }
 .prose-chat table {
   border-collapse: collapse;
@@ -176,16 +195,20 @@
 }
 .prose-chat th, .prose-chat td {
   border: 1px solid var(--border);
-  padding: 0.35em 0.65em;
+  padding: 0.4em 0.7em;
 }
 .prose-chat th {
-  background: oklch(0.965 0.005 260);
+  background: oklch(0.96 0.005 260);
   font-weight: 600;
 }
 .prose-chat a {
   color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+.prose-chat a:hover {
+  color: oklch(0.48 0.14 175);
 }
 .prose-chat hr {
   border: none;
@@ -196,7 +219,7 @@
 /* ── Message action bar ─────────────────────────────────── */
 .msg-bubble-wrapper {
   position: relative;
-  max-width: 85%;
+  max-width: 88%;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -207,10 +230,10 @@
   right: 4px;
   gap: 2px;
   padding: 3px;
-  border-radius: 9px;
+  border-radius: 10px;
   background: white;
   border: 1px solid var(--border);
-  box-shadow: 0 2px 12px oklch(0 0 0 / 0.08);
+  box-shadow: 0 2px 16px oklch(0 0 0 / 0.07), 0 0 1px oklch(0 0 0 / 0.1);
   z-index: 1;
 }
 .msg-bubble-wrapper:hover .msg-actions {
@@ -220,25 +243,27 @@
 /* ── Comment composer ───────────────────────────────────── */
 .comment-composer {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: white;
   overflow: hidden;
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.04);
 }
 .comment-composer-textarea {
   display: block;
   width: 100%;
   min-height: 100px;
   max-height: 200px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: none;
   outline: none;
   resize: vertical;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.8rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--foreground);
-  background: oklch(0.985 0.002 260);
+  background: oklch(0.99 0.002 260);
   box-sizing: border-box;
+  transition: background 0.15s;
 }
 .comment-composer-textarea:focus {
   background: white;
@@ -257,7 +282,54 @@
   overflow-y: auto;
   background: white;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 8px 30px oklch(0 0 0 / 0.1), 0 2px 8px oklch(0 0 0 / 0.06);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 40px oklch(0 0 0 / 0.1),
+    0 2px 8px oklch(0 0 0 / 0.05),
+    0 0 0 1px oklch(0 0 0 / 0.03);
   z-index: 10;
+}
+
+/* ── Panel glass border ─────────────────────────────────── */
+.panel-border-left {
+  border-left: 1px solid oklch(0.92 0.008 260);
+  box-shadow:
+    -1px 0 0 oklch(0 0 0 / 0.03),
+    0 0 60px oklch(0 0 0 / 0.06);
+}
+
+/* ── Floating button glow ───────────────────────────────── */
+.fab-glow {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.12);
+}
+.fab-glow:hover {
+  box-shadow:
+    0 6px 20px oklch(0 0 0 / 0.15),
+    0 0 0 3px oklch(0.55 0.14 175 / 0.2);
+  transform: scale(1.06);
+}
+
+/* ── Header gradient ────────────────────────────────────── */
+.header-gradient {
+  background: #1a2e2b;
+  border-bottom: 1px solid rgb(94 234 212 / 0.2);
+}
+
+/* ── Prompt starter cards ───────────────────────────────── */
+.starter-card {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.starter-card:hover {
+  border-color: oklch(0.55 0.14 175 / 0.5);
+  background: oklch(0.97 0.02 180);
+  box-shadow: 0 2px 12px oklch(0.55 0.14 175 / 0.08);
+  transform: translateY(-1px);
+}
+
+/* ── Input area ─────────────────────────────────────────── */
+.chat-input-area {
+  background: linear-gradient(to top, oklch(0.993 0.001 260), oklch(0.993 0.001 260 / 0.9));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }

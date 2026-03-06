@@ -182,7 +182,7 @@ export function CommentComposer({
             size="sm"
             onClick={handlePost}
             disabled={!content.trim() || state === "posting"}
-            className="text-xs h-7 bg-linear-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white"
+            className="text-xs h-7 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-sm"
           >
             {state === "posting" ? "Posting..." : "Post Comment"}
           </Button>

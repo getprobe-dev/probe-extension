@@ -42,13 +42,13 @@ export function MessageBubble({
   };
 
   return (
-    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-3 animate-fade-in`}>
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-3.5 animate-fade-in`}>
       <div className="msg-bubble-wrapper">
         <div
-          className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed overflow-hidden ${
+          className={`rounded-2xl px-3.5 py-2.5 text-[0.84rem] leading-relaxed overflow-hidden ${
             isUser
-              ? "bg-mint-faint border border-mint/25 text-foreground"
-              : "bg-secondary/50 text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-surface border border-border/60 text-foreground shadow-[0_1px_3px_oklch(0_0_0/0.04)]"
           }`}
         >
           {isUser ? (
@@ -59,7 +59,7 @@ export function MessageBubble({
                 {message.content}
               </Markdown>
               {isStreaming && (
-                <span className="inline-block w-1.5 h-4 bg-mint rounded-sm ml-0.5 align-middle animate-pulse-cursor" />
+                <span className="inline-block w-1.5 h-4 bg-primary rounded-sm ml-0.5 align-middle animate-pulse-cursor" />
               )}
             </div>
           )}
@@ -71,7 +71,7 @@ export function MessageBubble({
               variant="ghost"
               size="icon-xs"
               onClick={handleCopy}
-              className="text-muted-foreground hover:text-primary"
+              className="text-muted-foreground hover:text-primary rounded-lg"
               title={copied ? "Copied!" : "Copy to clipboard"}
             >
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
@@ -80,7 +80,7 @@ export function MessageBubble({
               variant="ghost"
               size="icon-xs"
               onClick={() => setShowComposer(true)}
-              className="text-muted-foreground hover:text-primary"
+              className="text-muted-foreground hover:text-primary rounded-lg"
               title="Post as PR comment"
             >
               <MessageSquare className="size-3" />
@@ -90,7 +90,7 @@ export function MessageBubble({
       </div>
 
       {showComposer && prOwner && prRepo && prNumber && (
-        <div className="w-full max-w-[85%] mt-1.5">
+        <div className="w-full max-w-[88%] mt-1.5">
           <CommentComposer
             initialContent={message.content}
             owner={prOwner}

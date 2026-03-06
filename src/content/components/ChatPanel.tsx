@@ -2,17 +2,19 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
-import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment } from "../../shared/types";
+import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
 import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
 
 interface ChatPanelProps {
   onClose: () => void;
   focusedFile: string | null;
+  focusedLineRange: FocusedLineRange | null;
   onClearFocus: () => void;
+  onDiffLoaded: (diff: string) => void;
 }
 
-export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps) {
+export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus, onDiffLoaded }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +33,7 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
         const context = await extractPRContext();
         if (cancelled) return;
         setPrContext(context);
+        onDiffLoaded(context.diff);
 
         const key = STORAGE_KEYS.chatHistory(context.owner, context.repo, context.number);
         storageKeyRef.current = key;
@@ -58,7 +61,7 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
   useEffect(() => {
     setMessages([]);
     setError(null);
-  }, [focusedFile]);
+  }, [focusedFile, focusedLineRange]);
 
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (!storageKeyRef.current) return;
@@ -115,6 +118,9 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
       if (focusedFile) {
         const fileDiff = extractDiffForFile(prContext.diff, focusedFile);
         contextToSend = { ...prContext, diff: fileDiff, focusedFile };
+        if (focusedLineRange) {
+          contextToSend.focusedLineRange = focusedLineRange;
+        }
         const fileContent = await fetchFileContent(prContext.owner, prContext.repo, prContext.headBranch, focusedFile);
         if (fileContent) contextToSend.focusedFileContent = fileContent;
       }
@@ -156,7 +162,7 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
       };
       port.postMessage(payload);
     },
-    [prContext, isStreaming, messages, persistMessages, focusedFile]
+    [prContext, isStreaming, messages, persistMessages, focusedFile, focusedLineRange]
   );
 
   const handleStop = useCallback(() => {
@@ -228,7 +234,17 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
               <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
               <polyline points="13 2 13 9 20 9" />
             </svg>
-            <span className="prs-truncate" title={focusedFile}>{fileName}</span>
+            <span className="prs-truncate" title={focusedFile}>
+              {fileName}
+              {focusedLineRange && (
+                <span style={{ color: "#0d9488", fontWeight: 600 }}>
+                  {" "}L{focusedLineRange.startLine}
+                  {focusedLineRange.endLine !== focusedLineRange.startLine
+                    ? `–L${focusedLineRange.endLine}`
+                    : ""}
+                </span>
+              )}
+            </span>
             <button
               onClick={onClearFocus}
               className="prs-file-focus-clear"
@@ -260,6 +276,7 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
           messages={messages}
           isStreaming={isStreaming}
           focusedFile={focusedFile}
+          focusedLineRange={focusedLineRange}
           onPromptSelect={handleSend}
           prOwner={prContext?.owner}
           prRepo={prContext?.repo}

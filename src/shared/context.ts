@@ -92,6 +92,87 @@ export function extractFirstChangedLine(
   return { line: 1, side: "RIGHT" };
 }
 
+export function extractLinesFromDiff(
+  fullDiff: string,
+  filePath: string,
+  startLine: number,
+  endLine: number,
+  side: "LEFT" | "RIGHT"
+): string {
+  const fileDiff = extractDiffForFile(fullDiff, filePath);
+  const lines = fileDiff.split("\n");
+  const result: string[] = [];
+
+  let currentNewLine = 0;
+  let currentOldLine = 0;
+
+  for (const line of lines) {
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      currentOldLine = parseInt(hunkMatch[1], 10);
+      currentNewLine = parseInt(hunkMatch[2], 10);
+      continue;
+    }
+
+    const currentLine = side === "RIGHT" ? currentNewLine : currentOldLine;
+
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      if (side === "RIGHT" && currentNewLine >= startLine && currentNewLine <= endLine) {
+        result.push(line.slice(1));
+      }
+      currentNewLine++;
+    } else if (line.startsWith("-") && !line.startsWith("---")) {
+      if (side === "LEFT" && currentOldLine >= startLine && currentOldLine <= endLine) {
+        result.push(line.slice(1));
+      }
+      currentOldLine++;
+    } else if (!line.startsWith("\\") && !line.startsWith("diff") && !line.startsWith("index") && !line.startsWith("---") && !line.startsWith("+++")) {
+      if (currentLine >= startLine && currentLine <= endLine) {
+        result.push(line.startsWith(" ") ? line.slice(1) : line);
+      }
+      currentNewLine++;
+      currentOldLine++;
+    }
+  }
+
+  return result.join("\n");
+}
+
+export function parseLineRangeFromHash(): {
+  diffId: string;
+  startLine: number;
+  endLine: number;
+  side: "LEFT" | "RIGHT";
+} | null {
+  const hash = location.hash;
+  const match = hash.match(/#(diff-[a-f0-9]+)([LR])(\d+)(?:-[LR](\d+))?/);
+  if (!match) return null;
+
+  const diffId = match[1];
+  const side = match[2] === "L" ? "LEFT" as const : "RIGHT" as const;
+  const startLine = parseInt(match[3], 10);
+  const endLine = match[4] ? parseInt(match[4], 10) : startLine;
+
+  return { diffId, startLine, endLine, side };
+}
+
+export function getFilePathFromDiffId(diffId: string): string | null {
+  const el = document.getElementById(diffId);
+  if (!el) return null;
+
+  const codeEl = el.querySelector<HTMLElement>(
+    '[class*="file-path"] code, a[class*="Link--primary"] code, code'
+  );
+  if (codeEl) {
+    const cleaned = (codeEl.textContent ?? "")
+      .replace(/[\u200B-\u200F\u2028\u2029\uFEFF]/g, "")
+      .trim();
+    if (cleaned) return cleaned;
+  }
+
+  return null;
+}
+
 async function fetchDiff(
   owner: string,
   repo: string,

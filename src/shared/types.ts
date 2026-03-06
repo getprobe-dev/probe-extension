@@ -1,3 +1,10 @@
+export interface FocusedLineRange {
+  startLine: number;
+  endLine: number;
+  side: "LEFT" | "RIGHT";
+  content: string;
+}
+
 export interface PRContext {
   owner: string;
   repo: string;
@@ -8,6 +15,7 @@ export interface PRContext {
   headBranch: string;
   focusedFile?: string;
   focusedFileContent?: string;
+  focusedLineRange?: FocusedLineRange;
 }
 
 export interface ChatMessage {

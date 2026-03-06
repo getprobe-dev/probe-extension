@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { FileButtons } from "./components/FileButtons";
+import { LineCommentButton } from "./components/LineCommentButton";
+import type { FocusedLineRange } from "../shared/types";
 
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedFile, setFocusedFile] = useState<string | null>(null);
+  const [focusedLineRange, setFocusedLineRange] = useState<FocusedLineRange | null>(null);
+  const [prDiff, setPrDiff] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -19,16 +23,25 @@ export function App() {
 
   const handleFileSelect = useCallback((filePath: string) => {
     setFocusedFile(filePath);
+    setFocusedLineRange(null);
+    setIsOpen(true);
+  }, []);
+
+  const handleLineSelect = useCallback((filePath: string, lineRange: FocusedLineRange) => {
+    setFocusedFile(filePath);
+    setFocusedLineRange(lineRange);
     setIsOpen(true);
   }, []);
 
   const handleClearFocus = useCallback(() => {
     setFocusedFile(null);
+    setFocusedLineRange(null);
   }, []);
 
   return (
     <>
       <FileButtons onFileSelect={handleFileSelect} />
+      <LineCommentButton onLineSelect={handleLineSelect} diff={prDiff} />
 
       {/* Floating toggle button */}
       {!isOpen && (
@@ -59,7 +72,9 @@ export function App() {
           <ChatPanel
             onClose={() => setIsOpen(false)}
             focusedFile={focusedFile}
+            focusedLineRange={focusedLineRange}
             onClearFocus={handleClearFocus}
+            onDiffLoaded={setPrDiff}
           />
         </div>
       )}

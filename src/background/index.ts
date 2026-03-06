@@ -213,7 +213,7 @@ async function handleChat(
   }
 
   const systemPrompt = context.focusedFile
-    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent)
+    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent, context.focusedLineRange)
     : buildSystemPrompt(context);
 
   const anthropicMessages = messages.map((m) => ({

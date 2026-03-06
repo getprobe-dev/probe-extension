@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { PromptStarters } from "./PromptStarters";
-import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
+import type { ChatMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   focusedFile: string | null;
+  focusedLineRange: FocusedLineRange | null;
   onPromptSelect: (prompt: string) => void;
   prOwner?: string;
   prRepo?: string;
@@ -20,6 +21,7 @@ export function MessageList({
   messages,
   isStreaming,
   focusedFile,
+  focusedLineRange,
   onPromptSelect,
   prOwner,
   prRepo,
@@ -36,7 +38,7 @@ export function MessageList({
 
   if (messages.length === 0) {
     return (
-      <PromptStarters focusedFile={focusedFile} onSelect={onPromptSelect} />
+      <PromptStarters focusedFile={focusedFile} focusedLineRange={focusedLineRange} onSelect={onPromptSelect} />
     );
   }
 

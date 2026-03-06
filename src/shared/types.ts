@@ -114,6 +114,16 @@ export interface FetchPRStatsRequest {
   number: number;
 }
 
+export interface CommitDetail {
+  sha: string;
+  message: string;
+  author: string;
+  avatarUrl: string;
+  date: string;
+  additions: number;
+  deletions: number;
+}
+
 export interface PRStats {
   additions: number;
   deletions: number;
@@ -126,6 +136,7 @@ export interface PRStats {
   reviewers: Array<{ login: string; avatarUrl: string; state: string }>;
   commitAuthors: Array<{ login: string; avatarUrl: string }>;
   files: Array<{ filename: string; additions: number; deletions: number }>;
+  commitDetails: CommitDetail[];
 }
 
 export interface FetchPRStatsResponse {

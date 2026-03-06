@@ -212,6 +212,32 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
     if (!authorSet.has(login)) authorSet.set(login, { login, avatarUrl });
   }
 
+  const commitDetailResults = await Promise.all(
+    (commits as Array<{ sha: string }>).slice(0, 30).map(async (c) => {
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/${msg.owner}/${msg.repo}/commits/${c.sha}`,
+          { headers },
+        );
+        if (!res.ok) return null;
+        return res.json();
+      } catch { return null; }
+    }),
+  );
+
+  const commitDetails: import("../shared/types").CommitDetail[] = (commits as Array<Record<string, unknown>>).map((c, i) => {
+    const detail = commitDetailResults[i];
+    return {
+      sha: (c.sha as string) ?? "",
+      message: ((c.commit as Record<string, unknown>)?.message as string) ?? "",
+      author: ((c.author as Record<string, unknown>)?.login as string) ?? ((c.commit as Record<string, unknown>)?.author as Record<string, unknown>)?.name as string ?? "unknown",
+      avatarUrl: ((c.author as Record<string, unknown>)?.avatar_url as string) ?? "",
+      date: (((c.commit as Record<string, unknown>)?.author as Record<string, unknown>)?.date as string) ?? "",
+      additions: (detail?.stats?.additions as number) ?? 0,
+      deletions: (detail?.stats?.deletions as number) ?? 0,
+    };
+  });
+
   const reviewerMap = new Map<string, { login: string; avatarUrl: string; state: string }>();
   for (const r of reviews) {
     if (!r.user?.login || r.user.login === pr.user?.login) continue;
@@ -236,6 +262,7 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
     files: (files as Array<{ filename: string; additions: number; deletions: number }>).map(
       (f) => ({ filename: f.filename, additions: f.additions, deletions: f.deletions })
     ),
+    commitDetails,
   };
 
   return { ok: true, stats };

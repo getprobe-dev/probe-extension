@@ -273,6 +273,10 @@ PRobe requests the minimum permissions needed:
 - **`declarativeNetRequest`** — Add CORS headers for patch diff fetches.
 - **Host permissions** — `github.com`, `api.github.com`, `*.githubusercontent.com`, `*.workers.dev`.
 
+## Contributing
+
+PRobe welcomes contributions through a proposal-first workflow. See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started.
+
 ## License
 
 PRobe is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).

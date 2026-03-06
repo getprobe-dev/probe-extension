@@ -27,9 +27,11 @@ export function MessageList({
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, messages[messages.length - 1]?.content]);
+  }, [messages, lastMsg?.content]);
 
   if (messages.length === 0) {
     if (prContext) return <PRDashboard prContext={prContext} onSummaryReady={onSummaryReady} />;

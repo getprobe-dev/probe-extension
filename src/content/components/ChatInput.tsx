@@ -116,7 +116,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
             {isStreaming ? (
               <button
                 onClick={onStop}
-                className="flex items-center justify-center size-8 rounded-xl bg-[#1a2e2b] text-white cursor-pointer transition-all shadow-[0_2px_0_0_rgba(0,0,0,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-px"
+                className="send-btn"
                 title="Stop generating"
               >
                 <Square className="size-3" />
@@ -125,7 +125,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
               <button
                 onClick={handleSubmit}
                 disabled={!hasContent || disabled}
-                className="flex items-center justify-center size-8 rounded-xl cursor-pointer transition-all disabled:opacity-20 disabled:cursor-not-allowed bg-[#1a2e2b] text-[#5eead4] shadow-[0_2px_0_0_rgba(0,0,0,0.2)] hover:bg-[#243d39] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-px"
+                className="send-btn"
                 title="Send message"
               >
                 <ArrowUp className="size-4" strokeWidth={2.5} />

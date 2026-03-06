@@ -229,7 +229,7 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
           {messages.length > 0 && (
             <button
               onClick={handleClear}
-              className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+              className="header-btn"
               title="New chat"
             >
               <Plus className="size-3.5" />
@@ -237,7 +237,7 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+            className="header-btn"
             title="Close panel"
           >
             <X className="size-4" />

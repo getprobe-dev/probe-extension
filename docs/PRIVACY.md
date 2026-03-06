@@ -40,10 +40,6 @@ All data is stored locally in your browser. You can clear it at any time by:
 | GitHub | PR data and comments | https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement |
 | Google Fonts | Typography | https://policies.google.com/privacy |
 
-## Open Source
-
-PRobe is open source. You can audit the complete source code to verify these claims.
-
 ## Contact
 
-If you have questions about this privacy policy, please open an issue on the GitHub repository.
+If you have questions about this privacy policy, you can reach out via email at sgunturi@protonmail.com or on [LinkedIn](https://linkedin.com/in/sankalpgunturi).

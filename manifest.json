@@ -21,17 +21,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*"],
+      "matches": ["https://github.com/*/*/pull/*"],
       "js": ["src/content/index.tsx"],
       "css": ["src/styles/content.css"]
     }
   ],
   "permissions": ["storage", "activeTab", "declarativeNetRequest"],
   "host_permissions": [
-    "https://github.com/*",
-    "https://api.github.com/*",
-    "https://*.githubusercontent.com/*",
-    "https://pr-sidekick-proxy.sgunturi.workers.dev/*"
+    "https://github.com/*/*/pull/*",
+    "https://*.githubusercontent.com/*"
   ],
   "web_accessible_resources": [
     {

@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { Check, FileText, X } from 'lucide-react';
 import { useState } from 'react';
 import type {
@@ -92,11 +91,14 @@ export function ReviewQueue({
     }
   };
 
+  const eventLabel = (ev: ReviewEvent) =>
+    ev === 'COMMENT' ? 'Comment' : ev === 'APPROVE' ? 'Approve' : 'Request Changes';
+
   return (
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className='inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-white/15 bg-white/10 text-white/80 text-[0.68rem] font-semibold cursor-pointer transition-all hover:bg-white/15 hover:text-white leading-none'
+        className='header-btn px-2! gap-1 text-[0.68rem] font-semibold leading-none'
         title={`${pending.length} pending review comment${pending.length > 1 ? 's' : ''}`}
       >
         <FileText className='size-3' />
@@ -105,113 +107,99 @@ export function ReviewQueue({
 
       {isOpen && (
         <div className='review-dialog animate-fade-in'>
-          <div className='flex items-center justify-between p-3 border-b border-border/50'>
-            <span className='text-sm font-semibold text-foreground'>
-              {state === 'submitted' ? 'Review submitted' : 'Submit Review'}
-            </span>
-            <Button
-              variant='ghost'
-              size='icon-xs'
-              onClick={() => setIsOpen(false)}
-              className='text-muted-foreground hover:text-foreground'
-              title='Close'
-            >
-              <X className='size-3' />
-            </Button>
-          </div>
-
           {state === 'submitted' ? (
-            <div className='flex items-center gap-1.5 p-4 text-sm font-medium text-emerald-600'>
-              <Check className='size-3.5' />
-              <span>Review submitted successfully</span>
+            <div className='flex items-center gap-2 px-4 py-5 text-sm font-medium text-navy'>
+              <div className='flex items-center justify-center size-5 rounded-full bg-mint/20'>
+                <Check className='size-3 text-navy' />
+              </div>
+              Review submitted
             </div>
           ) : (
             <>
-              <div className='max-h-[180px] overflow-y-auto p-2'>
+              {/* Pending comments */}
+              <div className='max-h-[160px] overflow-y-auto p-2 space-y-1'>
                 {pending.map((c, i) => (
                   <div
                     key={i}
-                    className='p-2.5 rounded-lg bg-muted mb-1.5 last:mb-0'
+                    className='group flex items-start gap-2 p-2 rounded-lg bg-surface border border-border hover:border-mint/40 transition-colors'
                   >
-                    <div className='flex items-center justify-between text-[0.7rem] font-semibold text-muted-foreground mb-0.5'>
-                      {c.path.split('/').pop()}
-                      <button
-                        onClick={() => onRemove(i)}
-                        className='inline-flex items-center justify-center size-4.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors'
-                        title='Remove'
-                      >
-                        <X className='size-2.5' />
-                      </button>
+                    <div className='flex-1 min-w-0'>
+                      <span className='text-[0.68rem] font-semibold text-navy'>
+                        {c.path.split('/').pop()}
+                      </span>
+                      <p className='text-[0.66rem] text-muted-foreground leading-snug mt-0.5 wrap-break-word'>
+                        {c.body.slice(0, 100)}
+                        {c.body.length > 100 ? '...' : ''}
+                      </p>
                     </div>
-                    <div className='text-[0.7rem] text-muted-foreground leading-snug wrap-break-word'>
-                      {c.body.slice(0, 120)}
-                      {c.body.length > 120 ? '...' : ''}
-                    </div>
+                    <button
+                      onClick={() => onRemove(i)}
+                      className='shrink-0 mt-0.5 inline-flex items-center justify-center size-4 rounded opacity-0 group-hover:opacity-100 hover:bg-[#fee2e2] text-[#94a3b8] hover:text-[#ef4444] transition-all cursor-pointer'
+                      title='Remove'
+                    >
+                      <X className='size-2.5' />
+                    </button>
                   </div>
                 ))}
               </div>
 
-              <div className='p-2 border-t border-border/50'>
+              {/* Summary textarea */}
+              <div className='px-2 pt-1 pb-2'>
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className='comment-composer-textarea'
-                  rows={3}
-                  placeholder='Overall review summary (optional)...'
+                  className='review-summary-textarea'
+                  rows={2}
+                  placeholder='Review summary (optional)...'
                   disabled={state === 'submitting'}
                 />
               </div>
 
-              <div className='flex gap-1 px-2 pb-2'>
+              {/* Event selector */}
+              <div className='mx-2 mb-2 flex rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] p-0.5'>
                 {(['COMMENT', 'APPROVE', 'REQUEST_CHANGES'] as const).map(
                   (ev) => (
                     <button
                       key={ev}
                       onClick={() => setEvent(ev)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg border text-[0.65rem] font-medium text-center cursor-pointer transition-all ${
+                      className={`flex-1 py-1 rounded-md text-[0.65rem] font-semibold text-center cursor-pointer transition-all ${
                         event === ev
-                          ? 'bg-[#1a2e2b] text-[#5eead4] border-transparent shadow-sm'
-                          : 'border-border bg-background text-muted-foreground hover:border-[#5eead4] hover:text-foreground'
+                          ? 'bg-white text-navy shadow-sm border border-border'
+                          : 'text-[#94a3b8] hover:text-[#64748b] border border-transparent'
                       }`}
                     >
-                      {ev === 'COMMENT'
-                        ? 'Comment'
-                        : ev === 'APPROVE'
-                          ? 'Approve'
-                          : 'Request Changes'}
+                      {eventLabel(ev)}
                     </button>
                   ),
                 )}
               </div>
 
               {state === 'error' && (
-                <div className='px-3 py-1.5 text-xs text-destructive bg-destructive/10 border-t border-destructive/20'>
+                <div className='mx-2 mb-2 px-2.5 py-1.5 text-[0.68rem] text-[#ef4444] bg-[#fef2f2] border border-[#fecaca] rounded-lg'>
                   {error}
                 </div>
               )}
 
-              <div className='flex items-center justify-between p-2.5 border-t border-border/50'>
-                <Button
-                  variant='secondary'
-                  size='sm'
+              {/* Actions */}
+              <div className='flex items-center justify-between px-2 pb-2 gap-2'>
+                <button
                   onClick={() => {
                     onClear();
                     setIsOpen(false);
                   }}
-                  className='text-xs h-7'
+                  className='review-discard-btn'
                 >
                   Discard All
-                </Button>
-                <Button
-                  size='sm'
+                </button>
+                <button
                   onClick={handleSubmit}
                   disabled={state === 'submitting'}
-                  className='text-xs h-7 rounded-lg bg-[#1a2e2b] hover:bg-[#243d39] text-[#5eead4] cursor-pointer shadow-[0_2px_0_0_rgba(0,0,0,0.15)] active:shadow-[inset_0_2px_3px_rgba(0,0,0,0.3)] active:translate-y-px transition-all'
+                  className='review-submit-btn'
                 >
                   {state === 'submitting'
                     ? 'Submitting...'
                     : `Submit Review (${pending.length})`}
-                </Button>
+                </button>
               </div>
             </>
           )}

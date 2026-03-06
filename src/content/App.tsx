@@ -5,6 +5,8 @@ import { FileButtons } from './components/FileButtons';
 import { LineCommentButton } from './components/LineCommentButton';
 import { getIconUrl } from './utils/theme';
 
+const PANEL_WIDTH = 400;
+
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedFile, setFocusedFile] = useState<string | null>(null);
@@ -22,6 +24,16 @@ export function App() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (!html.style.transition.includes('margin-right')) {
+      html.style.transition = [html.style.transition, 'margin-right 0.25s cubic-bezier(0.16,1,0.3,1)']
+        .filter(Boolean).join(', ');
+    }
+    html.style.marginRight = isOpen ? `${PANEL_WIDTH}px` : '';
+    return () => { html.style.marginRight = ''; };
+  }, [isOpen]);
 
   const handleFileSelect = useCallback((filePath: string) => {
     setFocusedFile(filePath);

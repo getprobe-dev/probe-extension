@@ -1,24 +1,29 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
-import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage } from "../../shared/types";
+import { ReviewQueue } from "./ReviewQueue";
+import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
-import { extractPRContext, extractDiffForFile, fetchFileContent } from "../../shared/context";
+import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
 
 interface ChatPanelProps {
   onClose: () => void;
   focusedFile: string | null;
+  focusedLineRange: FocusedLineRange | null;
   onClearFocus: () => void;
+  onDiffLoaded: (diff: string) => void;
 }
 
-export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps) {
+export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus, onDiffLoaded }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [prContext, setPrContext] = useState<PRContext | null>(null);
+  const [pendingReview, setPendingReview] = useState<ReviewPendingComment[]>([]);
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const storageKeyRef = useRef<string>("");
+  const reviewKeyRef = useRef<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -28,15 +33,18 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
         const context = await extractPRContext();
         if (cancelled) return;
         setPrContext(context);
+        onDiffLoaded(context.diff);
 
         const key = STORAGE_KEYS.chatHistory(context.owner, context.repo, context.number);
         storageKeyRef.current = key;
 
-        chrome.storage.local.get(key, (result) => {
+        const rKey = STORAGE_KEYS.pendingReview(context.owner, context.repo, context.number);
+        reviewKeyRef.current = rKey;
+
+        chrome.storage.local.get([key, rKey], (result) => {
           if (cancelled) return;
-          if (result[key]) {
-            setMessages(result[key] as ChatMessage[]);
-          }
+          if (result[key]) setMessages(result[key] as ChatMessage[]);
+          if (result[rKey]) setPendingReview(result[rKey] as ReviewPendingComment[]);
           setIsLoading(false);
         });
       } catch (err) {
@@ -53,29 +61,53 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
   useEffect(() => {
     setMessages([]);
     setError(null);
-  }, [focusedFile]);
+  }, [focusedFile, focusedLineRange]);
 
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (!storageKeyRef.current) return;
     chrome.storage.local.set({ [storageKeyRef.current]: msgs });
   }, []);
 
+  const persistReview = useCallback((comments: ReviewPendingComment[]) => {
+    if (!reviewKeyRef.current) return;
+    if (comments.length === 0) {
+      chrome.storage.local.remove(reviewKeyRef.current);
+    } else {
+      chrome.storage.local.set({ [reviewKeyRef.current]: comments });
+    }
+  }, []);
+
+  const handleAddToReview = useCallback((comment: ReviewPendingComment) => {
+    setPendingReview((prev) => {
+      const next = [...prev, comment];
+      persistReview(next);
+      return next;
+    });
+  }, [persistReview]);
+
+  const handleRemoveFromReview = useCallback((index: number) => {
+    setPendingReview((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      persistReview(next);
+      return next;
+    });
+  }, [persistReview]);
+
+  const handleClearReview = useCallback(() => {
+    setPendingReview([]);
+    persistReview([]);
+  }, [persistReview]);
+
+  const fileLine = prContext && focusedFile
+    ? extractFirstChangedLine(prContext.diff, focusedFile)
+    : { line: 1, side: "RIGHT" as const };
+
   const handleSend = useCallback(
     async (content: string) => {
       if (!prContext || isStreaming) return;
 
-      const userMessage: ChatMessage = {
-        role: "user",
-        content,
-        timestamp: Date.now(),
-      };
-
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: "",
-        timestamp: Date.now(),
-      };
-
+      const userMessage: ChatMessage = { role: "user", content, timestamp: Date.now() };
+      const assistantMessage: ChatMessage = { role: "assistant", content: "", timestamp: Date.now() };
       const newMessages = [...messages, userMessage, assistantMessage];
       setMessages(newMessages);
       setIsStreaming(true);
@@ -85,24 +117,15 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
 
       if (focusedFile) {
         const fileDiff = extractDiffForFile(prContext.diff, focusedFile);
-        contextToSend = {
-          ...prContext,
-          diff: fileDiff,
-          focusedFile,
-        };
-
-        const fileContent = await fetchFileContent(
-          prContext.owner,
-          prContext.repo,
-          prContext.headBranch,
-          focusedFile
-        );
-        if (fileContent) {
-          contextToSend.focusedFileContent = fileContent;
+        contextToSend = { ...prContext, diff: fileDiff, focusedFile };
+        if (focusedLineRange) {
+          contextToSend.focusedLineRange = focusedLineRange;
         }
+        const fileContent = await fetchFileContent(prContext.owner, prContext.repo, prContext.headBranch, focusedFile);
+        if (fileContent) contextToSend.focusedFileContent = fileContent;
       }
 
-      const port = chrome.runtime.connect({ name: "sidekick-chat" });
+      const port = chrome.runtime.connect({ name: "probe-chat" });
       portRef.current = port;
 
       port.onMessage.addListener((event: StreamEvent) => {
@@ -111,19 +134,13 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last.role === "assistant") {
-              updated[updated.length - 1] = {
-                ...last,
-                content: last.content + event.content,
-              };
+              updated[updated.length - 1] = { ...last, content: last.content + event.content };
             }
             return updated;
           });
         } else if (event.type === "done") {
           setIsStreaming(false);
-          setMessages((prev) => {
-            persistMessages(prev);
-            return prev;
-          });
+          setMessages((prev) => { persistMessages(prev); return prev; });
           port.disconnect();
         } else if (event.type === "error") {
           setIsStreaming(false);
@@ -141,32 +158,24 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
 
       const payload: BackgroundMessage = {
         type: "chat",
-        payload: {
-          messages: [...messages, userMessage],
-          context: contextToSend,
-        },
+        payload: { messages: [...messages, userMessage], context: contextToSend },
       };
       port.postMessage(payload);
     },
-    [prContext, isStreaming, messages, persistMessages, focusedFile]
+    [prContext, isStreaming, messages, persistMessages, focusedFile, focusedLineRange]
   );
 
   const handleStop = useCallback(() => {
     portRef.current?.postMessage({ type: "stop" });
     portRef.current?.disconnect();
     setIsStreaming(false);
-    setMessages((prev) => {
-      persistMessages(prev);
-      return prev;
-    });
+    setMessages((prev) => { persistMessages(prev); return prev; });
   }, [persistMessages]);
 
   const handleClear = useCallback(() => {
     setMessages([]);
     setError(null);
-    if (storageKeyRef.current) {
-      chrome.storage.local.remove(storageKeyRef.current);
-    }
+    if (storageKeyRef.current) chrome.storage.local.remove(storageKeyRef.current);
   }, []);
 
   const fileName = focusedFile?.split("/").pop() ?? focusedFile;
@@ -176,14 +185,22 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
       {/* Header */}
       <div className="prs-flex prs-items-center prs-justify-between prs-px-4 prs-py-3 prs-border-b prs-border-neutral-200 prs-bg-white">
         <div className="prs-flex prs-items-center prs-gap-2 prs-min-w-0">
-          <div className="prs-w-6 prs-h-6 prs-rounded-md prs-bg-purple-600 prs-flex prs-items-center prs-justify-center prs-text-white prs-text-[10px] prs-font-bold prs-shrink-0">
-            PR
-          </div>
+          <span className="prs-text-sm prs-font-bold" style={{ letterSpacing: "-0.02em" }}>PRobe</span>
           <span className="prs-text-sm prs-font-semibold prs-truncate">
-            {prContext ? `#${prContext.number} ${prContext.title}` : "PR Sidekick"}
+            {prContext ? `#${prContext.number} ${prContext.title}` : ""}
           </span>
         </div>
         <div className="prs-flex prs-items-center prs-gap-1">
+          {prContext && (
+            <ReviewQueue
+              pending={pendingReview}
+              owner={prContext.owner}
+              repo={prContext.repo}
+              number={prContext.number}
+              onClear={handleClearReview}
+              onRemove={handleRemoveFromReview}
+            />
+          )}
           {messages.length > 0 && (
             <button
               onClick={handleClear}
@@ -217,7 +234,17 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
               <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
               <polyline points="13 2 13 9 20 9" />
             </svg>
-            <span className="prs-truncate" title={focusedFile}>{fileName}</span>
+            <span className="prs-truncate" title={focusedFile}>
+              {fileName}
+              {focusedLineRange && (
+                <span style={{ color: "#0d9488", fontWeight: 600 }}>
+                  {" "}L{focusedLineRange.startLine}
+                  {focusedLineRange.endLine !== focusedLineRange.startLine
+                    ? `–L${focusedLineRange.endLine}`
+                    : ""}
+                </span>
+              )}
+            </span>
             <button
               onClick={onClearFocus}
               className="prs-file-focus-clear"
@@ -249,10 +276,14 @@ export function ChatPanel({ onClose, focusedFile, onClearFocus }: ChatPanelProps
           messages={messages}
           isStreaming={isStreaming}
           focusedFile={focusedFile}
+          focusedLineRange={focusedLineRange}
           onPromptSelect={handleSend}
           prOwner={prContext?.owner}
           prRepo={prContext?.repo}
           prNumber={prContext?.number}
+          fileLine={fileLine.line}
+          fileSide={fileLine.side}
+          onAddToReview={handleAddToReview}
         />
       )}
 

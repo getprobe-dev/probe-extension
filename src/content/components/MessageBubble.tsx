@@ -2,7 +2,7 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CommentComposer } from "./CommentComposer";
-import type { ChatMessage } from "../../shared/types";
+import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -10,6 +10,10 @@ interface MessageBubbleProps {
   prOwner?: string;
   prRepo?: string;
   prNumber?: number;
+  focusedFile: string | null;
+  fileLine: number;
+  fileSide: "LEFT" | "RIGHT";
+  onAddToReview: (comment: ReviewPendingComment) => void;
 }
 
 export function MessageBubble({
@@ -18,6 +22,10 @@ export function MessageBubble({
   prOwner,
   prRepo,
   prNumber,
+  focusedFile,
+  fileLine,
+  fileSide,
+  onAddToReview,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [showComposer, setShowComposer] = useState(false);
@@ -37,7 +45,7 @@ export function MessageBubble({
         <div
           className={`prs-max-w-[85%] prs-rounded-xl prs-px-3.5 prs-py-2.5 prs-text-sm prs-leading-relaxed ${
             isUser
-              ? "prs-bg-purple-600 prs-text-white"
+              ? "prs-bg-teal-600 prs-text-white"
               : "prs-bg-neutral-100 prs-text-neutral-900"
           }`}
         >
@@ -49,7 +57,7 @@ export function MessageBubble({
                 {message.content}
               </Markdown>
               {isStreaming && (
-                <span className="prs-inline-block prs-w-1.5 prs-h-4 prs-bg-purple-500 prs-animate-pulse prs-ml-0.5 prs-align-middle prs-rounded-sm" />
+                <span className="prs-inline-block prs-w-1.5 prs-h-4 prs-bg-teal-500 prs-animate-pulse prs-ml-0.5 prs-align-middle prs-rounded-sm" />
               )}
             </div>
           )}
@@ -93,7 +101,11 @@ export function MessageBubble({
             owner={prOwner}
             repo={prRepo}
             number={prNumber}
+            focusedFile={focusedFile}
+            fileLine={fileLine}
+            fileSide={fileSide}
             onClose={() => setShowComposer(false)}
+            onAddToReview={onAddToReview}
           />
         </div>
       )}

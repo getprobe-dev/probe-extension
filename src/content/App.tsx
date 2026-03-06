@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { FileButtons } from "./components/FileButtons";
+import { LineCommentButton } from "./components/LineCommentButton";
+import { getIconUrl } from "./utils/theme";
+import type { FocusedLineRange } from "../shared/types";
 
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedFile, setFocusedFile] = useState<string | null>(null);
+  const [focusedLineRange, setFocusedLineRange] = useState<FocusedLineRange | null>(null);
+  const [prDiff, setPrDiff] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -19,27 +24,41 @@ export function App() {
 
   const handleFileSelect = useCallback((filePath: string) => {
     setFocusedFile(filePath);
+    setFocusedLineRange(null);
+    setIsOpen(true);
+  }, []);
+
+  const handleLineSelect = useCallback((filePath: string, lineRange: FocusedLineRange) => {
+    setFocusedFile(filePath);
+    setFocusedLineRange(lineRange);
     setIsOpen(true);
   }, []);
 
   const handleClearFocus = useCallback(() => {
     setFocusedFile(null);
+    setFocusedLineRange(null);
   }, []);
 
   return (
     <>
       <FileButtons onFileSelect={handleFileSelect} />
+      <LineCommentButton onLineSelect={handleLineSelect} diff={prDiff} />
 
       {/* Floating toggle button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="prs-fixed prs-bottom-6 prs-right-6 prs-w-12 prs-h-12 prs-rounded-full prs-bg-purple-600 hover:prs-bg-purple-700 prs-text-white prs-shadow-lg hover:prs-shadow-xl prs-transition-all prs-flex prs-items-center prs-justify-center prs-z-[2147483646] prs-border-0 prs-cursor-pointer"
-          title="Open PR Sidekick (Ctrl+Shift+P)"
+          className="prs-fixed prs-bottom-6 prs-right-6 prs-w-12 prs-h-12 prs-rounded-full prs-shadow-lg hover:prs-shadow-xl prs-transition-all prs-flex prs-items-center prs-justify-center prs-z-[2147483646] prs-border-0 prs-cursor-pointer prs-overflow-hidden prs-p-0"
+          style={{ background: "transparent" }}
+          title="Open PRobe (Ctrl+Shift+P)"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-          </svg>
+          <img
+            src={getIconUrl(48)}
+            alt="PRobe"
+            width={48}
+            height={48}
+            style={{ borderRadius: "50%", display: "block" }}
+          />
         </button>
       )}
 
@@ -54,7 +73,9 @@ export function App() {
           <ChatPanel
             onClose={() => setIsOpen(false)}
             focusedFile={focusedFile}
+            focusedLineRange={focusedLineRange}
             onClearFocus={handleClearFocus}
+            onDiffLoaded={setPrDiff}
           />
         </div>
       )}

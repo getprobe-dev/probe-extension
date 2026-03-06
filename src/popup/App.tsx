@@ -79,11 +79,8 @@ export function PopupApp() {
   return (
     <div className="w-80 p-5 font-sans">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-md bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
-          PR
-        </div>
         <h1 className="text-base font-semibold text-neutral-900">
-          PR Sidekick
+          PRobe
         </h1>
       </div>
 
@@ -95,7 +92,7 @@ export function PopupApp() {
         value={apiKey}
         onChange={(e) => setApiKey(e.target.value)}
         placeholder="sk-ant-..."
-        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
       />
       <p className="mt-1 text-xs text-neutral-400">
         Your key is stored locally and sent only through the proxy to
@@ -111,7 +108,7 @@ export function PopupApp() {
         value={githubToken}
         onChange={(e) => setGithubToken(e.target.value)}
         placeholder="ghp_..."
-        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
       />
       <p className="mt-1 text-xs text-neutral-400">
         Enables posting comments to PRs. Needs <code className="text-xs bg-neutral-100 px-1 rounded">repo</code> scope.
@@ -134,7 +131,7 @@ export function PopupApp() {
             value={proxyUrl}
             onChange={(e) => setProxyUrl(e.target.value)}
             placeholder={DEFAULT_PROXY_URL}
-            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
           <p className="mt-1 text-xs text-neutral-400">
             Requests are routed through this proxy to avoid browser CORS
@@ -147,7 +144,7 @@ export function PopupApp() {
         <button
           onClick={handleSave}
           disabled={!apiKey.trim()}
-          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saved ? "Saved!" : "Save"}
         </button>

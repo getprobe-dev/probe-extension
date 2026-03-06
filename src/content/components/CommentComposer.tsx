@@ -1,22 +1,36 @@
 import { useState, useRef, useEffect } from "react";
-import type { PostCommentRequest, PostCommentResponse } from "../../shared/types";
+import type {
+  PostCommentRequest,
+  PostCommentResponse,
+  PostReviewCommentRequest,
+  SubmitReviewResponse,
+  ReviewPendingComment,
+} from "../../shared/types";
 
 interface CommentComposerProps {
   initialContent: string;
   owner: string;
   repo: string;
   number: number;
+  focusedFile: string | null;
+  fileLine: number;
+  fileSide: "LEFT" | "RIGHT";
   onClose: () => void;
+  onAddToReview: (comment: ReviewPendingComment) => void;
 }
 
-type PostState = "idle" | "posting" | "posted" | "error";
+type PostState = "idle" | "posting" | "posted" | "added" | "error";
 
 export function CommentComposer({
   initialContent,
   owner,
   repo,
   number,
+  focusedFile,
+  fileLine,
+  fileSide,
   onClose,
+  onAddToReview,
 }: CommentComposerProps) {
   const [content, setContent] = useState(initialContent);
   const [state, setState] = useState<PostState>("idle");
@@ -34,28 +48,34 @@ export function CommentComposer({
 
   const handlePost = async () => {
     if (!content.trim() || state === "posting") return;
-
     setState("posting");
     setError("");
 
-    const msg: PostCommentRequest = {
-      type: "post-comment",
-      owner,
-      repo,
-      number,
-      body: content.trim(),
-    };
-
     try {
-      const response = await new Promise<PostCommentResponse>((resolve, reject) => {
-        chrome.runtime.sendMessage(msg, (res: PostCommentResponse) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          resolve(res);
-        });
-      });
+      let response: PostCommentResponse | SubmitReviewResponse;
+
+      if (focusedFile) {
+        const msg: PostReviewCommentRequest = {
+          type: "post-review-comment",
+          owner,
+          repo,
+          number,
+          body: content.trim(),
+          path: focusedFile,
+          line: fileLine,
+          side: fileSide,
+        };
+        response = await sendMessage<SubmitReviewResponse>(msg);
+      } else {
+        const msg: PostCommentRequest = {
+          type: "post-comment",
+          owner,
+          repo,
+          number,
+          body: content.trim(),
+        };
+        response = await sendMessage<PostCommentResponse>(msg);
+      }
 
       if (response.ok) {
         setState("posted");
@@ -71,6 +91,19 @@ export function CommentComposer({
     }
   };
 
+  const handleAddToReview = () => {
+    if (!content.trim() || !focusedFile) return;
+    onAddToReview({
+      path: focusedFile,
+      body: content.trim(),
+      line: fileLine,
+      side: fileSide,
+      timestamp: Date.now(),
+    });
+    setState("added");
+    setTimeout(onClose, 1500);
+  };
+
   if (state === "posted") {
     return (
       <div className="prs-comment-composer">
@@ -79,25 +112,30 @@ export function CommentComposer({
             <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>
-            Comment posted
+            {focusedFile ? "Review comment posted" : "Comment posted"}
             {commentUrl && (
-              <>
-                {" — "}
-                <a
-                  href={commentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="prs-comment-composer-link"
-                >
-                  view
-                </a>
-              </>
+              <>{" — "}<a href={commentUrl} target="_blank" rel="noopener noreferrer" className="prs-comment-composer-link">view</a></>
             )}
           </span>
         </div>
       </div>
     );
   }
+
+  if (state === "added") {
+    return (
+      <div className="prs-comment-composer">
+        <div className="prs-comment-composer-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Added to review</span>
+        </div>
+      </div>
+    );
+  }
+
+  const fileName = focusedFile?.split("/").pop() ?? focusedFile;
 
   return (
     <div className="prs-comment-composer">
@@ -117,7 +155,7 @@ export function CommentComposer({
 
       <div className="prs-comment-composer-actions">
         <span className="prs-comment-composer-hint">
-          Posting to PR #{number}
+          {focusedFile ? `On ${fileName}` : `PR #${number}`}
         </span>
         <div className="prs-flex prs-gap-2">
           <button
@@ -127,6 +165,15 @@ export function CommentComposer({
           >
             Cancel
           </button>
+          {focusedFile && (
+            <button
+              onClick={handleAddToReview}
+              disabled={!content.trim() || state === "posting"}
+              className="prs-comment-composer-btn prs-comment-composer-btn-cancel"
+            >
+              Add to Review
+            </button>
+          )}
           <button
             onClick={handlePost}
             disabled={!content.trim() || state === "posting"}
@@ -138,4 +185,16 @@ export function CommentComposer({
       </div>
     </div>
   );
+}
+
+function sendMessage<T>(msg: unknown): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(msg, (res: T) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(res);
+    });
+  });
 }

@@ -1,3 +1,10 @@
+export interface FocusedLineRange {
+  startLine: number;
+  endLine: number;
+  side: "LEFT" | "RIGHT";
+  content: string;
+}
+
 export interface PRContext {
   owner: string;
   repo: string;
@@ -8,6 +15,7 @@ export interface PRContext {
   headBranch: string;
   focusedFile?: string;
   focusedFileContent?: string;
+  focusedLineRange?: FocusedLineRange;
 }
 
 export interface ChatMessage {
@@ -61,6 +69,46 @@ export interface PostCommentResponse {
   error?: string;
 }
 
+export interface PostReviewCommentRequest {
+  type: "post-review-comment";
+  owner: string;
+  repo: string;
+  number: number;
+  body: string;
+  path: string;
+  line: number;
+  side: "LEFT" | "RIGHT";
+}
+
+export interface SubmitReviewRequest {
+  type: "submit-review";
+  owner: string;
+  repo: string;
+  number: number;
+  body: string;
+  event: "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
+  comments: Array<{
+    path: string;
+    body: string;
+    line: number;
+    side: "LEFT" | "RIGHT";
+  }>;
+}
+
+export interface SubmitReviewResponse {
+  ok: boolean;
+  url?: string;
+  error?: string;
+}
+
+export interface ReviewPendingComment {
+  path: string;
+  body: string;
+  line: number;
+  side: "LEFT" | "RIGHT";
+  timestamp: number;
+}
+
 export type StreamEvent =
   | { type: "chunk"; content: string }
   | { type: "done" }
@@ -74,4 +122,6 @@ export const STORAGE_KEYS = {
   GITHUB_TOKEN: "github_token",
   chatHistory: (owner: string, repo: string, number: number) =>
     `chat:${owner}/${repo}#${number}`,
+  pendingReview: (owner: string, repo: string, number: number) =>
+    `review:${owner}/${repo}#${number}`,
 } as const;

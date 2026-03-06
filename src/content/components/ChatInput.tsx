@@ -46,7 +46,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
           placeholder="Ask about this PR…"
           rows={1}
           disabled={disabled && !isStreaming}
-          className="prs-flex-1 prs-resize-none prs-rounded-lg prs-border prs-border-neutral-300 prs-px-3 prs-py-2 prs-text-sm prs-leading-relaxed prs-outline-none focus:prs-ring-2 focus:prs-ring-purple-500 focus:prs-border-transparent disabled:prs-opacity-50 prs-bg-white prs-text-neutral-900 prs-placeholder-neutral-400"
+          className="prs-flex-1 prs-resize-none prs-rounded-lg prs-border prs-border-neutral-300 prs-px-3 prs-py-2 prs-text-sm prs-leading-relaxed prs-outline-none focus:prs-ring-2 focus:prs-ring-teal-500 focus:prs-border-transparent disabled:prs-opacity-50 prs-bg-white prs-text-neutral-900 prs-placeholder-neutral-400"
         />
         {isStreaming ? (
           <button
@@ -62,7 +62,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
           <button
             onClick={handleSubmit}
             disabled={!value.trim() || disabled}
-            className="prs-shrink-0 prs-w-9 prs-h-9 prs-flex prs-items-center prs-justify-center prs-rounded-lg prs-bg-purple-600 hover:prs-bg-purple-700 disabled:prs-opacity-40 disabled:prs-cursor-not-allowed prs-text-white prs-transition-colors"
+            className="prs-shrink-0 prs-w-9 prs-h-9 prs-flex prs-items-center prs-justify-center prs-rounded-lg prs-bg-teal-600 hover:prs-bg-teal-700 disabled:prs-opacity-40 disabled:prs-cursor-not-allowed prs-text-white prs-transition-colors"
             title="Send message"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

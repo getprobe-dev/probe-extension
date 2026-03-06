@@ -1,17 +1,40 @@
-const CORS_HEADERS: HeadersInit = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version",
-};
+const ALLOWED_ORIGINS: string[] = [
+  // Chrome extensions use chrome-extension://<id> as origin.
+  // Add your published extension ID here after publishing.
+  // During development any chrome-extension:// origin is allowed.
+];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (origin.startsWith("chrome-extension://")) return true;
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+function corsHeaders(origin: string): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version",
+    Vary: "Origin",
+  };
+}
 
 export default {
   async fetch(request: Request): Promise<Response> {
+    const origin = request.headers.get("Origin");
+
+    if (!origin || !isAllowedOrigin(origin)) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const cors = corsHeaders(origin);
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: cors });
     }
 
     if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405, headers: CORS_HEADERS });
+      return new Response("Method not allowed", { status: 405, headers: cors });
     }
 
     const url = new URL(request.url);
@@ -30,7 +53,7 @@ export default {
     });
 
     const responseHeaders = new Headers(response.headers);
-    for (const [k, v] of Object.entries(CORS_HEADERS)) {
+    for (const [k, v] of Object.entries(cors)) {
       responseHeaders.set(k, v);
     }
 

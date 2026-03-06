@@ -42,9 +42,13 @@ export function MessageBubble({
   const canPost = !isUser && !isStreaming && message.content.length > 0;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      console.warn("[PRobe] Clipboard write failed");
+    }
   };
 
   return (

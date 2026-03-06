@@ -30,6 +30,13 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
   const reviewKeyRef = useRef<string>("");
 
   useEffect(() => {
+    return () => {
+      portRef.current?.disconnect();
+      portRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function init() {
@@ -60,6 +67,7 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
 
     init();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const focusKey = focusedItems.map((it) =>
@@ -70,9 +78,12 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
     setError(null);
   }, [focusKey]);
 
+  const MAX_STORED_MESSAGES = 100;
+
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (!storageKeyRef.current) return;
-    chrome.storage.local.set({ [storageKeyRef.current]: msgs });
+    const capped = msgs.length > MAX_STORED_MESSAGES ? msgs.slice(-MAX_STORED_MESSAGES) : msgs;
+    chrome.storage.local.set({ [storageKeyRef.current]: capped });
   }, []);
 
   const persistReview = useCallback((comments: ReviewPendingComment[]) => {
@@ -152,12 +163,14 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
           focusedFile: [...new Set(fileNames)].join(", "),
         };
 
-        const itemsWithLines = focusedItems.filter((it) => it.lineRange);
+        const itemsWithLines = focusedItems.filter(
+          (it): it is FocusedItem & { lineRange: NonNullable<FocusedItem["lineRange"]> } => !!it.lineRange,
+        );
         if (itemsWithLines.length === 1) {
           contextToSend.focusedLineRange = itemsWithLines[0].lineRange;
         } else if (itemsWithLines.length > 1) {
           const lineContext = itemsWithLines
-            .map((it) => `[${it.file} L${it.lineRange!.startLine}-${it.lineRange!.endLine}]:\n${it.lineRange!.content}`)
+            .map((it) => `[${it.file} L${it.lineRange.startLine}-${it.lineRange.endLine}]:\n${it.lineRange.content}`)
             .join("\n\n");
           contextToSend.focusedFileContent = [
             lineContext,
@@ -328,7 +341,6 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
           messages={messages}
           isStreaming={isStreaming}
           focusedFile={primaryFile}
-          focusedLineRange={focusedItems.find((it) => it.lineRange)?.lineRange ?? null}
           prContext={prContext}
           fileLine={fileLine.line}
           fileSide={fileLine.side}

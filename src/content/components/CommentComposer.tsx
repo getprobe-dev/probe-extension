@@ -7,6 +7,7 @@ import type {
   SubmitReviewResponse,
   ReviewPendingComment,
 } from "../../shared/types";
+import { sendMessage } from "../../shared/messaging";
 
 interface CommentComposerProps {
   initialContent: string;
@@ -186,20 +187,4 @@ export function CommentComposer({
       </div>
     </div>
   );
-}
-
-function sendMessage<T>(msg: unknown): Promise<T> {
-  return new Promise((resolve, reject) => {
-    try {
-      chrome.runtime.sendMessage(msg, (res: T) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        resolve(res);
-      });
-    } catch {
-      reject(new Error("Extension context invalidated. Please refresh the page."));
-    }
-  });
 }

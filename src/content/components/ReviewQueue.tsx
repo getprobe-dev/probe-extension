@@ -5,6 +5,7 @@ import type {
   SubmitReviewRequest,
   SubmitReviewResponse,
 } from '../../shared/types';
+import { sendMessage } from '../../shared/messaging';
 
 interface ReviewQueueProps {
   pending: ReviewPendingComment[];
@@ -55,23 +56,7 @@ export function ReviewQueue({
     };
 
     try {
-      const res = await new Promise<SubmitReviewResponse>((resolve, reject) => {
-        try {
-          chrome.runtime.sendMessage(msg, (r: SubmitReviewResponse) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            resolve(r);
-          });
-        } catch {
-          reject(
-            new Error(
-              'Extension context invalidated. Please refresh the page.',
-            ),
-          );
-        }
-      });
+      const res = await sendMessage<SubmitReviewResponse>(msg);
 
       if (res.ok) {
         setState('submitted');

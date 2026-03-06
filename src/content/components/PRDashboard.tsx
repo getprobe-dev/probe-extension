@@ -36,7 +36,7 @@ const REVIEW_STATE_LABELS: Record<string, string> = {
 export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
   const [stats, setStats] = useState<PRStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<string[] | null>(null);
+  const [_summary, setSummary] = useState<string[] | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
@@ -74,6 +74,7 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
     );
 
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prContext.owner, prContext.repo, prContext.number]);
 
   if (loading) {
@@ -255,7 +256,6 @@ function CommitTimeline({ commits }: { commits: CommitDetail[] }) {
   const maxR = 10;
 
   const paddingX = maxR + 2;
-  const paddingY = 28;
   const svgWidth = 340;
   const svgHeight = 72;
   const usableWidth = svgWidth - paddingX * 2;

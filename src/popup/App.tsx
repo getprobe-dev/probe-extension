@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
+import { STORAGE_KEYS } from "../shared/types";
 
 export function PopupApp() {
   const [apiKey, setApiKey] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const storedRef = useRef({ apiKey: "", githubToken: "" });
+  const [storedValues, setStoredValues] = useState({ apiKey: "", githubToken: "" });
 
   useEffect(() => {
     chrome.storage.sync.get(
@@ -18,17 +17,17 @@ export function PopupApp() {
         const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
         setApiKey(key);
         setGithubToken(token);
-        storedRef.current = { apiKey: key, githubToken: token };
+        setStoredValues({ apiKey: key, githubToken: token });
         setLoading(false);
       }
     );
   }, []);
 
   const hasDelta =
-    apiKey.trim() !== storedRef.current.apiKey ||
-    githubToken.trim() !== storedRef.current.githubToken;
+    apiKey.trim() !== storedValues.apiKey ||
+    githubToken.trim() !== storedValues.githubToken;
 
-  const hasStored = !!storedRef.current.apiKey;
+  const hasStored = !!storedValues.apiKey;
 
   const handleSave = () => {
     const trimmedKey = apiKey.trim();
@@ -46,7 +45,7 @@ export function PopupApp() {
     }
 
     chrome.storage.sync.set(settings, () => {
-      storedRef.current = { apiKey: trimmedKey, githubToken: trimmedGithub };
+      setStoredValues({ apiKey: trimmedKey, githubToken: trimmedGithub });
       setSaved(true);
     });
   };
@@ -57,7 +56,7 @@ export function PopupApp() {
       () => {
         setApiKey("");
         setGithubToken("");
-        storedRef.current = { apiKey: "", githubToken: "" };
+        setStoredValues({ apiKey: "", githubToken: "" });
         setSaved(false);
       }
     );

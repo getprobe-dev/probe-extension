@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { subscribeMutation } from "../utils/domObserver";
 import type { FocusedLineRange } from "../../shared/types";
 import { parseLineRangeFromHash, getFilePathFromDiffId, extractLinesFromDiff } from "../../shared/context";
 import { getIconUrl } from "../utils/theme";
@@ -27,13 +28,13 @@ function findFilePath(editor: Element): string | null {
 
 export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps) {
   const callbackRef = useRef(onLineSelect);
-  callbackRef.current = onLineSelect;
   const diffRef = useRef(diff);
-  diffRef.current = diff;
+  useEffect(() => {
+    callbackRef.current = onLineSelect;
+    diffRef.current = diff;
+  }, [onLineSelect, diff]);
 
   useEffect(() => {
-    let rafId = 0;
-
     function handleClick(editor: Element) {
       const filePath = findFilePath(editor);
       if (!filePath) return;
@@ -125,18 +126,11 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
       document.querySelectorAll(EDITOR_SELECTOR).forEach(injectButton);
     }
 
-    function scheduleInject() {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(inject);
-    }
-
     inject();
-    const observer = new MutationObserver(scheduleInject);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const unsubscribe = subscribeMutation(inject);
 
     return () => {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
+      unsubscribe();
       document.querySelectorAll(`.${BUTTON_CLASS}`).forEach((b) => b.remove());
     };
   }, []);

@@ -4,16 +4,16 @@
   "description": "PRobe — chat with any GitHub pull request.",
   "version": "0.1.0",
   "icons": {
-    "16": "icon-16.png",
-    "48": "icon-48.png",
-    "128": "icon-128.png"
+    "16": "dark-mode/icon-16.png",
+    "48": "dark-mode/icon-48.png",
+    "128": "dark-mode/icon-128.png"
   },
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
-      "16": "icon-16.png",
-      "48": "icon-48.png",
-      "128": "icon-128.png"
+      "16": "dark-mode/icon-16.png",
+      "48": "dark-mode/icon-48.png",
+      "128": "dark-mode/icon-128.png"
     }
   },
   "background": {
@@ -32,6 +32,12 @@
     "https://api.github.com/*",
     "https://*.githubusercontent.com/*",
     "https://*.workers.dev/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["dark-mode/*.png", "light-mode/*.png"],
+      "matches": ["https://github.com/*"]
+    }
   ],
   "declarative_net_request": {
     "rule_resources": [

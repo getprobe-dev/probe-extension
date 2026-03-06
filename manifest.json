@@ -21,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/pull/*"],
+      "matches": ["https://github.com/*"],
       "js": ["src/content/index.tsx"],
       "css": ["src/styles/content.css"]
     }

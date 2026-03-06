@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
+const PR_URL_RE = /github\.com\/[^/]+\/[^/]+\/pull\/\d+/;
+
 function mount() {
   const hostId = "probe-root";
   if (document.getElementById(hostId)) return;
@@ -20,6 +22,18 @@ function mount() {
   shadow.appendChild(appContainer);
 
   createRoot(appContainer).render(<App />);
+}
+
+function unmount() {
+  document.getElementById("probe-root")?.remove();
+}
+
+function syncWithUrl() {
+  if (PR_URL_RE.test(location.href)) {
+    mount();
+  } else {
+    unmount();
+  }
 }
 
 function getShadowStyles(): string {
@@ -589,4 +603,13 @@ function getShadowStyles(): string {
   `;
 }
 
-mount();
+syncWithUrl();
+
+let lastHref = location.href;
+const observer = new MutationObserver(() => {
+  if (location.href !== lastHref) {
+    lastHref = location.href;
+    syncWithUrl();
+  }
+});
+observer.observe(document.body, { childList: true, subtree: true });

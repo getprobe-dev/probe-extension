@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PRobe",
-  "description": "AI-powered code review",
+  "description": "AI review companion for GitHub PRs",
   "version": "1.0.0",
   "icons": {
     "16": "icon-16.png",

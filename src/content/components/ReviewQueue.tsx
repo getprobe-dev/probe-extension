@@ -92,13 +92,13 @@ export function ReviewQueue({
   };
 
   const eventLabel = (ev: ReviewEvent) =>
-    ev === 'COMMENT' ? 'Comment' : ev === 'APPROVE' ? 'Approve' : 'Request Changes';
+    ev === 'COMMENT' ? 'Comment' : ev === 'APPROVE' ? 'Approve' : 'Changes';
 
   return (
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className='header-btn px-2! gap-1 text-[0.68rem] font-semibold leading-none'
+        className='header-btn gap-1 text-[0.68rem] font-semibold'
         title={`${pending.length} pending review comment${pending.length > 1 ? 's' : ''}`}
       >
         <FileText className='size-3' />

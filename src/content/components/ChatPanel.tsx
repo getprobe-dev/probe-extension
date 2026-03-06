@@ -277,7 +277,7 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
               className="header-btn"
               title="New chat"
             >
-              <Plus className="size-3.5" />
+              <Plus className="size-4" />
             </button>
           )}
           <button

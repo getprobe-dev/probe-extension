@@ -2,6 +2,8 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CommentComposer } from "./CommentComposer";
+import { Button } from "@/components/ui/button";
+import { Copy, Check, MessageSquare } from "lucide-react";
 import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
 
 interface MessageBubbleProps {
@@ -40,62 +42,55 @@ export function MessageBubble({
   };
 
   return (
-    <div className={`prs-flex prs-flex-col ${isUser ? "prs-items-end" : "prs-items-start"} prs-mb-3`}>
-      <div className="prs-msg-bubble-wrapper">
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-3 animate-fade-in`}>
+      <div className="msg-bubble-wrapper">
         <div
-          className={`prs-max-w-[85%] prs-rounded-xl prs-px-3.5 prs-py-2.5 prs-text-sm prs-leading-relaxed ${
+          className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed overflow-hidden ${
             isUser
-              ? "prs-bg-teal-600 prs-text-white"
-              : "prs-bg-neutral-100 prs-text-neutral-900"
+              ? "bg-mint-faint border border-mint/25 text-foreground"
+              : "bg-secondary/50 text-foreground"
           }`}
         >
           {isUser ? (
-            <p className="prs-whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <div className="prs-prose prs-prose-sm prs-max-w-none">
+            <div className="prose-chat max-w-none">
               <Markdown remarkPlugins={[remarkGfm]}>
                 {message.content}
               </Markdown>
               {isStreaming && (
-                <span className="prs-inline-block prs-w-1.5 prs-h-4 prs-bg-teal-500 prs-animate-pulse prs-ml-0.5 prs-align-middle prs-rounded-sm" />
+                <span className="inline-block w-1.5 h-4 bg-mint rounded-sm ml-0.5 align-middle animate-pulse-cursor" />
               )}
             </div>
           )}
         </div>
 
         {canPost && (
-          <div className="prs-msg-actions">
-            <button
+          <div className="msg-actions">
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={handleCopy}
-              className="prs-msg-action-btn"
+              className="text-muted-foreground hover:text-primary"
               title={copied ? "Copied!" : "Copy to clipboard"}
             >
-              {copied ? (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              ) : (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-              )}
-            </button>
-            <button
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={() => setShowComposer(true)}
-              className="prs-msg-action-btn"
+              className="text-muted-foreground hover:text-primary"
               title="Post as PR comment"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-              </svg>
-            </button>
+              <MessageSquare className="size-3" />
+            </Button>
           </div>
         )}
       </div>
 
       {showComposer && prOwner && prRepo && prNumber && (
-        <div className="prs-composer-container">
+        <div className="w-full max-w-[85%] mt-1.5">
           <CommentComposer
             initialContent={message.content}
             owner={prOwner}

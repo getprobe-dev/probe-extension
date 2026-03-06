@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "shadcn-ui": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "687b92e8796736f30b678cb4b54596255d54182bff905154586cdc3cc7dbeea7"
+    }
+  }
+}

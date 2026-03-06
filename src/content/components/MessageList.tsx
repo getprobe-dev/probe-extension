@@ -43,7 +43,7 @@ export function MessageList({
   }
 
   return (
-    <div className="prs-flex-1 prs-overflow-y-auto prs-p-4">
+    <div className="flex-1 overflow-y-auto p-4">
       {messages.map((msg, i) => (
         <MessageBubble
           key={i}

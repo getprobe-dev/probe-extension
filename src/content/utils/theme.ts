@@ -29,6 +29,10 @@ function isGitHubDarkMode(): boolean {
 }
 
 export function getIconUrl(size: 16 | 48 | 128 = 48): string {
-  const folder = isGitHubDarkMode() ? "dark-mode" : "light-mode";
-  return chrome.runtime.getURL(`${folder}/icon-${size}.png`);
+  try {
+    const folder = isGitHubDarkMode() ? "dark-mode" : "light-mode";
+    return chrome.runtime.getURL(`${folder}/icon-${size}.png`);
+  } catch {
+    return "";
+  }
 }

@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import type {
   PostCommentRequest,
   PostCommentResponse,
@@ -106,15 +108,13 @@ export function CommentComposer({
 
   if (state === "posted") {
     return (
-      <div className="prs-comment-composer">
-        <div className="prs-comment-composer-success">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+      <div className="comment-composer">
+        <div className="flex items-center gap-1.5 p-3 text-sm font-medium text-emerald-600">
+          <Check className="size-3.5" />
           <span>
             {focusedFile ? "Review comment posted" : "Comment posted"}
             {commentUrl && (
-              <>{" — "}<a href={commentUrl} target="_blank" rel="noopener noreferrer" className="prs-comment-composer-link">view</a></>
+              <>{" \u2014 "}<a href={commentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">view</a></>
             )}
           </span>
         </div>
@@ -124,11 +124,9 @@ export function CommentComposer({
 
   if (state === "added") {
     return (
-      <div className="prs-comment-composer">
-        <div className="prs-comment-composer-success">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+      <div className="comment-composer">
+        <div className="flex items-center gap-1.5 p-3 text-sm font-medium text-emerald-600">
+          <Check className="size-3.5" />
           <span>Added to review</span>
         </div>
       </div>
@@ -138,49 +136,56 @@ export function CommentComposer({
   const fileName = focusedFile?.split("/").pop() ?? focusedFile;
 
   return (
-    <div className="prs-comment-composer">
+    <div className="comment-composer">
       <textarea
         ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="prs-comment-composer-textarea"
+        className="comment-composer-textarea"
         rows={6}
         disabled={state === "posting"}
         placeholder="Edit your comment before posting..."
       />
 
       {state === "error" && (
-        <div className="prs-comment-composer-error">{error}</div>
+        <div className="px-3 py-1.5 text-xs text-destructive bg-destructive/10 border-t border-destructive/20">
+          {error}
+        </div>
       )}
 
-      <div className="prs-comment-composer-actions">
-        <span className="prs-comment-composer-hint">
+      <div className="flex items-center justify-between p-2.5 border-t border-border/50 bg-background">
+        <span className="text-[0.7rem] text-muted-foreground">
           {focusedFile ? `On ${fileName}` : `PR #${number}`}
         </span>
-        <div className="prs-flex prs-gap-2">
-          <button
+        <div className="flex gap-1.5">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onClose}
             disabled={state === "posting"}
-            className="prs-comment-composer-btn prs-comment-composer-btn-cancel"
+            className="text-xs h-7"
           >
             Cancel
-          </button>
+          </Button>
           {focusedFile && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleAddToReview}
               disabled={!content.trim() || state === "posting"}
-              className="prs-comment-composer-btn prs-comment-composer-btn-cancel"
+              className="text-xs h-7"
             >
               Add to Review
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            size="sm"
             onClick={handlePost}
             disabled={!content.trim() || state === "posting"}
-            className="prs-comment-composer-btn prs-comment-composer-btn-post"
+            className="text-xs h-7 bg-linear-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white"
           >
             {state === "posting" ? "Posting..." : "Post Comment"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -189,12 +194,16 @@ export function CommentComposer({
 
 function sendMessage<T>(msg: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(msg, (res: T) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      resolve(res);
-    });
+    try {
+      chrome.runtime.sendMessage(msg, (res: T) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve(res);
+      });
+    } catch {
+      reject(new Error("Extension context invalidated. Please refresh the page."));
+    }
   });
 }

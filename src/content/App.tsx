@@ -48,8 +48,8 @@ export function App() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="prs-fixed prs-bottom-6 prs-right-6 prs-w-12 prs-h-12 prs-rounded-full prs-shadow-lg hover:prs-shadow-xl prs-transition-all prs-flex prs-items-center prs-justify-center prs-z-[2147483646] prs-border-0 prs-cursor-pointer prs-overflow-hidden prs-p-0"
-          style={{ background: "transparent" }}
+          className="fixed bottom-6 right-6 size-12 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0 hover:scale-105"
+          style={{ zIndex: 2147483646, background: "transparent" }}
           title="Open PRobe (Ctrl+Shift+P)"
         >
           <img
@@ -62,10 +62,11 @@ export function App() {
         </button>
       )}
 
-      {/* Side panel — stop keyboard events from reaching GitHub's global handlers */}
+      {/* Side panel */}
       {isOpen && (
         <div
-          className="prs-fixed prs-top-0 prs-right-0 prs-h-full prs-w-[400px] prs-shadow-2xl prs-z-[2147483647] prs-border-l prs-border-neutral-200 prs-bg-white prs-flex prs-flex-col prs-animate-slide-in"
+          className="fixed top-0 right-0 h-full w-[400px] shadow-2xl border-l border-border bg-background flex flex-col animate-slide-in"
+          style={{ zIndex: 2147483647 }}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}
           onKeyPress={(e) => e.stopPropagation()}

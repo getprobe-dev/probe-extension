@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { FocusedLineRange } from '../shared/types';
+import type { FocusedLineRange, FocusedItem } from '../shared/types';
 import { ChatPanel } from './components/ChatPanel';
 import { FileButtons } from './components/FileButtons';
 import { LineCommentButton } from './components/LineCommentButton';
@@ -7,11 +7,11 @@ import { getIconUrl } from './utils/theme';
 
 const PANEL_WIDTH = 400;
 
+const MAX_FOCUSED_ITEMS = 3;
+
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
-  const [focusedFile, setFocusedFile] = useState<string | null>(null);
-  const [focusedLineRange, setFocusedLineRange] =
-    useState<FocusedLineRange | null>(null);
+  const [focusedItems, setFocusedItems] = useState<FocusedItem[]>([]);
   const [prDiff, setPrDiff] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,23 +36,33 @@ export function App() {
   }, [isOpen]);
 
   const handleFileSelect = useCallback((filePath: string) => {
-    setFocusedFile(filePath);
-    setFocusedLineRange(null);
+    setFocusedItems((prev) => {
+      if (prev.some((it) => it.file === filePath && !it.lineRange)) return prev;
+      const next = [...prev, { file: filePath }];
+      if (next.length > MAX_FOCUSED_ITEMS) next.shift();
+      return next;
+    });
     setIsOpen(true);
   }, []);
 
   const handleLineSelect = useCallback(
     (filePath: string, lineRange: FocusedLineRange) => {
-      setFocusedFile(filePath);
-      setFocusedLineRange(lineRange);
+      setFocusedItems((prev) => {
+        const next = [...prev, { file: filePath, lineRange }];
+        if (next.length > MAX_FOCUSED_ITEMS) next.shift();
+        return next;
+      });
       setIsOpen(true);
     },
     [],
   );
 
   const handleClearFocus = useCallback(() => {
-    setFocusedFile(null);
-    setFocusedLineRange(null);
+    setFocusedItems([]);
+  }, []);
+
+  const handleRemoveItem = useCallback((index: number) => {
+    setFocusedItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   return (
@@ -64,7 +74,7 @@ export function App() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className='fab-glow fixed bottom-6 right-6 size-12 rounded-full flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0'
+          className='fab-glow fixed bottom-6 right-6 size-12 rounded-2xl flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0'
           style={{ zIndex: 2147483646, background: 'transparent' }}
           title='Open PRobe (Ctrl+Shift+P)'
         >
@@ -73,7 +83,7 @@ export function App() {
             alt='PRobe'
             width={48}
             height={48}
-            style={{ borderRadius: '50%', display: 'block' }}
+            style={{ borderRadius: '16px', display: 'block' }}
           />
         </button>
       )}
@@ -89,9 +99,9 @@ export function App() {
         >
           <ChatPanel
             onClose={() => setIsOpen(false)}
-            focusedFile={focusedFile}
-            focusedLineRange={focusedLineRange}
+            focusedItems={focusedItems}
             onClearFocus={handleClearFocus}
+            onRemoveItem={handleRemoveItem}
             onDiffLoaded={setPrDiff}
           />
         </div>

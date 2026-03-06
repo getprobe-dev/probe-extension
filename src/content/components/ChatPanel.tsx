@@ -2,21 +2,21 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
-import { X, Plus, FileText } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { getIconUrl } from "../utils/theme";
-import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedLineRange } from "../../shared/types";
+import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedItem } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
 import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
 
 interface ChatPanelProps {
   onClose: () => void;
-  focusedFile: string | null;
-  focusedLineRange: FocusedLineRange | null;
+  focusedItems: FocusedItem[];
   onClearFocus: () => void;
+  onRemoveItem: (index: number) => void;
   onDiffLoaded: (diff: string) => void;
 }
 
-export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus, onDiffLoaded }: ChatPanelProps) {
+export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, onDiffLoaded }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,10 +61,13 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
     return () => { cancelled = true; };
   }, []);
 
+  const focusKey = focusedItems.map((it) =>
+    it.lineRange ? `${it.file}:${it.lineRange.startLine}-${it.lineRange.endLine}` : it.file
+  ).join("\0");
   useEffect(() => {
     setMessages([]);
     setError(null);
-  }, [focusedFile, focusedLineRange]);
+  }, [focusKey]);
 
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (!storageKeyRef.current) return;
@@ -101,8 +104,10 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
     persistReview([]);
   }, [persistReview]);
 
-  const fileLine = prContext && focusedFile
-    ? extractFirstChangedLine(prContext.diff, focusedFile)
+  const primaryFile = focusedItems.length > 0 ? focusedItems[0].file : null;
+
+  const fileLine = prContext && primaryFile
+    ? extractFirstChangedLine(prContext.diff, primaryFile)
     : { line: 1, side: "RIGHT" as const };
 
   const handleSend = useCallback(
@@ -118,14 +123,50 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
 
       let contextToSend: PRContext = { ...prContext };
 
-      if (focusedFile) {
-        const fileDiff = extractDiffForFile(prContext.diff, focusedFile);
-        contextToSend = { ...prContext, diff: fileDiff, focusedFile };
-        if (focusedLineRange) {
-          contextToSend.focusedLineRange = focusedLineRange;
+      if (focusedItems.length > 0) {
+        const diffs: string[] = [];
+        const contents: string[] = [];
+        const fileNames: string[] = [];
+        const lineRanges: string[] = [];
+
+        const uniqueFiles = [...new Set(focusedItems.map((it) => it.file))];
+        for (const file of uniqueFiles) {
+          diffs.push(extractDiffForFile(prContext.diff, file));
+          const fc = await fetchFileContent(prContext.owner, prContext.repo, prContext.headBranch, file);
+          if (fc) contents.push(`// ${file}\n${fc}`);
         }
-        const fileContent = await fetchFileContent(prContext.owner, prContext.repo, prContext.headBranch, focusedFile);
-        if (fileContent) contextToSend.focusedFileContent = fileContent;
+
+        for (const item of focusedItems) {
+          if (item.lineRange) {
+            lineRanges.push(`${item.file} L${item.lineRange.startLine}-${item.lineRange.endLine}`);
+            fileNames.push(item.file);
+          } else {
+            fileNames.push(item.file);
+          }
+        }
+
+        contextToSend = {
+          ...prContext,
+          diff: diffs.join("\n"),
+          focusedFile: [...new Set(fileNames)].join(", "),
+        };
+
+        const itemsWithLines = focusedItems.filter((it) => it.lineRange);
+        if (itemsWithLines.length === 1) {
+          contextToSend.focusedLineRange = itemsWithLines[0].lineRange;
+        } else if (itemsWithLines.length > 1) {
+          const lineContext = itemsWithLines
+            .map((it) => `[${it.file} L${it.lineRange!.startLine}-${it.lineRange!.endLine}]:\n${it.lineRange!.content}`)
+            .join("\n\n");
+          contextToSend.focusedFileContent = [
+            lineContext,
+            ...(contents.length > 0 ? contents : []),
+          ].join("\n\n");
+        }
+
+        if (itemsWithLines.length <= 1 && contents.length > 0) {
+          contextToSend.focusedFileContent = contents.join("\n\n");
+        }
       }
 
       let port: chrome.runtime.Port;
@@ -175,7 +216,7 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
       };
       port.postMessage(payload);
     },
-    [prContext, isStreaming, messages, persistMessages, focusedFile, focusedLineRange]
+    [prContext, isStreaming, messages, persistMessages, focusedItems]
   );
 
   const handleStop = useCallback(() => {
@@ -191,7 +232,6 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
     if (storageKeyRef.current) chrome.storage.local.remove(storageKeyRef.current);
   }, []);
 
-  const fileName = focusedFile?.split("/").pop() ?? focusedFile;
   const isEmpty = messages.length === 0;
 
   return (
@@ -245,33 +285,6 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
         </div>
       </div>
 
-      {/* File focus pill */}
-      {focusedFile && (
-        <div className="flex items-center px-3 py-1.5 border-b border-border bg-secondary">
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#5eead4]/10 border border-[#5eead4]/20 text-foreground text-xs font-medium max-w-full">
-            <FileText className="size-3 shrink-0 text-[#5eead4]" />
-            <span className="truncate" title={focusedFile}>
-              {fileName}
-              {focusedLineRange && (
-                <span className="text-[#1a2e2b] font-semibold">
-                  {" "}L{focusedLineRange.startLine}
-                  {focusedLineRange.endLine !== focusedLineRange.startLine
-                    ? `\u2013L${focusedLineRange.endLine}`
-                    : ""}
-                </span>
-              )}
-            </span>
-            <button
-              onClick={onClearFocus}
-              className="inline-flex items-center justify-center size-4 rounded hover:bg-[#5eead4]/20 text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer"
-              title="Return to whole-PR mode"
-            >
-              <X className="size-2.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Error banner */}
       {error && (
         <div className="px-3 py-1.5 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive">
@@ -289,8 +302,8 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
         <MessageList
           messages={messages}
           isStreaming={isStreaming}
-          focusedFile={focusedFile}
-          focusedLineRange={focusedLineRange}
+          focusedFile={primaryFile}
+          focusedLineRange={focusedItems.find((it) => it.lineRange)?.lineRange ?? null}
           prContext={prContext}
           fileLine={fileLine.line}
           fileSide={fileLine.side}
@@ -306,9 +319,10 @@ export function ChatPanel({ onClose, focusedFile, focusedLineRange, onClearFocus
         disabled={isLoading || !prContext}
         isStreaming={isStreaming}
         showStarters={isEmpty && !isLoading}
-        focusedFile={focusedFile}
-        focusedLineRange={focusedLineRange}
+        focusedItems={focusedItems}
         focusBullets={focusBullets}
+        onRemoveItem={onRemoveItem}
+        onClearFocus={onClearFocus}
       />
     </div>
   );

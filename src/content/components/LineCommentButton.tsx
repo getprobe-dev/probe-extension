@@ -68,39 +68,48 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
       btn.type = "button";
 
       const img = document.createElement("img");
-      img.src = getIconUrl(16);
-      img.width = 16;
-      img.height = 16;
-      img.style.borderRadius = "3px";
+      img.src = getIconUrl(48);
+      img.width = 20;
+      img.height = 20;
+      img.style.borderRadius = "4px";
       img.style.display = "block";
       btn.appendChild(img);
-
-      const label = document.createElement("span");
-      label.textContent = "PRobe";
-      btn.appendChild(label);
 
       Object.assign(btn.style, {
         display: "inline-flex",
         alignItems: "center",
-        gap: "4px",
-        padding: "5px 12px",
+        justifyContent: "center",
+        width: "32px",
+        height: "31px",
         borderRadius: "6px",
-        border: "1px solid rgba(31,35,40,0.15)",
+        borderTop: "1px solid rgba(255,255,255,0.1)",
+        borderLeft: "1px solid rgba(0,0,0,0.05)",
+        borderRight: "1px solid rgba(0,0,0,0.05)",
+        borderBottom: "2px solid rgba(0,0,0,0.2)",
         background: "transparent",
-        color: "inherit",
         cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: "inherit",
-        fontWeight: "inherit",
-        lineHeight: "inherit",
-        transition: "background 0.12s ease",
+        padding: "0",
+        transition: "all 0.15s cubic-bezier(0.16, 1, 0.3, 1)",
+        boxSizing: "border-box",
       });
 
       btn.addEventListener("mouseenter", () => {
-        btn.style.background = "rgba(31,35,40,0.04)";
+        btn.style.borderBottom = "2px solid #5eead4";
       });
       btn.addEventListener("mouseleave", () => {
-        btn.style.background = "transparent";
+        btn.style.borderBottom = "2px solid rgba(0,0,0,0.2)";
+        btn.style.transform = "";
+        btn.style.boxShadow = "none";
+      });
+      btn.addEventListener("mousedown", () => {
+        btn.style.transform = "translateY(2px)";
+        btn.style.borderBottom = "1px solid rgba(0,0,0,0.1)";
+        btn.style.boxShadow = "inset 0 1px 3px rgba(0,0,0,0.15)";
+      });
+      btn.addEventListener("mouseup", () => {
+        btn.style.transform = "";
+        btn.style.borderBottom = "2px solid #5eead4";
+        btn.style.boxShadow = "none";
       });
 
       btn.addEventListener("click", (e) => {

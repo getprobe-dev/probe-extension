@@ -63,27 +63,39 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
     justifyContent: "center",
     width: "28px",
     height: "28px",
-    borderRadius: "6px",
-    border: "1px solid transparent",
+    borderRadius: "8px",
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+    borderLeft: "1px solid rgba(0,0,0,0.05)",
+    borderRight: "1px solid rgba(0,0,0,0.05)",
+    borderBottom: "3px solid rgba(0,0,0,0.2)",
     background: "transparent",
     cursor: "pointer",
     marginLeft: "8px",
     padding: "0",
-    transition: "all 0.15s ease",
+    transition: "all 0.15s cubic-bezier(0.16, 1, 0.3, 1)",
     verticalAlign: "middle",
     flexShrink: "0",
-    opacity: "0.7",
+    boxShadow: "none",
+    position: "relative",
   });
 
   btn.addEventListener("mouseenter", () => {
-    btn.style.background = "oklch(0.96 0.03 180)";
-    btn.style.borderColor = "oklch(0.78 0.12 180)";
-    btn.style.opacity = "1";
+    btn.style.borderBottom = "3px solid #5eead4";
+    btn.style.transform = "scale(1.06)";
   });
   btn.addEventListener("mouseleave", () => {
-    btn.style.background = "transparent";
-    btn.style.borderColor = "transparent";
-    btn.style.opacity = "0.7";
+    btn.style.borderBottom = "3px solid rgba(0,0,0,0.2)";
+    btn.style.transform = "";
+  });
+  btn.addEventListener("mousedown", () => {
+    btn.style.transform = "translateY(2px) scale(1)";
+    btn.style.borderBottom = "1px solid rgba(0,0,0,0.1)";
+    btn.style.boxShadow = "inset 0 1px 3px rgba(0,0,0,0.15)";
+  });
+  btn.addEventListener("mouseup", () => {
+    btn.style.transform = "scale(1.06)";
+    btn.style.borderBottom = "3px solid #5eead4";
+    btn.style.boxShadow = "none";
   });
   btn.addEventListener("click", (e) => {
     e.preventDefault();

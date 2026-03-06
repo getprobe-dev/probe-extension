@@ -23,11 +23,11 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const origin = request.headers.get("Origin");
 
-    if (!isAllowedOrigin(origin)) {
+    if (!origin || !isAllowedOrigin(origin)) {
       return new Response("Forbidden", { status: 403 });
     }
 
-    const cors = corsHeaders(origin!);
+    const cors = corsHeaders(origin);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });

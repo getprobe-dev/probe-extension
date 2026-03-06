@@ -32,7 +32,7 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
   useEffect(() => {
     callbackRef.current = onLineSelect;
     diffRef.current = diff;
-  });
+  }, [onLineSelect, diff]);
 
   useEffect(() => {
     function handleClick(editor: Element) {

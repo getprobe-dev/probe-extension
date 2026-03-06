@@ -109,7 +109,7 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
 
 export function FileButtons({ onFileSelect }: FileButtonsProps) {
   const callbackRef = useRef(onFileSelect);
-  useEffect(() => { callbackRef.current = onFileSelect; });
+  useEffect(() => { callbackRef.current = onFileSelect; }, [onFileSelect]);
 
   useEffect(() => {
     function inject() {

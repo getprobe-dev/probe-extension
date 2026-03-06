@@ -6,7 +6,7 @@ interface FileButtonsProps {
 
 const BUTTON_CLASS = "prs-file-chat-btn";
 
-const CHAT_ICON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`;
+const LOGO_URL = chrome.runtime.getURL("dark-mode/icon-48.png");
 
 // New GitHub UI (Jan 2026): uses CSS Modules with hashed suffixes.
 // Match on the stable prefix — the hash (e.g. __Zcm) changes per deploy.
@@ -47,8 +47,15 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
 
   const btn = document.createElement("button");
   btn.className = BUTTON_CLASS;
-  btn.title = `Chat about ${filePath}`;
-  btn.innerHTML = CHAT_ICON_SVG;
+  btn.title = `PRobe ${filePath}`;
+
+  const img = document.createElement("img");
+  img.src = LOGO_URL;
+  img.width = 20;
+  img.height = 20;
+  img.style.borderRadius = "4px";
+  img.style.display = "block";
+  btn.appendChild(img);
 
   Object.assign(btn.style, {
     display: "inline-flex",
@@ -59,22 +66,24 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
     borderRadius: "6px",
     border: "1px solid transparent",
     background: "transparent",
-    color: "#0d9488",
     cursor: "pointer",
     marginLeft: "8px",
     padding: "0",
     transition: "all 0.15s ease",
     verticalAlign: "middle",
     flexShrink: "0",
+    opacity: "0.7",
   });
 
   btn.addEventListener("mouseenter", () => {
     btn.style.background = "#ccfbf1";
     btn.style.borderColor = "#2dd4bf";
+    btn.style.opacity = "1";
   });
   btn.addEventListener("mouseleave", () => {
     btn.style.background = "transparent";
     btn.style.borderColor = "transparent";
+    btn.style.opacity = "0.7";
   });
   btn.addEventListener("click", (e) => {
     e.preventDefault();

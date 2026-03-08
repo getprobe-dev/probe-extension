@@ -92,3 +92,11 @@ These will come. For now, thoroughness in your proposal and self-review compensa
 ## Questions?
 
 If you're unsure about anything, open a GitHub Issue or reach out to the maintainer. We'd rather answer a question upfront than review a PR that went in the wrong direction.
+
+---
+
+## Related documents
+
+- [docs/VERSIONING.md](docs/VERSIONING.md) — How version numbers work and what constitutes a release.
+- [docs/MAINTAINERS.md](docs/MAINTAINERS.md) — How maintainers contribute and manage the project.
+- [docs/DESIGN.md](docs/DESIGN.md) — Visual language, color tokens, and component patterns for UI contributions.

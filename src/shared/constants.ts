@@ -1,6 +1,8 @@
 import type { PRContext, FocusedLineRange } from "./types";
 import type { ResolvedSkill } from "./skills";
 
+export const MODEL_ID = "claude-sonnet-4-20250514";
+
 function buildSkillSection(skills?: ResolvedSkill[]): string {
   if (!skills || skills.length === 0) return "";
 
@@ -34,6 +36,10 @@ export function buildSystemPrompt(
 
   return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request.
 
+## Context
+- **Today's date**: ${new Date().toLocaleDateString("en-CA")}
+- **Model**: ${MODEL_ID}
+
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
 - **PR #${context.number}**: ${context.title}
@@ -51,6 +57,7 @@ ${diffTruncated}
 - When asked about specific code, reference the relevant parts of the diff.
 - Explain the intent behind changes when you can infer it from context.
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
+- Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.`;
 }
@@ -103,6 +110,10 @@ ${lineRange.content || "(content not available)"}
 
   return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. ${focusDescription}
 
+## Context
+- **Today's date**: ${new Date().toLocaleDateString("en-CA")}
+- **Model**: ${MODEL_ID}
+
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
 - **PR #${context.number}**: ${context.title}
@@ -123,6 +134,7 @@ ${diffSection}
 - If full file content is provided, use it for broader context (e.g., understanding what a function does beyond the changed lines).
 - Explain the intent behind changes when you can infer it from context.
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
+- Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.`;
 }

@@ -21,6 +21,8 @@ Open a GitHub Issue using the **Proposal** template. Your proposal should includ
 - **Alternatives considered** — What other approaches did you evaluate?
 - **Scope** — Is this a small fix, a new feature, or a larger refactor?
 
+When opening the issue, assign yourself, apply the `proposal` label, and set a milestone if relevant. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the full label reference and issue conventions.
+
 AI-assisted proposals are welcome, but they must be reviewed and understood by the person submitting them. We want you to own what you propose.
 
 > **Do not write code before your proposal is approved.** This saves everyone's time.
@@ -35,9 +37,9 @@ A maintainer will review your proposal and respond with one of:
 
 ### Step 3: Fork and Implement
 
-Once approved:
+Once approved, the maintainer will label the issue `approved`. At that point:
 
-1. Fork the repository and create a feature branch from `main`.
+1. Fork the repository and create a feature branch from `main`. Follow the branch naming conventions in [docs/WORKFLOW.md](docs/WORKFLOW.md).
 2. Implement the approved proposal. Stay within the agreed scope — if you discover the scope needs to change, comment on the issue first.
 3. Follow the existing code style (ESLint and Prettier configs are in the repo — run `npm run lint` and `npm run format`).
 
@@ -97,6 +99,7 @@ If you're unsure about anything, open a GitHub Issue or reach out to the maintai
 
 ## Related documents
 
+- [docs/WORKFLOW.md](docs/WORKFLOW.md) — Labels, issue lifecycle, branch naming, and PR conventions.
 - [docs/VERSIONING.md](docs/VERSIONING.md) — How version numbers work and what constitutes a release.
 - [docs/MAINTAINERS.md](docs/MAINTAINERS.md) — How maintainers contribute and manage the project.
 - [docs/DESIGN.md](docs/DESIGN.md) — Visual language, color tokens, and component patterns for UI contributions.

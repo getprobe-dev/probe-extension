@@ -23,17 +23,21 @@ Maintainers follow the same **proposal-first** discipline as external contributo
 
 Use the [Proposal template](../.github/ISSUE_TEMPLATE/proposal.md) for new features. For bugs, open a plain issue with a clear description of the problem, the expected behavior, and the actual behavior. Document your thinking in the issue as though you were explaining it to another maintainer — because one day you will be.
 
+Assign yourself, apply the appropriate label, and set a milestone if relevant. See [WORKFLOW.md](WORKFLOW.md) for the full label reference and issue lifecycle.
+
 **2. Self-approve (or discuss with co-maintainers).**
 
 If you're the sole decision-maker, add the `approved` label to the issue. If there are co-maintainers, get a thumbs-up on the issue thread before starting.
 
 **3. Create a branch directly in the main repo.**
 
+Follow the branch naming conventions in [WORKFLOW.md](WORKFLOW.md). For example:
+
 ```bash
 git checkout main && git pull
-git checkout -b fix/42-chat-panel-flicker    # bugs: fix/<issue-number>-<slug>
-git checkout -b feat/43-model-selector       # features: feat/<issue-number>-<slug>
-git checkout -b docs/44-update-readme        # docs: docs/<issue-number>-<slug>
+git checkout -b fix/42-chat-panel-flicker
+git checkout -b feat/43-model-selector
+git checkout -b docs/44-update-readme
 ```
 
 **4. Implement and push.**
@@ -70,16 +74,22 @@ When a contributor opens a PR:
 
 ## Issue and label hygiene
 
-Keep the issue tracker clean:
+Keep the issue tracker clean. The full label reference and lifecycle rules live in [WORKFLOW.md](WORKFLOW.md). As maintainer, the key responsibilities are:
 
 - Close stale issues with a comment explaining why.
-- Add `in progress` when someone (including yourself) starts working on an approved proposal.
-- Remove `in progress` when the PR is merged or abandoned.
+- Add `approved` or `declined` to proposals promptly — silence is demoralising for contributors.
+- Add `in progress` when someone (including yourself) starts working on an approved proposal; remove it if the work is abandoned.
 - Use `declined` with a short explanation rather than silently closing proposals.
+
+## Related documents
+
+- [WORKFLOW.md](WORKFLOW.md) — Labels, issue lifecycle, branch naming, and PR conventions.
+- [VERSIONING.md](VERSIONING.md) — Release checklist and version bump rules.
+- [../CONTRIBUTING.md](../CONTRIBUTING.md) — The contributor-facing workflow.
 
 ## Releases
 
-See [docs/VERSIONING.md](VERSIONING.md) for the full release checklist and version bump rules.
+See [VERSIONING.md](VERSIONING.md) for the full release checklist and version bump rules.
 
 The short version: bump the version in `manifest.json` and `package.json` together, tag the commit, create a GitHub Release, build the ZIP, submit to Chrome.
 

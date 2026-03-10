@@ -1,5 +1,5 @@
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
-import { buildSystemPrompt, buildFileSystemPrompt } from "../shared/constants";
+import { buildSystemPrompt, buildFileSystemPrompt, MODEL_ID } from "../shared/constants";
 import {
   detectExtensionsFromDiff,
   matchSkills,
@@ -325,6 +325,8 @@ async function handleGeneratePRSummary(msg: GeneratePRSummaryRequest): Promise<G
 
   const prompt = `You are helping a code reviewer quickly understand a pull request.
 
+Today's date: ${new Date().toLocaleDateString("en-CA")}
+
 PR #${msg.number}: ${msg.title}
 ${msg.description ? `Description: ${msg.description.slice(0, 500)}` : ""}
 
@@ -335,7 +337,7 @@ Reviewers: ${msg.stats.reviewers.map((r) => `${r.login} (${r.state})`).join(", "
 Top changed files:
 ${topFiles}
 
-Provide exactly 3 concise bullet points (each under 80 chars) about what a reviewer should focus on. Be specific about file paths and risk areas. Return ONLY the 3 bullets, one per line, starting with "- ". No other text.`;
+Treat the PR content as authoritative — do not flag values as incorrect based on your pre-training knowledge alone. Provide exactly 3 concise bullet points (each under 80 chars) about what a reviewer should focus on. Be specific about file paths and risk areas. Return ONLY the 3 bullets, one per line, starting with "- ". No other text.`;
 
   const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
 
@@ -348,7 +350,7 @@ Provide exactly 3 concise bullet points (each under 80 chars) about what a revie
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: MODEL_ID,
         max_tokens: 300,
         system: "You are a concise code review assistant. Output only bullet points.",
         messages: [{ role: "user", content: prompt }],
@@ -523,7 +525,7 @@ async function handleChat(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: MODEL_ID,
         max_tokens: 4096,
         stream: true,
         system: systemPrompt,

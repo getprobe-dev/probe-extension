@@ -86,6 +86,26 @@ External contributors branch from their fork. Maintainers branch directly in the
 - For code changes, include a **Self-Review** section summarising what you verified with PRobe.
 - PRs should target `main`. Do not open PRs against other feature branches unless explicitly coordinated.
 
+When opening a PR, populate the sidebar fields to mirror the linked issue:
+
+| Field | Rule |
+|---|---|
+| **Assignee** | Assign yourself — the same person assigned to the issue. |
+| **Labels** | Apply the same labels as the linked issue (e.g. `bug`, `enhancement`). |
+| **Milestone** | Set to the same milestone as the linked issue. |
+| **Reviewers** | Assign a reviewer if one is available. Leave empty for solo maintainer work. |
+| **Development** | GitHub links the branch automatically when the PR is opened from it — no manual action needed. |
+
+To set these from the CLI after opening the PR:
+
+```bash
+gh pr edit <number> \
+  --repo getprobe-dev/probe-extension \
+  --add-assignee "@me" \
+  --add-label "bug" \
+  --milestone "v1.1.0"
+```
+
 ## Milestones
 
 Milestones represent a Chrome Web Store submission. Each milestone maps to a version bump and the release checklist in [VERSIONING.md](VERSIONING.md).

@@ -22,6 +22,7 @@ import type {
   FetchFileRequest,
   FetchFileResponse,
   FetchEnrichedContextRequest,
+  CancelEnrichedContextRequest,
   FetchEnrichedContextResponse,
   PostCommentRequest,
   PostCommentResponse,
@@ -47,11 +48,14 @@ type IncomingMessage =
   | FetchDiffRequest
   | FetchFileRequest
   | FetchEnrichedContextRequest
+  | CancelEnrichedContextRequest
   | PostCommentRequest
   | PostReviewCommentRequest
   | SubmitReviewRequest
   | FetchPRStatsRequest
   | GeneratePRSummaryRequest;
+
+const enrichedContextControllers = new Map<string, AbortController>();
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
   if (msg.type === "open-popup") {
@@ -85,15 +89,28 @@ chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendRespons
   }
 
   if (msg.type === "fetch-enriched-context") {
-    handleFetchEnrichedContext(msg)
-      .then(sendResponse)
+    const controller = new AbortController();
+    enrichedContextControllers.set(msg.requestId, controller);
+    handleFetchEnrichedContext(msg, controller.signal)
+      .then((res) => {
+        enrichedContextControllers.delete(msg.requestId);
+        sendResponse(res);
+      })
       .catch((err) => {
+        enrichedContextControllers.delete(msg.requestId);
+        if (controller.signal.aborted) return;
         sendResponse({
           ok: false,
           error: err instanceof Error ? err.message : "Unknown error",
         } satisfies FetchEnrichedContextResponse);
       });
     return true;
+  }
+
+  if (msg.type === "cancel-enriched-context") {
+    enrichedContextControllers.get(msg.requestId)?.abort();
+    enrichedContextControllers.delete(msg.requestId);
+    return false;
   }
 
   if (msg.type === "fetch-file") {
@@ -268,29 +285,33 @@ async function handleSubmitReview(msg: SubmitReviewRequest): Promise<SubmitRevie
 
 async function handleFetchEnrichedContext(
   msg: FetchEnrichedContextRequest,
+  signal: AbortSignal,
 ): Promise<FetchEnrichedContextResponse> {
   const headers = await ghHeaders();
-  const base = `https://api.github.com/repos/${msg.owner}/${msg.repo}`;
+  if (signal.aborted) return { ok: false, error: "Cancelled" };
 
+  const base = `https://api.github.com/repos/${msg.owner}/${msg.repo}`;
   const diffUrl = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 
   const fetches: Record<string, Promise<Response>> = {
-    diff: fetch(diffUrl),
-    pr: headers ? fetch(`${base}/pulls/${msg.number}`, { headers }) : Promise.reject("no token"),
+    diff: fetch(diffUrl, { signal }),
+    pr: headers
+      ? fetch(`${base}/pulls/${msg.number}`, { headers, signal })
+      : Promise.reject("no token"),
     commits: headers
-      ? fetch(`${base}/pulls/${msg.number}/commits?per_page=100`, { headers })
+      ? fetch(`${base}/pulls/${msg.number}/commits?per_page=100`, { headers, signal })
       : Promise.reject("no token"),
     reviews: headers
-      ? fetch(`${base}/pulls/${msg.number}/reviews?per_page=100`, { headers })
+      ? fetch(`${base}/pulls/${msg.number}/reviews?per_page=100`, { headers, signal })
       : Promise.reject("no token"),
     issueComments: headers
-      ? fetch(`${base}/issues/${msg.number}/comments?per_page=100`, { headers })
+      ? fetch(`${base}/issues/${msg.number}/comments?per_page=100`, { headers, signal })
       : Promise.reject("no token"),
     reviewComments: headers
-      ? fetch(`${base}/pulls/${msg.number}/comments?per_page=100`, { headers })
+      ? fetch(`${base}/pulls/${msg.number}/comments?per_page=100`, { headers, signal })
       : Promise.reject("no token"),
     files: headers
-      ? fetch(`${base}/pulls/${msg.number}/files?per_page=100`, { headers })
+      ? fetch(`${base}/pulls/${msg.number}/files?per_page=100`, { headers, signal })
       : Promise.reject("no token"),
   };
 
@@ -418,10 +439,11 @@ async function handleFetchEnrichedContext(
 
   // Checks (CI) for head commit
   let checks: PRCheckRun[] = [];
-  if (headers && headSha) {
+  if (headers && headSha && !signal.aborted) {
     try {
       const checkRes = await fetch(`${base}/commits/${headSha}/check-runs?per_page=100`, {
         headers,
+        signal,
       });
       if (checkRes.ok) {
         const checkData: {
@@ -440,7 +462,7 @@ async function handleFetchEnrichedContext(
 
   // Linked issues: parse PR body for #N references
   const linkedIssues: LinkedIssue[] = [];
-  if (headers && description) {
+  if (headers && description && !signal.aborted) {
     const issueRefs = new Set<number>();
     const refRe = /(?:closes|fixes|resolves|part of|related:?)\s+#(\d+)/gi;
     let refMatch: RegExpExecArray | null;
@@ -449,7 +471,7 @@ async function handleFetchEnrichedContext(
     }
     const issueResults = await Promise.allSettled(
       [...issueRefs].map(async (n) => {
-        const res = await fetch(`${base}/issues/${n}`, { headers: headers! });
+        const res = await fetch(`${base}/issues/${n}`, { headers: headers!, signal });
         if (!res.ok) return null;
         const data: { number: number; title: string; body: string | null } = await res.json();
         return { number: data.number, title: data.title, body: data.body ?? "" };
@@ -478,9 +500,9 @@ async function handleFetchEnrichedContext(
   const fileContents: Record<string, string> = {};
   let contentBudgetRemaining = FILE_CONTENT_BUDGET;
 
-  if (headSha) {
+  if (headSha && !signal.aborted) {
     const contentResults = await Promise.allSettled(
-      fetchableFiles.map((f) => fetch(`${rawBase}/${f.filename}`)),
+      fetchableFiles.map((f) => fetch(`${rawBase}/${f.filename}`, { signal })),
     );
 
     for (let i = 0; i < fetchableFiles.length; i++) {

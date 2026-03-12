@@ -105,6 +105,12 @@ export interface FetchEnrichedContextRequest {
   owner: string;
   repo: string;
   number: number;
+  requestId: string;
+}
+
+export interface CancelEnrichedContextRequest {
+  type: "cancel-enriched-context";
+  requestId: string;
 }
 
 export interface FetchEnrichedContextResponse {

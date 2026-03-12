@@ -85,6 +85,7 @@ export function ChatPanel({
   useEffect(() => {
     if (needsSetup) return;
     let cancelled = false;
+    let enrichedContextRequestId: string | null = null;
 
     async function init() {
       try {
@@ -106,17 +107,23 @@ export function ChatPanel({
           setIsLoading(false);
         });
 
+        const requestId = `ec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        enrichedContextRequestId = requestId;
+
         sendMessage<FetchEnrichedContextResponse>({
           type: "fetch-enriched-context",
           owner: context.owner,
           repo: context.repo,
           number: context.number,
+          requestId,
         })
           .then((res) => {
+            enrichedContextRequestId = null;
             if (cancelled) return;
             if (res.ok && res.context) setEnrichedContext(res.context);
           })
           .catch(() => {
+            enrichedContextRequestId = null;
             /* enriched context is best-effort */
           });
       } catch (err) {
@@ -129,6 +136,9 @@ export function ChatPanel({
     init();
     return () => {
       cancelled = true;
+      if (enrichedContextRequestId) {
+        chrome.runtime.sendMessage({ type: "cancel-enriched-context", requestId: enrichedContextRequestId });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsSetup]);

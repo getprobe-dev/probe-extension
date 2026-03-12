@@ -56,6 +56,25 @@ The unified `.diff` file is not available through the GitHub REST API — it is 
 
 ---
 
+### `https://patch-diff.githubusercontent.com/*`
+
+**What it grants:** The background service worker can `fetch()` URLs on `patch-diff.githubusercontent.com`.
+
+**Why it is required:**
+
+`src/background/index.ts` line 42:
+```typescript
+const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
+fetch(url)
+```
+GitHub's PR `.diff` URLs redirect to `https://patch-diff.githubusercontent.com/raw/{owner}/{repo}/pull/{number}.diff` as the actual delivery CDN. The extension service worker follows this redirect to retrieve the unified diff. Without host permission for `patch-diff.githubusercontent.com`, the redirect fails and every feature that depends on the diff (chat, focused-file review, PR dashboard) stops working with a "Failed to fetch" error.
+
+**Why this exact subdomain and not `*.githubusercontent.com/*`:** The previous manifest used the wildcard `*.githubusercontent.com/*`, which granted access to every subdomain including `avatars.githubusercontent.com`, `codeload.githubusercontent.com`, `objects.githubusercontent.com`, and others. Only two subdomains are actually used: `patch-diff` (here) and `raw` (below). Explicitly listing both is strictly narrower than the wildcard.
+
+**What breaks without it:** The diff cannot be fetched. The entire extension becomes non-functional — no chat, no review, no PR dashboard.
+
+---
+
 ### `https://raw.githubusercontent.com/*`
 
 **What it grants:** The background service worker can `fetch()` any URL on `raw.githubusercontent.com`.
@@ -153,7 +172,7 @@ Extension-packaged resources are blocked by default in web page contexts. Withou
 | Permission | Reason not requested |
 |---|---|
 | `activeTab` | Not used. Extension has explicit `host_permissions` for all required origins. `activeTab` grants overlapping temporary access that serves no additional purpose. |
-| `declarativeNetRequest` | Not used. The CORS proxy (`pr-sidekick-proxy.sgunturi.workers.dev`) handles CORS headers server-side, so no client-side header rewriting is needed. |
+| `declarativeNetRequest` | Not used. The diff is fetched directly by the background service worker using its `patch-diff.githubusercontent.com` host permission. No client-side header rewriting is needed. |
 | `tabs` | Not used. The extension never reads tab URLs, titles, or favicons via the `tabs` API. Tab context (owner/repo/PR number) is parsed from `window.location.href` inside the content script. |
 | `scripting` | Not used. Content scripts are declared statically in the manifest. No dynamic script injection occurs. |
 | `cookies` | Not used. Authentication uses API keys stored in `chrome.storage`, not cookies. |

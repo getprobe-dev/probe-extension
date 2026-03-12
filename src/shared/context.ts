@@ -1,24 +1,22 @@
-import type { PRContext, FetchDiffRequest, FetchDiffResponse, FetchFileRequest, FetchFileResponse } from "./types";
+import type {
+  PRContext,
+  FetchDiffRequest,
+  FetchDiffResponse,
+  FetchFileRequest,
+  FetchFileResponse,
+} from "./types";
 
-export function parsePRUrl(
-  url: string
-): { owner: string; repo: string; number: number } | null {
-  const match = url.match(
-    /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/
-  );
+export function parsePRUrl(url: string): { owner: string; repo: string; number: number } | null {
+  const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
   if (!match) return null;
   return { owner: match[1], repo: match[2], number: parseInt(match[3], 10) };
 }
 
 export function scrapePRMetadata(): { title: string; description: string; author: string } {
-  const titleEl = document.querySelector<HTMLElement>(
-    ".gh-header-title .js-issue-title"
-  );
+  const titleEl = document.querySelector<HTMLElement>(".gh-header-title .js-issue-title");
   const title = titleEl?.textContent?.trim() ?? "";
 
-  const descriptionEl = document.querySelector<HTMLElement>(
-    ".comment-body"
-  );
+  const descriptionEl = document.querySelector<HTMLElement>(".comment-body");
   const description = descriptionEl?.textContent?.trim() ?? "";
 
   const authorEl = document.querySelector<HTMLElement>(".gh-header-meta .author");
@@ -63,7 +61,7 @@ export function extractDiffForFile(fullDiff: string, filePath: string): string {
 
 export function extractFirstChangedLine(
   fullDiff: string,
-  filePath: string
+  filePath: string,
 ): { line: number; side: "LEFT" | "RIGHT" } {
   const fileDiff = extractDiffForFile(fullDiff, filePath);
   const lines = fileDiff.split("\n");
@@ -100,7 +98,7 @@ export function extractLinesFromDiff(
   filePath: string,
   startLine: number,
   endLine: number,
-  side: "LEFT" | "RIGHT"
+  side: "LEFT" | "RIGHT",
 ): string {
   const fileDiff = extractDiffForFile(fullDiff, filePath);
   const lines = fileDiff.split("\n");
@@ -129,7 +127,13 @@ export function extractLinesFromDiff(
         result.push(line.slice(1));
       }
       currentOldLine++;
-    } else if (!line.startsWith("\\") && !line.startsWith("diff") && !line.startsWith("index") && !line.startsWith("---") && !line.startsWith("+++")) {
+    } else if (
+      !line.startsWith("\\") &&
+      !line.startsWith("diff") &&
+      !line.startsWith("index") &&
+      !line.startsWith("---") &&
+      !line.startsWith("+++")
+    ) {
       if (currentLine >= startLine && currentLine <= endLine) {
         result.push(line.startsWith(" ") ? line.slice(1) : line);
       }
@@ -152,7 +156,7 @@ export function parseLineRangeFromHash(): {
   if (!match) return null;
 
   const diffId = match[1];
-  const side = match[2] === "L" ? "LEFT" as const : "RIGHT" as const;
+  const side = match[2] === "L" ? ("LEFT" as const) : ("RIGHT" as const);
   const startLine = parseInt(match[3], 10);
   const endLine = match[4] ? parseInt(match[4], 10) : startLine;
 
@@ -164,7 +168,7 @@ export function getFilePathFromDiffId(diffId: string): string | null {
   if (!el) return null;
 
   const codeEl = el.querySelector<HTMLElement>(
-    '[class*="file-path"] code, a[class*="Link--primary"] code, code'
+    '[class*="file-path"] code, a[class*="Link--primary"] code, code',
   );
   if (codeEl) {
     const cleaned = (codeEl.textContent ?? "")
@@ -176,11 +180,7 @@ export function getFilePathFromDiffId(diffId: string): string | null {
   return null;
 }
 
-async function fetchDiff(
-  owner: string,
-  repo: string,
-  number: number
-): Promise<string> {
+async function fetchDiff(owner: string, repo: string, number: number): Promise<string> {
   const msg: FetchDiffRequest = { type: "fetch-diff", owner, repo, number };
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(msg, (response: FetchDiffResponse) => {
@@ -201,7 +201,7 @@ export async function fetchFileContent(
   owner: string,
   repo: string,
   branch: string,
-  path: string
+  path: string,
 ): Promise<string | null> {
   const msg: FetchFileRequest = { type: "fetch-file", owner, repo, branch, path };
   return new Promise((resolve) => {

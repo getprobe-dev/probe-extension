@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 import { subscribeMutation } from "../utils/domObserver";
 import type { FocusedLineRange } from "../../shared/types";
-import { parseLineRangeFromHash, getFilePathFromDiffId, extractLinesFromDiff } from "../../shared/context";
+import {
+  parseLineRangeFromHash,
+  getFilePathFromDiffId,
+  extractLinesFromDiff,
+} from "../../shared/context";
 import { getIconUrl } from "../utils/theme";
 
 interface LineCommentButtonProps {
@@ -45,8 +49,11 @@ export function LineCommentButton({ onLineSelect, diff }: LineCommentButtonProps
       let content = "";
       if (diffRef.current) {
         content = extractLinesFromDiff(
-          diffRef.current, filePath,
-          range.startLine, range.endLine, range.side
+          diffRef.current,
+          filePath,
+          range.startLine,
+          range.endLine,
+          range.side,
         );
       }
 

@@ -188,8 +188,7 @@ export const STORAGE_KEYS = {
   API_KEY: "anthropic_api_key",
   PROXY_URL: "proxy_url",
   GITHUB_TOKEN: "github_token",
-  chatHistory: (owner: string, repo: string, number: number) =>
-    `chat:${owner}/${repo}#${number}`,
+  chatHistory: (owner: string, repo: string, number: number) => `chat:${owner}/${repo}#${number}`,
   pendingReview: (owner: string, repo: string, number: number) =>
     `review:${owner}/${repo}#${number}`,
 } as const;

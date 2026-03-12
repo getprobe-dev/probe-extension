@@ -36,76 +36,111 @@ type IncomingMessage =
   | FetchPRStatsRequest
   | GeneratePRSummaryRequest;
 
-chrome.runtime.onMessage.addListener(
-  (msg: IncomingMessage, _sender, sendResponse) => {
-    if (msg.type === "fetch-diff") {
-      const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
-      fetch(url)
-        .then(async (res) => {
-          if (!res.ok) {
-            sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchDiffResponse);
-            return;
-          }
-          sendResponse({ ok: true, diff: await res.text() } satisfies FetchDiffResponse);
-        })
-        .catch((err) => {
-          sendResponse({ ok: false, error: err instanceof Error ? err.message : "Network error" } satisfies FetchDiffResponse);
-        });
-      return true;
-    }
-
-    if (msg.type === "fetch-file") {
-      const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
-      fetch(url)
-        .then(async (res) => {
-          if (!res.ok) {
-            sendResponse({ ok: false, error: `HTTP ${res.status}: ${res.statusText}` } satisfies FetchFileResponse);
-            return;
-          }
-          sendResponse({ ok: true, content: await res.text() } satisfies FetchFileResponse);
-        })
-        .catch((err) => {
-          sendResponse({ ok: false, error: err instanceof Error ? err.message : "Network error" } satisfies FetchFileResponse);
-        });
-      return true;
-    }
-
-    if (msg.type === "post-comment") {
-      handlePostComment(msg).then(sendResponse).catch((err) => {
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies PostCommentResponse);
+chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
+  if (msg.type === "fetch-diff") {
+    const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
+    fetch(url)
+      .then(async (res) => {
+        if (!res.ok) {
+          sendResponse({
+            ok: false,
+            error: `HTTP ${res.status}: ${res.statusText}`,
+          } satisfies FetchDiffResponse);
+          return;
+        }
+        sendResponse({ ok: true, diff: await res.text() } satisfies FetchDiffResponse);
+      })
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        } satisfies FetchDiffResponse);
       });
-      return true;
-    }
-
-    if (msg.type === "post-review-comment") {
-      handlePostReviewComment(msg).then(sendResponse).catch((err) => {
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies SubmitReviewResponse);
-      });
-      return true;
-    }
-
-    if (msg.type === "submit-review") {
-      handleSubmitReview(msg).then(sendResponse).catch((err) => {
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies SubmitReviewResponse);
-      });
-      return true;
-    }
-
-    if (msg.type === "fetch-pr-stats") {
-      handleFetchPRStats(msg).then(sendResponse).catch((err) => {
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies FetchPRStatsResponse);
-      });
-      return true;
-    }
-
-    if (msg.type === "generate-pr-summary") {
-      handleGeneratePRSummary(msg).then(sendResponse).catch((err) => {
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Unknown error" } satisfies GeneratePRSummaryResponse);
-      });
-      return true;
-    }
+    return true;
   }
-);
+
+  if (msg.type === "fetch-file") {
+    const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${msg.path}`;
+    fetch(url)
+      .then(async (res) => {
+        if (!res.ok) {
+          sendResponse({
+            ok: false,
+            error: `HTTP ${res.status}: ${res.statusText}`,
+          } satisfies FetchFileResponse);
+          return;
+        }
+        sendResponse({ ok: true, content: await res.text() } satisfies FetchFileResponse);
+      })
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        } satisfies FetchFileResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "post-comment") {
+    handlePostComment(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies PostCommentResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "post-review-comment") {
+    handlePostReviewComment(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies SubmitReviewResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "submit-review") {
+    handleSubmitReview(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies SubmitReviewResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "fetch-pr-stats") {
+    handleFetchPRStats(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies FetchPRStatsResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "generate-pr-summary") {
+    handleGeneratePRSummary(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies GeneratePRSummaryResponse);
+      });
+    return true;
+  }
+});
 
 async function ghHeaders(): Promise<Record<string, string> | null> {
   const token = await getGithubToken();
@@ -120,19 +155,33 @@ async function ghHeaders(): Promise<Record<string, string> | null> {
 
 async function handlePostComment(msg: PostCommentRequest): Promise<PostCommentResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
+  if (!headers)
+    return {
+      ok: false,
+      error: "No GitHub token configured. Click the PRobe extension icon to add one.",
+    };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/issues/${msg.number}/comments`;
-  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ body: msg.body }) });
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ body: msg.body }),
+  });
 
   if (!res.ok) return { ok: false, error: await extractGhError(res) };
   const data = await res.json();
   return { ok: true, url: data.html_url };
 }
 
-async function handlePostReviewComment(msg: PostReviewCommentRequest): Promise<SubmitReviewResponse> {
+async function handlePostReviewComment(
+  msg: PostReviewCommentRequest,
+): Promise<SubmitReviewResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
+  if (!headers)
+    return {
+      ok: false,
+      error: "No GitHub token configured. Click the PRobe extension icon to add one.",
+    };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
   const res = await fetch(url, {
@@ -151,7 +200,11 @@ async function handlePostReviewComment(msg: PostReviewCommentRequest): Promise<S
 
 async function handleSubmitReview(msg: SubmitReviewRequest): Promise<SubmitReviewResponse> {
   const headers = await ghHeaders();
-  if (!headers) return { ok: false, error: "No GitHub token configured. Click the PRobe extension icon to add one." };
+  if (!headers)
+    return {
+      ok: false,
+      error: "No GitHub token configured. Click the PRobe extension icon to add one.",
+    };
 
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
   const res = await fetch(url, {
@@ -179,7 +232,9 @@ async function extractGhError(res: Response): Promise<string> {
   try {
     const parsed = JSON.parse(await res.text());
     detail = parsed?.message ?? detail;
-  } catch { /* use default */ }
+  } catch {
+    /* use default */
+  }
   return detail;
 }
 
@@ -268,7 +323,9 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
         );
         if (!res.ok) return null;
         return res.json();
-      } catch { return null; }
+      } catch {
+        return null;
+      }
     }),
   );
 
@@ -306,19 +363,25 @@ async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStat
     labels: (pr.labels ?? []).map((l) => l.name),
     reviewers: Array.from(reviewerMap.values()),
     commitAuthors: Array.from(authorSet.values()),
-    files: files.map((f) => ({ filename: f.filename, additions: f.additions, deletions: f.deletions })),
+    files: files.map((f) => ({
+      filename: f.filename,
+      additions: f.additions,
+      deletions: f.deletions,
+    })),
     commitDetails,
   };
 
   return { ok: true, stats };
 }
 
-async function handleGeneratePRSummary(msg: GeneratePRSummaryRequest): Promise<GeneratePRSummaryResponse> {
+async function handleGeneratePRSummary(
+  msg: GeneratePRSummaryRequest,
+): Promise<GeneratePRSummaryResponse> {
   const { apiKey, proxyUrl } = await getSettings();
   if (!apiKey) return { ok: false, error: "No API key configured." };
 
   const topFiles = [...msg.stats.files]
-    .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
+    .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
     .slice(0, 10)
     .map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`)
     .join("\n");
@@ -407,7 +470,11 @@ async function getSettings(): Promise<{ apiKey: string | null; proxyUrl: string 
 }
 
 function send(port: chrome.runtime.Port, event: StreamEvent) {
-  try { port.postMessage(event); } catch { /* Port disconnected */ }
+  try {
+    port.postMessage(event);
+  } catch {
+    /* Port disconnected */
+  }
 }
 
 // ── Skill resolution ──
@@ -473,7 +540,7 @@ async function resolveSkillsForDiff(diff: string): Promise<ResolvedSkill[]> {
       return content
         ? { name: skill.name, content, sourceUrl: skill.sourceUrl, description: skill.description }
         : null;
-    })
+    }),
   );
 
   return results.filter((r): r is ResolvedSkill => r !== null);
@@ -485,11 +552,15 @@ async function handleChat(
   port: chrome.runtime.Port,
   messages: ChatMessage[],
   context: PRContext,
-  signal: AbortSignal
+  signal: AbortSignal,
 ) {
   const { apiKey, proxyUrl } = await getSettings();
   if (!apiKey) {
-    send(port, { type: "error", message: "No API key configured. Click the PRobe extension icon to add your Anthropic API key." });
+    send(port, {
+      type: "error",
+      message:
+        "No API key configured. Click the PRobe extension icon to add your Anthropic API key.",
+    });
     return;
   }
 
@@ -507,7 +578,14 @@ async function handleChat(
   }
 
   const systemPrompt = context.focusedFile
-    ? buildFileSystemPrompt(context, context.focusedFile, context.diff, context.focusedFileContent, context.focusedLineRange, skills)
+    ? buildFileSystemPrompt(
+        context,
+        context.focusedFile,
+        context.diff,
+        context.focusedFileContent,
+        context.focusedLineRange,
+        skills,
+      )
     : buildSystemPrompt(context, skills);
 
   const anthropicMessages = messages.map((m) => ({
@@ -541,13 +619,18 @@ async function handleChat(
       try {
         const parsed = JSON.parse(errorBody);
         errorMessage = parsed?.error?.message ?? errorMessage;
-      } catch { /* use default */ }
+      } catch {
+        /* use default */
+      }
       send(port, { type: "error", message: errorMessage });
       return;
     }
 
     const reader = response.body?.getReader();
-    if (!reader) { send(port, { type: "error", message: "No response body" }); return; }
+    if (!reader) {
+      send(port, { type: "error", message: "No response body" });
+      return;
+    }
 
     const decoder = new TextDecoder();
     let buffer = "";
@@ -569,7 +652,9 @@ async function handleChat(
           if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
             send(port, { type: "chunk", content: event.delta.text });
           }
-        } catch { /* skip malformed SSE */ }
+        } catch {
+          /* skip malformed SSE */
+        }
       }
     }
 

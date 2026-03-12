@@ -10,22 +10,18 @@ export function PopupApp() {
   const [storedValues, setStoredValues] = useState({ apiKey: "", githubToken: "" });
 
   useEffect(() => {
-    chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN],
-      (result) => {
-        const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
-        const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
-        setApiKey(key);
-        setGithubToken(token);
-        setStoredValues({ apiKey: key, githubToken: token });
-        setLoading(false);
-      }
-    );
+    chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
+      const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
+      const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
+      setApiKey(key);
+      setGithubToken(token);
+      setStoredValues({ apiKey: key, githubToken: token });
+      setLoading(false);
+    });
   }, []);
 
   const hasDelta =
-    apiKey.trim() !== storedValues.apiKey ||
-    githubToken.trim() !== storedValues.githubToken;
+    apiKey.trim() !== storedValues.apiKey || githubToken.trim() !== storedValues.githubToken;
 
   const hasStored = !!storedValues.apiKey;
 
@@ -58,20 +54,17 @@ export function PopupApp() {
         setGithubToken("");
         setStoredValues({ apiKey: "", githubToken: "" });
         setSaved(false);
-      }
+      },
     );
   };
 
   if (loading) {
-    return (
-      <div className="w-80 p-5 font-sans text-sm text-muted-foreground">
-        Loading...
-      </div>
-    );
+    return <div className="w-80 p-5 font-sans text-sm text-muted-foreground">Loading...</div>;
   }
 
   const logoUrl = chrome.runtime.getURL("icon-48.png");
-  const inputClass = "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
+  const inputClass =
+    "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
 
   const showSave = hasDelta && apiKey.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
@@ -87,7 +80,12 @@ export function PopupApp() {
           height={30}
           className="rounded-lg ring-1 ring-white/10"
         />
-        <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>PRobe</h1>
+        <h1
+          className="text-lg font-bold tracking-tight"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
+        >
+          PRobe
+        </h1>
       </div>
 
       <div className="px-5 pb-5">
@@ -97,28 +95,38 @@ export function PopupApp() {
         <input
           type="password"
           value={apiKey}
-          onChange={(e) => { setApiKey(e.target.value); setSaved(false); }}
+          onChange={(e) => {
+            setApiKey(e.target.value);
+            setSaved(false);
+          }}
           placeholder="sk-ant-..."
           className={inputClass}
         />
         <p className="mt-1.5 text-[0.68rem] text-muted-foreground leading-relaxed">
-          Your key is stored locally and sent only through the proxy to
-          Anthropic's API.
+          Your key is stored locally and sent only through the proxy to Anthropic's API.
         </p>
 
         <label className="block text-xs font-semibold text-foreground mb-1.5 mt-4 tracking-wide uppercase opacity-70">
           GitHub Classic Token
-          <span className="text-muted-foreground font-normal normal-case tracking-normal"> (optional)</span>
+          <span className="text-muted-foreground font-normal normal-case tracking-normal">
+            {" "}
+            (optional)
+          </span>
         </label>
         <input
           type="password"
           value={githubToken}
-          onChange={(e) => { setGithubToken(e.target.value); setSaved(false); }}
+          onChange={(e) => {
+            setGithubToken(e.target.value);
+            setSaved(false);
+          }}
           placeholder="ghp_..."
           className={inputClass}
         />
         <p className="mt-1.5 text-[0.68rem] text-muted-foreground leading-relaxed">
-          Enables posting comments to PRs. Needs <code className="text-[0.65rem] bg-muted px-1 py-0.5 rounded-md font-medium">repo</code> scope.
+          Enables posting comments to PRs. Needs{" "}
+          <code className="text-[0.65rem] bg-muted px-1 py-0.5 rounded-md font-medium">repo</code>{" "}
+          scope.
         </p>
 
         <div className="flex gap-2 mt-5">
@@ -151,9 +159,15 @@ export function PopupApp() {
         <div className="mt-4 pt-3 border-t border-border/50 text-[0.7rem] text-muted-foreground/70 text-center space-y-2">
           <p>Open any GitHub PR and click the floating button to start chatting.</p>
           <div className="flex items-center justify-center gap-1">
-            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">&#x2318;</kbd>
-            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">&#x21E7;</kbd>
-            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">P</kbd>
+            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">
+              &#x2318;
+            </kbd>
+            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">
+              &#x21E7;
+            </kbd>
+            <kbd className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-md border border-border bg-gradient-to-b from-white to-muted text-[0.6rem] font-semibold text-foreground/70 shadow-[0_2px_0_0_oklch(0.85_0_0),0_2px_3px_oklch(0_0_0/0.1)]">
+              P
+            </kbd>
           </div>
         </div>
       </div>

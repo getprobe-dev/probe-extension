@@ -6,9 +6,7 @@ export const MODEL_ID = "claude-sonnet-4-20250514";
 function buildSkillSection(skills?: ResolvedSkill[]): string {
   if (!skills || skills.length === 0) return "";
 
-  const blocks = skills
-    .map((s) => `### ${s.name}\n${s.content}`)
-    .join("\n\n");
+  const blocks = skills.map((s) => `### ${s.name}\n${s.content}`).join("\n\n");
 
   return `
 
@@ -24,14 +22,10 @@ function buildSkillRoleInstructions(skills?: ResolvedSkill[]): string {
   return `\n- When the Review Guidelines section is present, proactively check the diff against those rules and cite rule names (e.g. "async-parallel", "architecture-avoid-boolean-props") when flagging issues.`;
 }
 
-export function buildSystemPrompt(
-  context: PRContext,
-  skills?: ResolvedSkill[]
-): string {
+export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[]): string {
   const diffTruncated =
     context.diff.length > 80_000
-      ? context.diff.slice(0, 80_000) +
-        "\n\n... [diff truncated due to length] ..."
+      ? context.diff.slice(0, 80_000) + "\n\n... [diff truncated due to length] ..."
       : context.diff;
 
   return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request.
@@ -68,7 +62,7 @@ export function buildFileSystemPrompt(
   fileDiff: string,
   fileContent?: string,
   lineRange?: FocusedLineRange,
-  skills?: ResolvedSkill[]
+  skills?: ResolvedSkill[],
 ): string {
   const diffSection =
     fileDiff.length > 40_000
@@ -91,9 +85,10 @@ ${truncated}
 
   let lineRangeSection = "";
   if (lineRange) {
-    const rangeLabel = lineRange.startLine === lineRange.endLine
-      ? `line ${lineRange.startLine}`
-      : `lines ${lineRange.startLine}–${lineRange.endLine}`;
+    const rangeLabel =
+      lineRange.startLine === lineRange.endLine
+        ? `line ${lineRange.startLine}`
+        : `lines ${lineRange.startLine}–${lineRange.endLine}`;
     lineRangeSection = `
 
 ## Focused Lines: ${rangeLabel} (${lineRange.side} side)

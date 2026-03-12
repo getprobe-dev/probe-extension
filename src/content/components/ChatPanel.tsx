@@ -4,9 +4,22 @@ import { ChatInput } from "./ChatInput";
 import { ReviewQueue } from "./ReviewQueue";
 import { X, Plus, Zap, ExternalLink } from "lucide-react";
 import { getIconUrl } from "../utils/theme";
-import type { ChatMessage, PRContext, StreamEvent, BackgroundMessage, ReviewPendingComment, FocusedItem, SkillIndicator } from "../../shared/types";
+import type {
+  ChatMessage,
+  PRContext,
+  StreamEvent,
+  BackgroundMessage,
+  ReviewPendingComment,
+  FocusedItem,
+  SkillIndicator,
+} from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
-import { extractPRContext, extractDiffForFile, fetchFileContent, extractFirstChangedLine } from "../../shared/context";
+import {
+  extractPRContext,
+  extractDiffForFile,
+  fetchFileContent,
+  extractFirstChangedLine,
+} from "../../shared/context";
 
 interface ChatPanelProps {
   onClose: () => void;
@@ -16,7 +29,13 @@ interface ChatPanelProps {
   onDiffLoaded: (diff: string) => void;
 }
 
-export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, onDiffLoaded }: ChatPanelProps) {
+export function ChatPanel({
+  onClose,
+  focusedItems,
+  onClearFocus,
+  onRemoveItem,
+  onDiffLoaded,
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,13 +85,17 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
     }
 
     init();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const focusKey = focusedItems.map((it) =>
-    it.lineRange ? `${it.file}:${it.lineRange.startLine}-${it.lineRange.endLine}` : it.file
-  ).join("\0");
+  const focusKey = focusedItems
+    .map((it) =>
+      it.lineRange ? `${it.file}:${it.lineRange.startLine}-${it.lineRange.endLine}` : it.file,
+    )
+    .join("\0");
   useEffect(() => {
     setMessages([]);
     setError(null);
@@ -95,21 +118,27 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
     }
   }, []);
 
-  const handleAddToReview = useCallback((comment: ReviewPendingComment) => {
-    setPendingReview((prev) => {
-      const next = [...prev, comment];
-      persistReview(next);
-      return next;
-    });
-  }, [persistReview]);
+  const handleAddToReview = useCallback(
+    (comment: ReviewPendingComment) => {
+      setPendingReview((prev) => {
+        const next = [...prev, comment];
+        persistReview(next);
+        return next;
+      });
+    },
+    [persistReview],
+  );
 
-  const handleRemoveFromReview = useCallback((index: number) => {
-    setPendingReview((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      persistReview(next);
-      return next;
-    });
-  }, [persistReview]);
+  const handleRemoveFromReview = useCallback(
+    (index: number) => {
+      setPendingReview((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        persistReview(next);
+        return next;
+      });
+    },
+    [persistReview],
+  );
 
   const handleClearReview = useCallback(() => {
     setPendingReview([]);
@@ -118,16 +147,21 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
 
   const primaryFile = focusedItems.length > 0 ? focusedItems[0].file : null;
 
-  const fileLine = prContext && primaryFile
-    ? extractFirstChangedLine(prContext.diff, primaryFile)
-    : { line: 1, side: "RIGHT" as const };
+  const fileLine =
+    prContext && primaryFile
+      ? extractFirstChangedLine(prContext.diff, primaryFile)
+      : { line: 1, side: "RIGHT" as const };
 
   const handleSend = useCallback(
     async (content: string) => {
       if (!prContext || isStreaming) return;
 
       const userMessage: ChatMessage = { role: "user", content, timestamp: Date.now() };
-      const assistantMessage: ChatMessage = { role: "assistant", content: "", timestamp: Date.now() };
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+      };
       const newMessages = [...messages, userMessage, assistantMessage];
       setMessages(newMessages);
       setIsStreaming(true);
@@ -144,7 +178,12 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
         const uniqueFiles = [...new Set(focusedItems.map((it) => it.file))];
         for (const file of uniqueFiles) {
           diffs.push(extractDiffForFile(prContext.diff, file));
-          const fc = await fetchFileContent(prContext.owner, prContext.repo, prContext.headBranch, file);
+          const fc = await fetchFileContent(
+            prContext.owner,
+            prContext.repo,
+            prContext.headBranch,
+            file,
+          );
           if (fc) contents.push(`// ${file}\n${fc}`);
         }
 
@@ -164,13 +203,17 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
         };
 
         const itemsWithLines = focusedItems.filter(
-          (it): it is FocusedItem & { lineRange: NonNullable<FocusedItem["lineRange"]> } => !!it.lineRange,
+          (it): it is FocusedItem & { lineRange: NonNullable<FocusedItem["lineRange"]> } =>
+            !!it.lineRange,
         );
         if (itemsWithLines.length === 1) {
           contextToSend.focusedLineRange = itemsWithLines[0].lineRange;
         } else if (itemsWithLines.length > 1) {
           const lineContext = itemsWithLines
-            .map((it) => `[${it.file} L${it.lineRange.startLine}-${it.lineRange.endLine}]:\n${it.lineRange.content}`)
+            .map(
+              (it) =>
+                `[${it.file} L${it.lineRange.startLine}-${it.lineRange.endLine}]:\n${it.lineRange.content}`,
+            )
             .join("\n\n");
           contextToSend.focusedFileContent = [
             lineContext,
@@ -190,7 +233,11 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
         setIsStreaming(false);
         setMessages((prev) => [
           ...prev.slice(0, -1),
-          { role: "assistant" as const, content: "Extension was reloaded. Please refresh the page.", timestamp: Date.now() },
+          {
+            role: "assistant" as const,
+            content: "Extension was reloaded. Please refresh the page.",
+            timestamp: Date.now(),
+          },
         ]);
         return;
       }
@@ -212,14 +259,18 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
           });
         } else if (event.type === "done") {
           setIsStreaming(false);
-          setMessages((prev) => { persistMessages(prev); return prev; });
+          setMessages((prev) => {
+            persistMessages(prev);
+            return prev;
+          });
           port.disconnect();
         } else if (event.type === "error") {
           setIsStreaming(false);
           setError(event.message);
           setMessages((prev) => {
             const updated = prev.filter(
-              (_, i) => !(i === prev.length - 1 && prev[i].role === "assistant" && prev[i].content === "")
+              (_, i) =>
+                !(i === prev.length - 1 && prev[i].role === "assistant" && prev[i].content === ""),
             );
             persistMessages(updated);
             return updated;
@@ -234,14 +285,17 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
       };
       port.postMessage(payload);
     },
-    [prContext, isStreaming, messages, persistMessages, focusedItems]
+    [prContext, isStreaming, messages, persistMessages, focusedItems],
   );
 
   const handleStop = useCallback(() => {
     portRef.current?.postMessage({ type: "stop" });
     portRef.current?.disconnect();
     setIsStreaming(false);
-    setMessages((prev) => { persistMessages(prev); return prev; });
+    setMessages((prev) => {
+      persistMessages(prev);
+      return prev;
+    });
   }, [persistMessages]);
 
   const handleClear = useCallback(() => {
@@ -264,11 +318,17 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
             height={22}
             className="rounded-md shrink-0"
           />
-          <span className="text-sm font-bold tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+          <span
+            className="text-sm font-bold tracking-tight text-white"
+            style={{ fontFamily: "'Outfit', sans-serif" }}
+          >
             PRobe
           </span>
           {prContext && (
-            <span className="text-xs font-medium text-white/40" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <span
+              className="text-xs font-medium text-white/40"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
+            >
               #{prContext.number}
             </span>
           )}
@@ -285,19 +345,11 @@ export function ChatPanel({ onClose, focusedItems, onClearFocus, onRemoveItem, o
             />
           )}
           {messages.length > 0 && (
-            <button
-              onClick={handleClear}
-              className="header-btn"
-              title="New chat"
-            >
+            <button onClick={handleClear} className="header-btn" title="New chat">
               <Plus className="size-4" />
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="header-btn"
-            title="Close panel"
-          >
+          <button onClick={onClose} className="header-btn" title="Close panel">
             <X className="size-4" />
           </button>
         </div>

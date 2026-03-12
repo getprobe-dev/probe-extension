@@ -14,10 +14,7 @@ interface ChatInputProps {
   onClearFocus?: () => void;
 }
 
-const QUICK_STARTERS = [
-  "Summarize this PR",
-  "Any potential issues?",
-];
+const QUICK_STARTERS = ["Summarize this PR", "Any potential issues?"];
 
 const FILE_STARTERS = [
   "Explain these changes",
@@ -25,13 +22,19 @@ const FILE_STARTERS = [
   "How does this fit the PR?",
 ];
 
-const LINE_STARTERS = [
-  "What does this do?",
-  "Any edge cases?",
-  "How to improve this?",
-];
+const LINE_STARTERS = ["What does this do?", "Any edge cases?", "How to improve this?"];
 
-export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters, focusedItems = [], focusBullets, onRemoveItem, onClearFocus }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  onStop,
+  disabled,
+  isStreaming,
+  showStarters,
+  focusedItems = [],
+  focusBullets,
+  onRemoveItem,
+  onClearFocus,
+}: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -114,7 +117,8 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
                   {item.file.split("/").pop() ?? item.file}
                   {item.lineRange && (
                     <span className="text-[#1a2e2b] font-semibold">
-                      {" "}L{item.lineRange.startLine}
+                      {" "}
+                      L{item.lineRange.startLine}
                       {item.lineRange.endLine !== item.lineRange.startLine
                         ? `\u2013L${item.lineRange.endLine}`
                         : ""}
@@ -150,11 +154,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, showStarters,
           />
           <div className="absolute right-2.5 bottom-2.5">
             {isStreaming ? (
-              <button
-                onClick={onStop}
-                className="send-btn"
-                title="Stop generating"
-              >
+              <button onClick={onStop} className="send-btn" title="Stop generating">
                 <Square className="size-3" />
               </button>
             ) : (

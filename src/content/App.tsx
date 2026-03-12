@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { FocusedLineRange, FocusedItem } from '../shared/types';
-import { ChatPanel } from './components/ChatPanel';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { FileButtons } from './components/FileButtons';
-import { LineCommentButton } from './components/LineCommentButton';
-import { getIconUrl } from './utils/theme';
+import { useCallback, useEffect, useState } from "react";
+import type { FocusedLineRange, FocusedItem } from "../shared/types";
+import { ChatPanel } from "./components/ChatPanel";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { FileButtons } from "./components/FileButtons";
+import { LineCommentButton } from "./components/LineCommentButton";
+import { getIconUrl } from "./utils/theme";
 
 const PANEL_WIDTH = 400;
 
@@ -17,23 +17,29 @@ export function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'p') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "p") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
   }, []);
 
   useEffect(() => {
     const html = document.documentElement;
-    if (!html.style.transition.includes('margin-right')) {
-      html.style.transition = [html.style.transition, 'margin-right 0.25s cubic-bezier(0.16,1,0.3,1)']
-        .filter(Boolean).join(', ');
+    if (!html.style.transition.includes("margin-right")) {
+      html.style.transition = [
+        html.style.transition,
+        "margin-right 0.25s cubic-bezier(0.16,1,0.3,1)",
+      ]
+        .filter(Boolean)
+        .join(", ");
     }
-    html.style.marginRight = isOpen ? `${PANEL_WIDTH}px` : '';
-    return () => { html.style.marginRight = ''; };
+    html.style.marginRight = isOpen ? `${PANEL_WIDTH}px` : "";
+    return () => {
+      html.style.marginRight = "";
+    };
   }, [isOpen]);
 
   const handleFileSelect = useCallback((filePath: string) => {
@@ -46,17 +52,14 @@ export function App() {
     setIsOpen(true);
   }, []);
 
-  const handleLineSelect = useCallback(
-    (filePath: string, lineRange: FocusedLineRange) => {
-      setFocusedItems((prev) => {
-        const next = [...prev, { file: filePath, lineRange }];
-        if (next.length > MAX_FOCUSED_ITEMS) next.shift();
-        return next;
-      });
-      setIsOpen(true);
-    },
-    [],
-  );
+  const handleLineSelect = useCallback((filePath: string, lineRange: FocusedLineRange) => {
+    setFocusedItems((prev) => {
+      const next = [...prev, { file: filePath, lineRange }];
+      if (next.length > MAX_FOCUSED_ITEMS) next.shift();
+      return next;
+    });
+    setIsOpen(true);
+  }, []);
 
   const handleClearFocus = useCallback(() => {
     setFocusedItems([]);
@@ -75,16 +78,16 @@ export function App() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className='fab-glow fixed bottom-6 right-6 size-12 rounded-2xl flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0'
-          style={{ zIndex: 2147483646, background: 'transparent' }}
-          title='Open PRobe (Ctrl+Shift+P)'
+          className="fab-glow fixed bottom-6 right-6 size-12 rounded-2xl flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0"
+          style={{ zIndex: 2147483646, background: "transparent" }}
+          title="Open PRobe (Ctrl+Shift+P)"
         >
           <img
             src={getIconUrl(48)}
-            alt='PRobe'
+            alt="PRobe"
             width={48}
             height={48}
-            style={{ borderRadius: '16px', display: 'block' }}
+            style={{ borderRadius: "16px", display: "block" }}
           />
         </button>
       )}
@@ -92,7 +95,7 @@ export function App() {
       {/* Side panel */}
       {isOpen && (
         <div
-          className='fixed top-0 right-0 h-full w-[400px] panel-border-left bg-background flex flex-col animate-slide-in'
+          className="fixed top-0 right-0 h-full w-[400px] panel-border-left bg-background flex flex-col animate-slide-in"
           style={{ zIndex: 2147483647 }}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}

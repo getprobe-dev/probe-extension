@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
-import type { PRContext, PRStats, CommitDetail, FetchPRStatsResponse, GeneratePRSummaryResponse } from "../../shared/types";
+import type {
+  PRContext,
+  PRStats,
+  CommitDetail,
+  FetchPRStatsResponse,
+  GeneratePRSummaryResponse,
+} from "../../shared/types";
 import { getIconUrl } from "../utils/theme";
 
 interface PRDashboardProps {
@@ -43,7 +49,12 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
     let cancelled = false;
 
     chrome.runtime.sendMessage(
-      { type: "fetch-pr-stats", owner: prContext.owner, repo: prContext.repo, number: prContext.number },
+      {
+        type: "fetch-pr-stats",
+        owner: prContext.owner,
+        repo: prContext.repo,
+        number: prContext.number,
+      },
       (res: FetchPRStatsResponse) => {
         if (cancelled) return;
         if (res?.ok && res.stats) {
@@ -66,25 +77,23 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
                 onSummaryReady?.(sumRes.bullets);
               }
               setSummaryLoading(false);
-            }
+            },
           );
         }
         setLoading(false);
-      }
+      },
     );
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prContext.owner, prContext.repo, prContext.number]);
 
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <img
-          src={getIconUrl(128)}
-          alt="PRobe"
-          className="size-14 rounded-2xl animate-logo-pulse"
-        />
+        <img src={getIconUrl(128)} alt="PRobe" className="size-14 rounded-2xl animate-logo-pulse" />
       </div>
     );
   }
@@ -103,7 +112,7 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
   const addPct = totalLines > 0 ? (stats.additions / totalLines) * 100 : 50;
 
   const topFiles = [...stats.files]
-    .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
+    .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
     .slice(0, 5);
   const maxFileChange = topFiles.length > 0 ? topFiles[0].additions + topFiles[0].deletions : 1;
 
@@ -131,9 +140,7 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
       </div>
 
       {/* Commit timeline */}
-      {stats.commitDetails.length > 0 && (
-        <CommitTimeline commits={stats.commitDetails} />
-      )}
+      {stats.commitDetails.length > 0 && <CommitTimeline commits={stats.commitDetails} />}
 
       {/* People */}
       <div className="dash-card p-3 space-y-2">
@@ -148,9 +155,7 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
               className="size-5 rounded-full ring-2 ring-[#5eead4]/30 shrink-0"
             />
           )}
-          <span className="text-[0.7rem] font-medium text-foreground">
-            {stats.author.login}
-          </span>
+          <span className="text-[0.7rem] font-medium text-foreground">{stats.author.login}</span>
           <span className="text-[0.6rem] text-[#5eead4] font-medium bg-[#5eead4]/10 px-1.5 py-0.5 rounded">
             author
           </span>
@@ -166,8 +171,13 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
             {stats.commitAuthors
               .filter((a) => a.login !== stats.author.login)
               .map((a) => (
-                <span key={a.login} className="inline-flex items-center gap-1 text-[0.65rem] text-foreground">
-                  {a.avatarUrl && <img src={a.avatarUrl} alt={a.login} className="size-4 rounded-full" />}
+                <span
+                  key={a.login}
+                  className="inline-flex items-center gap-1 text-[0.65rem] text-foreground"
+                >
+                  {a.avatarUrl && (
+                    <img src={a.avatarUrl} alt={a.login} className="size-4 rounded-full" />
+                  )}
                   {a.login}
                 </span>
               ))}
@@ -177,13 +187,19 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
           <div className="space-y-1 pt-1 border-t border-border/50">
             {stats.reviewers.map((r) => (
               <div key={r.login} className="flex items-center gap-2">
-                {r.avatarUrl && <img src={r.avatarUrl} alt={r.login} className="size-4 rounded-full shrink-0" />}
+                {r.avatarUrl && (
+                  <img src={r.avatarUrl} alt={r.login} className="size-4 rounded-full shrink-0" />
+                )}
                 <span className="text-[0.7rem] text-foreground">{r.login}</span>
-                <span className={`text-[0.6rem] ml-auto ${
-                  r.state === "APPROVED" ? "text-[#16a34a]"
-                  : r.state === "CHANGES_REQUESTED" ? "text-[#dc2626]"
-                  : "text-muted-foreground"
-                }`}>
+                <span
+                  className={`text-[0.6rem] ml-auto ${
+                    r.state === "APPROVED"
+                      ? "text-[#16a34a]"
+                      : r.state === "CHANGES_REQUESTED"
+                        ? "text-[#dc2626]"
+                        : "text-muted-foreground"
+                  }`}
+                >
                   {REVIEW_STATE_LABELS[r.state] ?? r.state}
                 </span>
               </div>
@@ -227,7 +243,9 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
           <div className="flex items-center gap-2 py-1">
             <Sparkles className="size-3 text-[#5eead4]" />
             <div className="size-3 border border-[#5eead4]/30 border-t-[#5eead4] rounded-full animate-spin" />
-            <span className="text-[0.7rem] text-muted-foreground">Generating suggested prompts…</span>
+            <span className="text-[0.7rem] text-muted-foreground">
+              Generating suggested prompts…
+            </span>
           </div>
         </div>
       )}
@@ -238,10 +256,15 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
     <div className="dash-card p-3 text-center">
-      <div className="text-xl font-bold text-foreground tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
+      <div
+        className="text-xl font-bold text-foreground tracking-tight"
+        style={{ fontFamily: "'Outfit', sans-serif" }}
+      >
         {formatNumber(value)}
       </div>
-      <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</div>
+      <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-0.5">
+        {label}
+      </div>
     </div>
   );
 }
@@ -265,7 +288,7 @@ function CommitTimeline({ commits }: { commits: CommitDetail[] }) {
   const getX = (i: number) => paddingX + (commits.length === 1 ? usableWidth / 2 : i * step);
   const getR = (c: CommitDetail) => {
     const total = c.additions + c.deletions;
-    return minR + ((total / maxChange) * (maxR - minR));
+    return minR + (total / maxChange) * (maxR - minR);
   };
 
   return (
@@ -274,11 +297,7 @@ function CommitTimeline({ commits }: { commits: CommitDetail[] }) {
         Commits
       </h4>
       <div className="relative">
-        <svg
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full"
-          style={{ height: "72px" }}
-        >
+        <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full" style={{ height: "72px" }}>
           {/* Spine line */}
           <line
             x1={getX(0)}

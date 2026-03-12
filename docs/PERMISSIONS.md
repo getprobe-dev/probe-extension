@@ -140,9 +140,9 @@ All GitHub REST API calls in `src/background/index.ts` are under `/repos/`:
 
 ## Web Accessible Resources (`"web_accessible_resources"`)
 
-### `["icon-16.png", "icon-48.png", "icon-128.png"]` on `https://github.com/*/*/pull/*`
+### `["icon-16.png", "icon-48.png", "icon-128.png"]` on `https://github.com/*`
 
-**What it grants:** Content scripts running on GitHub pull request pages can reference these three files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
+**What it grants:** Content scripts running on GitHub pages can reference these three files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
 
 **Why it is required:**
 
@@ -163,7 +163,7 @@ Extension-packaged resources are blocked by default in web page contexts. Withou
 
 **Why only these three files:** These are the only extension-packaged assets loaded by `getURL()`. No other file in the package is accessed this way.
 
-**Why only on `https://github.com/*/*/pull/*`:** The content script only injects on PR pages (`/*/*/pull/*`), and only content script components reference these icons. No other page on `github.com` needs access. This match pattern is identical to the `content_scripts.matches` pattern, applying least privilege to resource exposure as well as script injection.
+**Why `https://github.com/*` and not narrower:** The `web_accessible_resources` `matches` field does not support path-restricted patterns (e.g. `/*/*/pull/*`) — Chrome rejects them as invalid match patterns. `https://github.com/*` is the narrowest valid pattern. In practice, only the content script (which injects exclusively on PR pages) references these icons, so exposure is limited to three read-only PNG files on a single host.
 
 ---
 

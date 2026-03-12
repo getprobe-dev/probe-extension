@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FocusedLineRange, FocusedItem } from "../shared/types";
 import { ChatPanel } from "./components/ChatPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -6,14 +6,22 @@ import { FileButtons } from "./components/FileButtons";
 import { LineCommentButton } from "./components/LineCommentButton";
 import { getIconUrl } from "./utils/theme";
 
-const PANEL_WIDTH = 400;
+const DEFAULT_PANEL_WIDTH = 400;
+const MIN_PANEL_WIDTH = 320;
+const MAX_PANEL_WIDTH = 800;
 
 const MAX_FOCUSED_ITEMS = 3;
 
 export function App() {
   const [isOpen, setIsOpen] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [focusedItems, setFocusedItems] = useState<FocusedItem[]>([]);
   const [prDiff, setPrDiff] = useState<string | null>(null);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) setPanelWidth(DEFAULT_PANEL_WIDTH);
+  }, [isOpen]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -36,11 +44,50 @@ export function App() {
         .filter(Boolean)
         .join(", ");
     }
-    html.style.marginRight = isOpen ? `${PANEL_WIDTH}px` : "";
+    html.style.marginRight = isOpen ? `${panelWidth}px` : "";
     return () => {
       html.style.marginRight = "";
     };
-  }, [isOpen]);
+  }, [isOpen, panelWidth]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+
+    const html = document.documentElement;
+    html.style.transition = html.style.transition
+      .split(",")
+      .filter((t) => !t.includes("margin-right"))
+      .join(",");
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, window.innerWidth - ev.clientX));
+      setPanelWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      isResizingRef.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      if (!html.style.transition.includes("margin-right")) {
+        html.style.transition = [
+          html.style.transition,
+          "margin-right 0.25s cubic-bezier(0.16,1,0.3,1)",
+        ]
+          .filter(Boolean)
+          .join(", ");
+      }
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, []);
 
   const handleFileSelect = useCallback((filePath: string) => {
     setFocusedItems((prev) => {
@@ -95,11 +142,16 @@ export function App() {
       {/* Side panel */}
       {isOpen && (
         <div
-          className="fixed top-0 right-0 h-full w-[400px] panel-border-left bg-background flex flex-col animate-slide-in"
-          style={{ zIndex: 2147483647 }}
+          className="fixed top-0 right-0 h-full panel-border-left bg-background flex flex-col animate-slide-in"
+          style={{ zIndex: 2147483647, width: `${panelWidth}px` }}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}
         >
+          {/* Resize handle */}
+          <div
+            className="resize-handle"
+            onMouseDown={handleResizeStart}
+          />
           <ErrorBoundary>
             <ChatPanel
               onClose={() => setIsOpen(false)}

@@ -24,6 +24,88 @@ export interface PRContext {
   focusedLineRange?: FocusedLineRange;
 }
 
+export interface PRReviewComment {
+  author: string;
+  body: string;
+  path?: string;
+  line?: number;
+  createdAt: string;
+}
+
+export interface PRCheckRun {
+  name: string;
+  status: "queued" | "in_progress" | "completed";
+  conclusion: string | null;
+}
+
+export interface PRCommitSummary {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface PRReviewVerdict {
+  author: string;
+  state: string;
+  body: string;
+}
+
+export interface LinkedIssue {
+  number: number;
+  title: string;
+  body: string;
+}
+
+export interface PRFileEntry {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+}
+
+export interface EnrichedPRContext {
+  owner: string;
+  repo: string;
+  number: number;
+  title: string;
+  description: string;
+  diff: string;
+  headBranch: string;
+  baseBranch: string;
+  author: string;
+  state: string;
+  draft: boolean;
+  mergeable: boolean | null;
+  mergeableState: string;
+  labels: string[];
+  milestone: string;
+  assignees: string[];
+  requestedReviewers: string[];
+  commits: PRCommitSummary[];
+  reviews: PRReviewVerdict[];
+  recentComments: PRReviewComment[];
+  checks: PRCheckRun[];
+  files: PRFileEntry[];
+  linkedIssues: LinkedIssue[];
+  focusedFile?: string;
+  focusedFileContent?: string;
+  focusedLineRange?: FocusedLineRange;
+}
+
+export interface FetchEnrichedContextRequest {
+  type: "fetch-enriched-context";
+  owner: string;
+  repo: string;
+  number: number;
+}
+
+export interface FetchEnrichedContextResponse {
+  ok: boolean;
+  context?: EnrichedPRContext;
+  error?: string;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -31,7 +113,10 @@ export interface ChatMessage {
 }
 
 export type BackgroundMessage =
-  | { type: "chat"; payload: { messages: ChatMessage[]; context: PRContext } }
+  | {
+      type: "chat";
+      payload: { messages: ChatMessage[]; context: PRContext; enrichedContext?: EnrichedPRContext };
+    }
   | { type: "stop" };
 
 export interface FetchDiffRequest {
@@ -177,6 +262,7 @@ export interface SkillIndicator {
 
 export type StreamEvent =
   | { type: "skills"; skills: SkillIndicator[] }
+  | { type: "system-prompt"; content: string }
   | { type: "chunk"; content: string }
   | { type: "done" }
   | { type: "error"; message: string };

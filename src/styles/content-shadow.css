@@ -79,7 +79,7 @@
 /* ── Fonts ──────────────────────────────────────────────── */
 #probe-app {
   font-family:
-    "Inter",
+    "Outfit",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -554,6 +554,64 @@
     0 0 40px rgb(0 0 0 / 0.05);
 }
 
+/* ── Resize handle ─────────────────────────────────────── */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+}
+
+/* Grip tab — small pill sitting on the left edge */
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  width: 8px;
+  height: 32px;
+  transform: translateY(-50%);
+  border-radius: 4px 0 0 4px;
+  background: #e2e8f0;
+  opacity: 0.6;
+  transition: opacity 0.2s, background 0.2s;
+  pointer-events: none;
+}
+/* Three dots inside the tab */
+.resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0px;
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transform: translateY(-50%);
+  box-shadow:
+    0 -6px 0 0 #94a3b8,
+    0  6px 0 0 #94a3b8;
+  z-index: 1;
+  opacity: 0.5;
+  transition: opacity 0.2s, background 0.2s, box-shadow 0.2s;
+  pointer-events: none;
+}
+.resize-handle:hover::after {
+  background: #5eead4;
+  opacity: 0.4;
+}
+.resize-handle:hover::before {
+  opacity: 0.9;
+  background: #64748b;
+  box-shadow:
+    0 -6px 0 0 #64748b,
+    0  6px 0 0 #64748b;
+}
+
 /* ── Floating button glow ───────────────────────────────── */
 .fab-glow {
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -594,7 +652,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   border-radius: 8px;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.8);
@@ -614,6 +674,14 @@
   transform: translateY(2px);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
   background: rgba(255, 255, 255, 0.05);
+}
+.header-btn-close:hover {
+  color: white;
+  background: linear-gradient(to bottom, #dc2626cc, #b91c1ccc);
+  border-color: #ef444480;
+  box-shadow:
+    0 2px 0 0 rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* ── Send / Stop button ────────────────────────────────── */
@@ -647,6 +715,24 @@
   cursor: not-allowed;
 }
 
+/* ── Setup button (welcome screen) ─────────────────────── */
+.setup-btn {
+  background: #ecfdf5;
+  border: 1px solid #5eead4;
+  box-shadow: 0 2px 0 0 #5eead4, 0 2px 8px rgba(94, 234, 212, 0.12);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.setup-btn:hover {
+  background: #d1fae5;
+  border-color: #2dd4bf;
+  box-shadow: 0 2px 0 0 #2dd4bf, 0 4px 14px rgba(94, 234, 212, 0.2);
+}
+.setup-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #ecfdf5;
+}
+
 /* ── Starter pills ──────────────────────────────────────── */
 .starter-pill {
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -667,4 +753,161 @@
 .starter-pill:active {
   transform: translateY(2px);
   box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1);
+}
+
+/* ── X-Ray / Context Inspector ─────────────────────────── */
+.inspector-block {
+  background: #0f1f1d;
+  border: 1px solid #1e3330;
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+/* Dark-theme prose for the X-Ray view */
+.prose-xray {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  color: #cbd5e1;
+}
+.prose-xray p {
+  margin: 0.5em 0;
+}
+.prose-xray p:first-child {
+  margin-top: 0;
+}
+.prose-xray p:last-child {
+  margin-bottom: 0;
+}
+.prose-xray code {
+  background: #1a2e2b;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.84em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  border: 1px solid #243d39;
+  color: #5eead4;
+}
+.prose-xray pre {
+  background: #0a1412;
+  color: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 0.625em 0;
+  font-size: 0.84em;
+  border: 1px solid #1e3330;
+}
+.prose-xray pre code {
+  display: block;
+  overflow-x: auto;
+  padding: 0.75em 1em;
+  background: none;
+  color: inherit;
+  border: none;
+}
+.prose-xray ul,
+.prose-xray ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.prose-xray li {
+  margin: 0.25em 0;
+}
+.prose-xray li::marker {
+  color: #5eead4;
+}
+.prose-xray strong {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.prose-xray h1,
+.prose-xray h2,
+.prose-xray h3 {
+  font-weight: 600;
+  margin: 0.75em 0 0.25em;
+  letter-spacing: -0.01em;
+  color: #5eead4;
+}
+.prose-xray h1 {
+  font-size: 1.2em;
+}
+.prose-xray h2 {
+  font-size: 1.1em;
+}
+.prose-xray h3 {
+  font-size: 1em;
+}
+.prose-xray blockquote {
+  border-left: 3px solid #5eead4;
+  padding-left: 0.875em;
+  margin: 0.5em 0;
+  color: #94a3b8;
+}
+.prose-xray table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+  width: 100%;
+}
+.prose-xray th,
+.prose-xray td {
+  border: 1px solid #1e3330;
+  padding: 0.4em 0.7em;
+}
+.prose-xray th {
+  background: #1a2e2b;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.prose-xray a {
+  color: #5eead4;
+  text-decoration: underline;
+  text-decoration-color: #5eead480;
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.15s;
+}
+.prose-xray a:hover {
+  text-decoration-color: #5eead4;
+}
+.prose-xray hr {
+  border: none;
+  border-top: 1px solid #1e3330;
+  margin: 0.75em 0;
+}
+.prose-xray pre code.hljs {
+  display: block;
+  padding: 0;
+  background: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 25%,
+    #f1f5f9 37%,
+    #e2e8f0 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
 }

@@ -172,7 +172,16 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
                   disabled={state === "submitting"}
                   className="review-submit-btn"
                 >
-                  {state === "submitting" ? "Submitting..." : `Submit Review (${pending.length})`}
+                  {state === "submitting" ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      Submitting
+                      <span className="flex gap-0.5">
+                        <span className="size-1 rounded-full bg-current animate-pulse" />
+                        <span className="size-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.15s" }} />
+                        <span className="size-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.3s" }} />
+                      </span>
+                    </span>
+                  ) : `Submit Review (${pending.length})`}
                 </button>
               </div>
             </>

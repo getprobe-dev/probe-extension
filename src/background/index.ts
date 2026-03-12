@@ -1,5 +1,10 @@
 import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
-import { buildSystemPrompt, buildFileSystemPrompt, MODEL_ID } from "../shared/constants";
+import {
+  buildSystemPrompt,
+  buildFileSystemPrompt,
+  buildEnrichedSystemPrompt,
+  MODEL_ID,
+} from "../shared/constants";
 import {
   detectExtensionsFromDiff,
   matchSkills,
@@ -11,10 +16,13 @@ import type {
   StreamEvent,
   ChatMessage,
   PRContext,
+  EnrichedPRContext,
   FetchDiffRequest,
   FetchDiffResponse,
   FetchFileRequest,
   FetchFileResponse,
+  FetchEnrichedContextRequest,
+  FetchEnrichedContextResponse,
   PostCommentRequest,
   PostCommentResponse,
   PostReviewCommentRequest,
@@ -25,11 +33,19 @@ import type {
   PRStats,
   GeneratePRSummaryRequest,
   GeneratePRSummaryResponse,
+  PRCommitSummary,
+  PRReviewVerdict,
+  PRReviewComment,
+  PRCheckRun,
+  PRFileEntry,
+  LinkedIssue,
 } from "../shared/types";
 
 type IncomingMessage =
+  | { type: "open-popup" }
   | FetchDiffRequest
   | FetchFileRequest
+  | FetchEnrichedContextRequest
   | PostCommentRequest
   | PostReviewCommentRequest
   | SubmitReviewRequest
@@ -37,6 +53,14 @@ type IncomingMessage =
   | GeneratePRSummaryRequest;
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
+  if (msg.type === "open-popup") {
+    chrome.action
+      .openPopup()
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
   if (msg.type === "fetch-diff") {
     const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
     fetch(url)
@@ -55,6 +79,18 @@ chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendRespons
           ok: false,
           error: err instanceof Error ? err.message : "Network error",
         } satisfies FetchDiffResponse);
+      });
+    return true;
+  }
+
+  if (msg.type === "fetch-enriched-context") {
+    handleFetchEnrichedContext(msg)
+      .then(sendResponse)
+      .catch((err) => {
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        } satisfies FetchEnrichedContextResponse);
       });
     return true;
   }
@@ -225,6 +261,231 @@ async function handleSubmitReview(msg: SubmitReviewRequest): Promise<SubmitRevie
   if (!res.ok) return { ok: false, error: await extractGhError(res) };
   const data = await res.json();
   return { ok: true, url: data.html_url };
+}
+
+// ── Enriched context assembly ──
+
+async function handleFetchEnrichedContext(
+  msg: FetchEnrichedContextRequest,
+): Promise<FetchEnrichedContextResponse> {
+  const headers = await ghHeaders();
+  const base = `https://api.github.com/repos/${msg.owner}/${msg.repo}`;
+
+  const diffUrl = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
+
+  const fetches: Record<string, Promise<Response>> = {
+    diff: fetch(diffUrl),
+    pr: headers ? fetch(`${base}/pulls/${msg.number}`, { headers }) : Promise.reject("no token"),
+    commits: headers
+      ? fetch(`${base}/pulls/${msg.number}/commits?per_page=100`, { headers })
+      : Promise.reject("no token"),
+    reviews: headers
+      ? fetch(`${base}/pulls/${msg.number}/reviews?per_page=100`, { headers })
+      : Promise.reject("no token"),
+    issueComments: headers
+      ? fetch(`${base}/issues/${msg.number}/comments?per_page=100`, { headers })
+      : Promise.reject("no token"),
+    reviewComments: headers
+      ? fetch(`${base}/pulls/${msg.number}/comments?per_page=100`, { headers })
+      : Promise.reject("no token"),
+    files: headers
+      ? fetch(`${base}/pulls/${msg.number}/files?per_page=100`, { headers })
+      : Promise.reject("no token"),
+  };
+
+  const results = await Promise.allSettled(Object.values(fetches));
+  const keys = Object.keys(fetches);
+  const settled: Record<string, Response | null> = {};
+  for (let i = 0; i < keys.length; i++) {
+    const r = results[i];
+    settled[keys[i]] = r.status === "fulfilled" && r.value.ok ? r.value : null;
+  }
+
+  const diff = settled.diff ? await settled.diff.text() : "";
+  if (!diff) {
+    return { ok: false, error: "Failed to fetch PR diff" };
+  }
+
+  interface GHPull {
+    title: string;
+    body: string | null;
+    state: string;
+    draft: boolean;
+    mergeable: boolean | null;
+    mergeable_state: string;
+    user: { login: string } | null;
+    base: { ref: string };
+    head: { ref: string; sha: string };
+    labels: Array<{ name: string }>;
+    milestone: { title: string } | null;
+    assignees: Array<{ login: string }>;
+    requested_reviewers: Array<{ login: string }>;
+  }
+
+  const pr: GHPull | null = settled.pr ? await settled.pr.json() : null;
+
+  const title = pr?.title ?? `PR #${msg.number}`;
+  const description = pr?.body ?? "";
+  const author = pr?.user?.login ?? "";
+  const baseBranch = pr?.base?.ref ?? "main";
+  const headBranch = pr?.head?.ref ?? "";
+  const headSha = pr?.head?.sha ?? "";
+
+  // Commits
+  interface GHCommitListEntry {
+    sha: string;
+    commit: { message: string; author: { name: string; date: string } | null };
+    author: { login: string } | null;
+  }
+  const rawCommits: GHCommitListEntry[] = settled.commits ? await settled.commits.json() : [];
+  const commits: PRCommitSummary[] = rawCommits.map((c) => ({
+    sha: c.sha.slice(0, 7),
+    message: c.commit.message.split("\n")[0],
+    author: c.author?.login ?? c.commit.author?.name ?? "unknown",
+    date: c.commit.author?.date ?? "",
+  }));
+
+  // Reviews (verdicts)
+  interface GHReview {
+    user: { login: string } | null;
+    state: string;
+    body: string | null;
+  }
+  const rawReviews: GHReview[] = settled.reviews ? await settled.reviews.json() : [];
+  const reviewMap = new Map<string, PRReviewVerdict>();
+  for (const r of rawReviews) {
+    if (!r.user?.login) continue;
+    reviewMap.set(r.user.login, {
+      author: r.user.login,
+      state: r.state,
+      body: r.body ?? "",
+    });
+  }
+  const reviews = Array.from(reviewMap.values());
+
+  // Recent comments: merge PR-level and inline, take latest 5
+  interface GHIssueComment {
+    user: { login: string } | null;
+    body: string;
+    created_at: string;
+  }
+  interface GHReviewComment {
+    user: { login: string } | null;
+    body: string;
+    path: string;
+    line: number | null;
+    created_at: string;
+  }
+  const rawIssueComments: GHIssueComment[] = settled.issueComments
+    ? await settled.issueComments.json()
+    : [];
+  const rawReviewComments: GHReviewComment[] = settled.reviewComments
+    ? await settled.reviewComments.json()
+    : [];
+
+  const allComments: PRReviewComment[] = [
+    ...rawIssueComments.map((c) => ({
+      author: c.user?.login ?? "unknown",
+      body: c.body,
+      createdAt: c.created_at,
+    })),
+    ...rawReviewComments.map((c) => ({
+      author: c.user?.login ?? "unknown",
+      body: c.body,
+      path: c.path,
+      line: c.line ?? undefined,
+      createdAt: c.created_at,
+    })),
+  ];
+  allComments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const recentComments = allComments.slice(0, 5);
+
+  // Files
+  interface GHFileListEntry {
+    filename: string;
+    status: string;
+    additions: number;
+    deletions: number;
+  }
+  const rawFiles: GHFileListEntry[] = settled.files ? await settled.files.json() : [];
+  const files: PRFileEntry[] = rawFiles.map((f) => ({
+    filename: f.filename,
+    status: f.status,
+    additions: f.additions,
+    deletions: f.deletions,
+  }));
+
+  // Checks (CI) for head commit
+  let checks: PRCheckRun[] = [];
+  if (headers && headSha) {
+    try {
+      const checkRes = await fetch(`${base}/commits/${headSha}/check-runs?per_page=100`, {
+        headers,
+      });
+      if (checkRes.ok) {
+        const checkData: {
+          check_runs: Array<{ name: string; status: string; conclusion: string | null }>;
+        } = await checkRes.json();
+        checks = checkData.check_runs.map((cr) => ({
+          name: cr.name,
+          status: cr.status as PRCheckRun["status"],
+          conclusion: cr.conclusion,
+        }));
+      }
+    } catch {
+      /* checks unavailable */
+    }
+  }
+
+  // Linked issues: parse PR body for #N references
+  const linkedIssues: LinkedIssue[] = [];
+  if (headers && description) {
+    const issueRefs = new Set<number>();
+    const refRe = /(?:closes|fixes|resolves|part of|related:?)\s+#(\d+)/gi;
+    let refMatch: RegExpExecArray | null;
+    while ((refMatch = refRe.exec(description)) !== null) {
+      issueRefs.add(parseInt(refMatch[1], 10));
+    }
+    const issueResults = await Promise.allSettled(
+      [...issueRefs].map(async (n) => {
+        const res = await fetch(`${base}/issues/${n}`, { headers: headers! });
+        if (!res.ok) return null;
+        const data: { number: number; title: string; body: string | null } = await res.json();
+        return { number: data.number, title: data.title, body: data.body ?? "" };
+      }),
+    );
+    for (const r of issueResults) {
+      if (r.status === "fulfilled" && r.value) linkedIssues.push(r.value);
+    }
+  }
+
+  const context: EnrichedPRContext = {
+    owner: msg.owner,
+    repo: msg.repo,
+    number: msg.number,
+    title,
+    description,
+    diff,
+    headBranch,
+    baseBranch,
+    author,
+    state: pr?.state ?? "open",
+    draft: pr?.draft ?? false,
+    mergeable: pr?.mergeable ?? null,
+    mergeableState: pr?.mergeable_state ?? "unknown",
+    labels: (pr?.labels ?? []).map((l) => l.name),
+    milestone: pr?.milestone?.title ?? "",
+    assignees: (pr?.assignees ?? []).map((a) => a.login),
+    requestedReviewers: (pr?.requested_reviewers ?? []).map((r) => r.login),
+    commits,
+    reviews,
+    recentComments,
+    checks,
+    files,
+    linkedIssues,
+  };
+
+  return { ok: true, context };
 }
 
 async function extractGhError(res: Response): Promise<string> {
@@ -448,7 +709,13 @@ chrome.runtime.onConnect.addListener((port) => {
     }
     if (msg.type === "chat") {
       abortController = new AbortController();
-      await handleChat(port, msg.payload.messages, msg.payload.context, abortController.signal);
+      await handleChat(
+        port,
+        msg.payload.messages,
+        msg.payload.context,
+        abortController.signal,
+        msg.payload.enrichedContext,
+      );
     }
   });
 
@@ -553,6 +820,7 @@ async function handleChat(
   messages: ChatMessage[],
   context: PRContext,
   signal: AbortSignal,
+  enrichedContext?: EnrichedPRContext,
 ) {
   const { apiKey, proxyUrl } = await getSettings();
   if (!apiKey) {
@@ -577,16 +845,23 @@ async function handleChat(
     });
   }
 
-  const systemPrompt = context.focusedFile
-    ? buildFileSystemPrompt(
-        context,
-        context.focusedFile,
-        context.diff,
-        context.focusedFileContent,
-        context.focusedLineRange,
-        skills,
-      )
-    : buildSystemPrompt(context, skills);
+  let systemPrompt: string;
+  if (context.focusedFile) {
+    systemPrompt = buildFileSystemPrompt(
+      context,
+      context.focusedFile,
+      context.diff,
+      context.focusedFileContent,
+      context.focusedLineRange,
+      skills,
+    );
+  } else if (enrichedContext) {
+    systemPrompt = buildEnrichedSystemPrompt(enrichedContext, skills);
+  } else {
+    systemPrompt = buildSystemPrompt(context, skills);
+  }
+
+  send(port, { type: "system-prompt", content: systemPrompt });
 
   const anthropicMessages = messages.map((m) => ({
     role: m.role as "user" | "assistant",

@@ -50,6 +50,7 @@ export function ChatPanel({
   const [enrichedContext, setEnrichedContext] = useState<EnrichedPRContext | null>(null);
   const [pendingReview, setPendingReview] = useState<ReviewPendingComment[]>([]);
   const [focusBullets, setFocusBullets] = useState<PromptSuggestion[] | null>(null);
+  const [focusBulletsLoading, setFocusBulletsLoading] = useState(false);
   const [activeSkills, setActiveSkills] = useState<SkillIndicator[]>([]);
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [showInspector, setShowInspector] = useState(false);
@@ -494,7 +495,11 @@ export function ChatPanel({
               fileLine={fileLine.line}
               fileSide={fileLine.side}
               onAddToReview={handleAddToReview}
-              onSummaryReady={setFocusBullets}
+              onSummaryLoading={() => setFocusBulletsLoading(true)}
+              onSummaryReady={(bullets) => {
+                setFocusBullets(bullets);
+                setFocusBulletsLoading(false);
+              }}
             />
           )}
 
@@ -507,6 +512,7 @@ export function ChatPanel({
             showStarters={isEmpty && !isLoading}
             focusedItems={focusedItems}
             focusBullets={focusBullets}
+            focusBulletsLoading={focusBulletsLoading}
             followUpSuggestions={followUpSuggestions}
             onRemoveItem={onRemoveItem}
             onClearFocus={onClearFocus}

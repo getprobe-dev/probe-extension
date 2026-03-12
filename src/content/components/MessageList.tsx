@@ -12,6 +12,7 @@ interface MessageListProps {
   fileLine: number;
   fileSide: "LEFT" | "RIGHT";
   onAddToReview: (comment: ReviewPendingComment) => void;
+  onSummaryLoading?: () => void;
   onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
 
@@ -23,6 +24,7 @@ export function MessageList({
   fileLine,
   fileSide,
   onAddToReview,
+  onSummaryLoading,
   onSummaryReady,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -34,7 +36,7 @@ export function MessageList({
   }, [messages, lastMsg?.content]);
 
   if (messages.length === 0) {
-    if (prContext) return <PRDashboard prContext={prContext} onSummaryReady={onSummaryReady} />;
+    if (prContext) return <PRDashboard prContext={prContext} onSummaryLoading={onSummaryLoading} onSummaryReady={onSummaryReady} />;
     return (
       <div className="flex-1 flex items-center justify-center">
         <img src={getIconUrl(128)} alt="PRobe" className="size-14 rounded-2xl animate-logo-pulse" />

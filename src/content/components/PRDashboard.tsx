@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
 import type {
   PRContext,
   PRStats,
@@ -10,6 +9,7 @@ import type {
 } from "../../shared/types";
 interface PRDashboardProps {
   prContext: PRContext;
+  onSummaryLoading?: () => void;
   onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
 
@@ -38,11 +38,11 @@ const REVIEW_STATE_LABELS: Record<string, string> = {
   PENDING: "Pending",
 };
 
-export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
+export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRDashboardProps) {
   const [stats, setStats] = useState<PRStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [_summary, setSummary] = useState<PromptSuggestion[] | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [_summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +59,7 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
         if (res?.ok && res.stats) {
           setStats(res.stats);
           setSummaryLoading(true);
+          onSummaryLoading?.();
           chrome.runtime.sendMessage(
             {
               type: "generate-pr-summary",
@@ -234,19 +235,6 @@ export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
         </div>
       )}
 
-      {/* AI suggested prompts loading indicator */}
-      {summaryLoading && (
-        <div className="dash-card p-3 border-l-2 border-l-mint">
-          <div className="flex items-center gap-2.5 py-1">
-            <Sparkles className="size-3.5 text-mint animate-pulse" />
-            <div className="flex gap-1">
-              <div className="size-1.5 rounded-full bg-mint animate-pulse" />
-              <div className="size-1.5 rounded-full bg-mint animate-pulse" style={{ animationDelay: "0.15s" }} />
-              <div className="size-1.5 rounded-full bg-mint animate-pulse" style={{ animationDelay: "0.3s" }} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

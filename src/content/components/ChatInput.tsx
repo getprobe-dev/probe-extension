@@ -10,6 +10,7 @@ interface ChatInputProps {
   showStarters?: boolean;
   focusedItems?: FocusedItem[];
   focusBullets?: PromptSuggestion[] | null;
+  focusBulletsLoading?: boolean;
   followUpSuggestions?: PromptSuggestion[] | null;
   onRemoveItem?: (index: number) => void;
   onClearFocus?: () => void;
@@ -72,6 +73,7 @@ export function ChatInput({
   showStarters,
   focusedItems = [],
   focusBullets,
+  focusBulletsLoading,
   followUpSuggestions,
   onRemoveItem,
   onClearFocus,
@@ -118,6 +120,12 @@ export function ChatInput({
     <div className="shrink-0 bg-background">
       {showStarters && (
         <div className="px-3 pt-3 space-y-2 border-t border-border">
+          {!contextStarters && focusBulletsLoading && !focusBullets && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="shimmer h-[34px] rounded-xl" />
+              <div className="shimmer h-[34px] rounded-xl" />
+            </div>
+          )}
           {hasFocusBullets && focusBullets && (
             <div className="grid grid-cols-2 gap-2">
               {focusBullets.map((item, i) => (

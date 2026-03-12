@@ -47,7 +47,16 @@ export async function extractGhError(res: Response): Promise<string> {
   let detail = `GitHub API error (${res.status})`;
   try {
     const parsed = JSON.parse(await res.text());
-    detail = parsed?.message ?? detail;
+    const msg = parsed?.message;
+    const errors: unknown[] | undefined = parsed?.errors;
+    if (errors?.length) {
+      const reasons = errors
+        .map((e: unknown) => (e && typeof e === "object" && "message" in e ? (e as { message: string }).message : null))
+        .filter(Boolean);
+      detail = reasons.length ? reasons.join("; ") : msg ?? detail;
+    } else {
+      detail = msg ?? detail;
+    }
   } catch {
     /* use default */
   }
@@ -99,12 +108,15 @@ export async function handleSubmitReview(msg: SubmitReviewRequest): Promise<Subm
   const headers = await ghHeaders();
   if (!headers) return { ok: false, error: NO_TOKEN_ERROR };
 
+  const reviewBody =
+    msg.body || (msg.event === "REQUEST_CHANGES" ? "Changes requested." : undefined);
+
   const url = `https://api.github.com/repos/${msg.owner}/${msg.repo}/pulls/${msg.number}/reviews`;
   const res = await fetch(url, {
     method: "POST",
     headers,
     body: JSON.stringify({
-      body: msg.body || undefined,
+      body: reviewBody,
       event: msg.event,
       comments: msg.comments.map((c) => ({
         path: c.path,

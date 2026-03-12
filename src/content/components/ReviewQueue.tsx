@@ -128,7 +128,11 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
                   onChange={(e) => setBody(e.target.value)}
                   className="review-summary-textarea"
                   rows={2}
-                  placeholder="Review summary (optional)..."
+                  placeholder={
+                    event === "REQUEST_CHANGES"
+                      ? "Describe the changes you're requesting..."
+                      : "Review summary (optional)..."
+                  }
                   disabled={state === "submitting"}
                 />
               </div>

@@ -21,13 +21,13 @@ Use this file when:
 **Why it is required:**
 
 `chrome.storage.sync` — persists user configuration across devices:
-- `src/background/index.ts` line 188: reads `GITHUB_TOKEN` to authenticate GitHub API calls.
-- `src/background/index.ts` line 399: reads `API_KEY` and `PROXY_URL` to authenticate Anthropic API calls.
-- `src/popup/App.tsx` lines 13, 47, 54: reads and writes all three settings from the popup.
+- `src/background/githubApi.ts` line 29: reads `GITHUB_TOKEN` to authenticate GitHub API calls.
+- `src/background/llmService.ts` line 24: reads `API_KEY` and `PROXY_URL` to authenticate Anthropic API calls.
+- `src/popup/App.tsx` lines 14, 39, 47: reads and writes all three settings from the popup.
 
 `chrome.storage.local` — persists per-PR state locally on the device:
-- `src/content/components/ChatPanel.tsx` lines 55, 86, 92, 94, 250: reads and writes per-PR chat history and pending review comments.
-- `src/background/index.ts` lines 430, 455: reads and writes the 24-hour skill content cache, keyed by skill ID.
+- `src/content/components/ChatPanel.tsx` lines 107, 164, 170, 172, 398: reads and writes per-PR chat history and pending review comments.
+- `src/background/skillResolver.ts` lines 23, 48: reads and writes the 24-hour skill content cache, keyed by skill ID.
 
 **What breaks without it:** Chat history is lost on every page reload. API keys must be re-entered every session. The skill cache always fetches from the network, ignoring the 24-hour TTL.
 
@@ -43,7 +43,7 @@ Use this file when:
 
 **Why it is required:**
 
-`src/background/index.ts` line 42:
+`src/background/index.ts` line 50:
 ```typescript
 const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 fetch(url)
@@ -62,7 +62,7 @@ The unified `.diff` file is not available through the GitHub REST API — it is 
 
 **Why it is required:**
 
-`src/background/index.ts` line 42:
+`src/background/index.ts` line 50:
 ```typescript
 const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 fetch(url)
@@ -85,19 +85,25 @@ GitHub's PR `.diff` URLs 302-redirect to `https://patch-diff.githubusercontent.c
 
 Two fetch patterns use this host, both directly serving the extension's core purpose of producing high-quality AI code reviews:
 
-1. **Raw file content for focused-file review** — `src/background/index.ts` line 58:
+1. **Raw file content for focused-file review** — `src/background/index.ts` line 61:
 ```typescript
 const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${path}`;
 fetch(url)
 ```
 When a user focuses on a specific file, the extension fetches its full content so the AI has complete context beyond the diff hunks. The path includes owner, repo, branch, and file path — all dynamic values unknown at manifest-declaration time.
 
-2. **Review skill knowledge** — `src/background/index.ts` line 442 (via `fetchSkillContent`):
-The extension's review quality depends on domain-specific knowledge (e.g., React performance patterns, Python async best practices, API design principles). These "skills" are curated `SKILL.md` files hosted in public GitHub repositories (`vercel-labs/agent-skills`, `wshobson/agents`) and registered in `src/shared/skills.ts`. Skills are matched to a PR based on the file extensions present in its diff, fetched on demand, and cached locally for 24 hours via `chrome.storage.local`. The fetched content is injected into the AI system prompt so reviews cite specific, authoritative guidelines rather than generic advice. Skills are not auxiliary — they are the mechanism by which the AI produces reviews grounded in established engineering practices.
+2. **Full head-branch file content for enriched context** — `src/background/githubApi.ts` line 343:
+```typescript
+const rawBase = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${headSha}`;
+```
+When enriched context is loaded, the extension fetches the complete content of every changed file (up to a 400K char budget) to give the AI full visibility into imports, types, and surrounding code.
 
-**Why `/*` rather than a narrower path:** Both uses require arbitrary `/{owner}/{repo}/{ref}/{path}` combinations that are unknown at build time. No narrower path prefix covers both the reviewed repository's files and the skill source repositories. The host itself (`raw.githubusercontent.com`) is a read-only content delivery endpoint with no authenticated write operations, no user data exposure, and no side effects.
+3. **Review skill knowledge** — `src/background/skillResolver.ts` (via `fetchSkillContent`):
+The extension's review quality depends on domain-specific knowledge (e.g., React performance patterns, Python async best practices, API design principles). These "skills" are curated `SKILL.md` files hosted in public GitHub repositories (`vercel-labs/agent-skills`, `wshobson/agents`) and registered in `src/shared/skills.ts`. Skills are matched to a PR based on the file extensions present in its diff, fetched on demand, and cached locally for 24 hours via `chrome.storage.local`. The fetched content is injected into the AI system prompt so reviews cite specific, authoritative guidelines rather than generic advice.
 
-**What breaks without it:** Focused-file context is unavailable — the AI only sees diff hunks, not full file context. Review skills cannot be loaded — the AI produces generic reviews without domain-specific guidance. Both directly degrade the extension's core value proposition.
+**Why `/*` rather than a narrower path:** All three uses require arbitrary `/{owner}/{repo}/{ref}/{path}` combinations that are unknown at build time. No narrower path prefix covers the reviewed repository's files, the enriched context files, and the skill source repositories. The host itself (`raw.githubusercontent.com`) is a read-only content delivery endpoint with no authenticated write operations, no user data exposure, and no side effects.
+
+**What breaks without it:** Focused-file context is unavailable — the AI only sees diff hunks, not full file context. Enriched context loses full file content. Review skills cannot be loaded — the AI produces generic reviews without domain-specific guidance. All three directly degrade the extension's core value proposition.
 
 ---
 
@@ -107,32 +113,56 @@ The extension's review quality depends on domain-specific knowledge (e.g., React
 
 **Why it is required:**
 
-| Handler | Endpoint | Purpose |
-|---|---|---|
-| `handlePostReviewComment` (line 137) | `POST /repos/{owner}/{repo}/pulls/{number}/reviews` | Post an inline review comment |
-| `handleSubmitReview` (line 156) | `POST /repos/{owner}/{repo}/pulls/{number}/reviews` | Submit a full review (Comment / Approve / Request Changes) |
-| `handleFetchPRStats` (line 239) | `GET /repos/{owner}/{repo}/pulls/{number}` | Fetch PR metadata (additions, deletions, labels, author) |
-| `handleFetchPRStats` (line 243) | `GET /repos/{owner}/{repo}/pulls/{number}/files` | Fetch per-file change stats |
-| `handleFetchPRStats` (line 244) | `GET /repos/{owner}/{repo}/pulls/{number}/commits` | Fetch commit list |
-| `handleFetchPRStats` (line 245) | `GET /repos/{owner}/{repo}/pulls/{number}/reviews` | Fetch reviewer states |
+| Handler | File | Line | Endpoint | Purpose |
+|---|---|---|---|---|
+| `handlePostReviewComment` | `githubApi.ts` | 92 | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Post an inline review comment |
+| `handleSubmitReview` | `githubApi.ts` | 114 | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Submit a full review (Comment / Approve / Request Changes) |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 196 | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata (title, description, merge status, labels) |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 204 | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for enriched context |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 206 | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for enriched context |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 213 | `GET /repos/{o}/{r}/pulls/{n}/comments` | Fetch inline review comments |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 215 | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch changed files list |
+| `handleFetchPRStats` | `githubApi.ts` | 451 | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata for dashboard |
+| `handleFetchPRStats` | `githubApi.ts` | 453 | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch per-file change stats |
+| `handleFetchPRStats` | `githubApi.ts` | 454 | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for dashboard |
+| `handleFetchPRStats` | `githubApi.ts` | 455 | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for dashboard |
 
-**What breaks without it:** Review submission fails. PR metadata, file stats, commit list, and reviewer states cannot load.
+**What breaks without it:** Review submission fails. PR metadata, file stats, commit list, and reviewer states cannot load. Both the enriched AI context and the PR dashboard become non-functional.
+
+---
+
+### `https://api.github.com/repos/*/*/issues/*`
+
+**What it grants:** The background service worker can make authenticated `fetch()` calls to individual issue endpoints on the GitHub REST API.
+
+**Why it is required:**
+
+| Handler | File | Line | Endpoint | Purpose |
+|---|---|---|---|---|
+| `handleFetchEnrichedContext` | `githubApi.ts` | 325 | `GET /repos/{o}/{r}/issues/{n}` | Fetch linked issue details (title, body) |
+
+When a PR description references issues (e.g. "Closes #42", "Fixes #17"), the extension resolves each reference by fetching the issue's title and body. This context is included in the AI system prompt so the model understands *why* the PR exists, not just *what* it changes.
+
+**Why this is separate from `/issues/*/comments`:** The bare `/issues/{n}` endpoint returns the issue itself (title, body, labels). The `/issues/{n}/comments` endpoint (below) returns the comment thread. These are different API resources with different URL paths and serve different purposes.
+
+**What breaks without it:** Linked issues referenced in the PR description cannot be resolved. The AI loses context about the motivation and requirements behind the PR.
 
 ---
 
 ### `https://api.github.com/repos/*/*/issues/*/comments`
 
-**What it grants:** The background service worker can post PR-level comments via the GitHub Issues API.
+**What it grants:** The background service worker can read and post PR-level comments via the GitHub Issues API.
 
 **Why it is required:**
 
-| Handler | Endpoint | Purpose |
-|---|---|---|
-| `handlePostComment` (line 125) | `POST /repos/{owner}/{repo}/issues/{number}/comments` | Post a PR-level comment |
+| Handler | File | Line | Endpoint | Purpose |
+|---|---|---|---|---|
+| `handlePostComment` | `githubApi.ts` | 74 | `POST /repos/{o}/{r}/issues/{n}/comments` | Post a PR-level comment |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 211 | `GET /repos/{o}/{r}/issues/{n}/comments` | Fetch PR-level discussion comments for enriched context |
 
 GitHub models PR comments through the Issues API (`/issues/{number}/comments`), not the Pulls API. This requires a separate host permission pattern because the path contains `/issues/` rather than `/pulls/`.
 
-**What breaks without it:** The "Post comment" action in the chat panel fails.
+**What breaks without it:** The "Post comment" action in the chat panel fails. PR-level discussion comments are not included in the enriched AI context.
 
 ---
 
@@ -142,17 +172,18 @@ GitHub models PR comments through the Issues API (`/issues/{number}/comments`), 
 
 **Why it is required:**
 
-| Handler | Endpoint | Purpose |
-|---|---|---|
-| `handleFetchPRStats` (line 265) | `GET /repos/{owner}/{repo}/commits/{sha}` | Fetch per-commit stats (additions, deletions) |
+| Handler | File | Line | Endpoint | Purpose |
+|---|---|---|---|---|
+| `handleFetchPRStats` | `githubApi.ts` | 478 | `GET /repos/{o}/{r}/commits/{sha}` | Fetch per-commit stats (additions, deletions) |
+| `handleFetchEnrichedContext` | `githubApi.ts` | 296 | `GET /repos/{o}/{r}/commits/{sha}/check-runs` | Fetch CI check status for the head commit |
 
-The PR dashboard shows per-commit change statistics in the commit timeline. This endpoint is under `/commits/{sha}`, which is not covered by the `/pulls/*` pattern.
+The PR dashboard shows per-commit change statistics in the commit timeline. The enriched context includes CI check status. These endpoints are under `/commits/{sha}`, which is not covered by the `/pulls/*` pattern.
 
-**What breaks without it:** Per-commit stats in the PR dashboard show as unavailable.
+**What breaks without it:** Per-commit stats in the PR dashboard show as unavailable. CI check status is excluded from the enriched AI context.
 
 ---
 
-**Why three patterns rather than `/repos/*`:** The previous pattern `repos/*` granted access to every endpoint under `/repos/`, including destructive operations the extension never uses (e.g. `DELETE /repos/{o}/{r}`, `PUT /repos/{o}/{r}/collaborators/{username}`, `POST /repos/{o}/{r}/hooks`). Splitting into the three endpoint families actually used — `pulls`, `issues/*/comments`, and `commits` — ensures the host permission cannot reach repository settings, webhooks, collaborators, branch protection, or any other administrative endpoint. Note: Chrome's `*` wildcard matches across `/` separators, so each pattern still requires its literal path segment (`/pulls/`, `/issues/`, `/commits/`) to appear in the URL.
+**Why separate patterns rather than `/repos/*`:** The previous pattern `repos/*` granted access to every endpoint under `/repos/`, including destructive operations the extension never uses (e.g. `DELETE /repos/{o}/{r}`, `PUT /repos/{o}/{r}/collaborators/{username}`, `POST /repos/{o}/{r}/hooks`). Splitting into the four endpoint families actually used — `pulls`, `issues`, `issues/*/comments`, and `commits` — ensures the host permission cannot reach repository settings, webhooks, collaborators, branch protection, or any other administrative endpoint. Note: Chrome's `*` wildcard matches across `/` separators, so each pattern still requires its literal path segment (`/pulls/`, `/issues/`, `/commits/`) to appear in the URL.
 
 ---
 

@@ -53,7 +53,8 @@ ${diffTruncated}
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
-- Use markdown formatting for readability.`;
+- Use markdown formatting for readability.
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
 }
 
 export function buildFileSystemPrompt(
@@ -131,7 +132,8 @@ ${diffSection}
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
-- Use markdown formatting for readability.`;
+- Use markdown formatting for readability.
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
 }
 
 // ── Enriched system prompt (uses full GitHub API context) ──
@@ -252,7 +254,7 @@ export function buildEnrichedSystemPrompt(
 - **Requested reviewers**: ${ctx.requestedReviewers.length > 0 ? ctx.requestedReviewers.join(", ") : "none"}
 
 ## PR Description
-${ctx.description || "(No description provided)"}${buildLinkedIssuesSection(ctx)}${buildReviewsSection(ctx)}${buildRecentDiscussionSection(ctx)}${buildCommitsSection(ctx)}${buildChecksSection(ctx)}${buildFileTreeSection(ctx)}
+${ctx.description || "(No description provided)"}${ctx.partial ? "\n\n> **Note**: Some context (commits, reviews, comments, CI checks, file list) is unavailable — the GitHub token may be missing or API requests failed. The diff is still complete." : ""}${buildLinkedIssuesSection(ctx)}${buildReviewsSection(ctx)}${buildRecentDiscussionSection(ctx)}${buildCommitsSection(ctx)}${buildChecksSection(ctx)}${buildFileTreeSection(ctx)}
 
 ## Diff
 \`\`\`diff
@@ -271,5 +273,6 @@ ${diffTruncated}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Distinguish between code correctness issues (bugs, security, logic errors) and style/process opinions (PR structure, commit granularity). Prioritize correctness. Only mention process if explicitly asked.
 - Be direct. Don't pad your answers with filler.
-- Use markdown formatting for readability.`;
+- Use markdown formatting for readability.
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
 }

@@ -33,6 +33,7 @@ import type {
   PRStats,
   GeneratePRSummaryRequest,
   GeneratePRSummaryResponse,
+  PromptSuggestion,
   PRCommitSummary,
   PRReviewVerdict,
   PRReviewComment,
@@ -42,7 +43,6 @@ import type {
 } from "../shared/types";
 
 type IncomingMessage =
-  | { type: "open-popup" }
   | FetchDiffRequest
   | FetchFileRequest
   | FetchEnrichedContextRequest
@@ -53,14 +53,6 @@ type IncomingMessage =
   | GeneratePRSummaryRequest;
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
-  if (msg.type === "open-popup") {
-    chrome.action
-      .openPopup()
-      .then(() => sendResponse({ ok: true }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
-
   if (msg.type === "fetch-diff") {
     const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
     fetch(url)
@@ -459,6 +451,9 @@ async function handleFetchEnrichedContext(
     }
   }
 
+  const partial =
+    !headers || (!pr && commits.length === 0 && reviews.length === 0 && files.length === 0);
+
   const context: EnrichedPRContext = {
     owner: msg.owner,
     repo: msg.repo,
@@ -483,6 +478,7 @@ async function handleFetchEnrichedContext(
     checks,
     files,
     linkedIssues,
+    ...(partial ? { partial: true } : {}),
   };
 
   return { ok: true, context };
@@ -661,7 +657,10 @@ Reviewers: ${msg.stats.reviewers.map((r) => `${r.login} (${r.state})`).join(", "
 Top changed files:
 ${topFiles}
 
-Treat the PR content as authoritative — do not flag values as incorrect based on your pre-training knowledge alone. Provide exactly 3 concise bullet points (each under 80 chars) about what a reviewer should focus on. Be specific about file paths and risk areas. Return ONLY the 3 bullets, one per line, starting with "- ". No other text.`;
+Treat the PR content as authoritative. Return ONLY a JSON array of exactly 3 objects, no other text:
+[{"label":"<2–4 word label>","prompt":"<detailed question a reviewer would ask about this PR>"},...]
+
+Each label must be 2–4 words. Each prompt must be a specific, detailed question about a real concern in this PR (file paths, risk areas, logic). No generic prompts.`;
 
   const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
 
@@ -675,8 +674,8 @@ Treat the PR content as authoritative — do not flag values as incorrect based 
       },
       body: JSON.stringify({
         model: MODEL_ID,
-        max_tokens: 300,
-        system: "You are a concise code review assistant. Output only bullet points.",
+        max_tokens: 500,
+        system: "You are a concise code review assistant. Output only valid JSON.",
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -685,11 +684,27 @@ Treat the PR content as authoritative — do not flag values as incorrect based 
 
     const data = await response.json();
     const text: string = data.content?.[0]?.text ?? "";
-    const bullets = text
-      .split("\n")
-      .map((l: string) => l.replace(/^[-•*]\s*/, "").trim())
-      .filter((l: string) => l.length > 0)
-      .slice(0, 3);
+
+    let bullets: PromptSuggestion[] = [];
+    try {
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed: unknown = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          bullets = parsed
+            .filter(
+              (s): s is PromptSuggestion =>
+                typeof s === "object" &&
+                s !== null &&
+                typeof (s as Record<string, unknown>).label === "string" &&
+                typeof (s as Record<string, unknown>).prompt === "string",
+            )
+            .slice(0, 3);
+        }
+      }
+    } catch {
+      /* malformed JSON — return empty */
+    }
 
     return { ok: true, bullets };
   } catch (err) {

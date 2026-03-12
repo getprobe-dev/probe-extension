@@ -1,3 +1,8 @@
+export interface PromptSuggestion {
+  label: string;
+  prompt: string;
+}
+
 export interface FocusedLineRange {
   startLine: number;
   endLine: number;
@@ -88,6 +93,7 @@ export interface EnrichedPRContext {
   checks: PRCheckRun[];
   files: PRFileEntry[];
   linkedIssues: LinkedIssue[];
+  partial?: boolean;
   focusedFile?: string;
   focusedFileContent?: string;
   focusedLineRange?: FocusedLineRange;
@@ -242,7 +248,7 @@ export interface GeneratePRSummaryRequest {
 
 export interface GeneratePRSummaryResponse {
   ok: boolean;
-  bullets?: string[];
+  bullets?: PromptSuggestion[];
   error?: string;
 }
 

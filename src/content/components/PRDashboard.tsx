@@ -6,10 +6,11 @@ import type {
   CommitDetail,
   FetchPRStatsResponse,
   GeneratePRSummaryResponse,
+  PromptSuggestion,
 } from "../../shared/types";
 interface PRDashboardProps {
   prContext: PRContext;
-  onSummaryReady?: (bullets: string[]) => void;
+  onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
 
 function formatNumber(n: number): string {
@@ -40,7 +41,7 @@ const REVIEW_STATE_LABELS: Record<string, string> = {
 export function PRDashboard({ prContext, onSummaryReady }: PRDashboardProps) {
   const [stats, setStats] = useState<PRStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [_summary, setSummary] = useState<string[] | null>(null);
+  const [_summary, setSummary] = useState<PromptSuggestion[] | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {

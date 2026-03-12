@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { PRDashboard } from "./PRDashboard";
 import { getIconUrl } from "../utils/theme";
-import type { ChatMessage, PRContext, ReviewPendingComment } from "../../shared/types";
+import type { ChatMessage, PRContext, ReviewPendingComment, PromptSuggestion } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -12,7 +12,7 @@ interface MessageListProps {
   fileLine: number;
   fileSide: "LEFT" | "RIGHT";
   onAddToReview: (comment: ReviewPendingComment) => void;
-  onSummaryReady?: (bullets: string[]) => void;
+  onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
 
 export function MessageList({

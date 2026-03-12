@@ -18,6 +18,7 @@ export function App() {
   const [focusedItems, setFocusedItems] = useState<FocusedItem[]>([]);
   const [prDiff, setPrDiff] = useState<string | null>(null);
   const isResizingRef = useRef(false);
+  const dragListenersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
 
   useEffect(() => {
     if (isOpen) setPanelWidth(DEFAULT_PANEL_WIDTH);
@@ -50,6 +51,18 @@ export function App() {
     };
   }, [isOpen, panelWidth]);
 
+  useEffect(() => {
+    return () => {
+      if (dragListenersRef.current) {
+        document.removeEventListener("mousemove", dragListenersRef.current.move);
+        document.removeEventListener("mouseup", dragListenersRef.current.up);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        dragListenersRef.current = null;
+      }
+    };
+  }, []);
+
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizingRef.current = true;
@@ -62,7 +75,10 @@ export function App() {
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!isResizingRef.current) return;
-      const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, window.innerWidth - ev.clientX));
+      const newWidth = Math.min(
+        MAX_PANEL_WIDTH,
+        Math.max(MIN_PANEL_WIDTH, window.innerWidth - ev.clientX),
+      );
       setPanelWidth(newWidth);
     };
 
@@ -72,6 +88,7 @@ export function App() {
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      dragListenersRef.current = null;
 
       if (!html.style.transition.includes("margin-right")) {
         html.style.transition = [
@@ -83,6 +100,7 @@ export function App() {
       }
     };
 
+    dragListenersRef.current = { move: onMouseMove, up: onMouseUp };
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMouseMove);
@@ -148,10 +166,7 @@ export function App() {
           onKeyUp={(e) => e.stopPropagation()}
         >
           {/* Resize handle */}
-          <div
-            className="resize-handle"
-            onMouseDown={handleResizeStart}
-          />
+          <div className="resize-handle" onMouseDown={handleResizeStart} />
           <ErrorBoundary>
             <ChatPanel
               onClose={() => setIsOpen(false)}

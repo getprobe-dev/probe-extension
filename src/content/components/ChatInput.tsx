@@ -1,6 +1,6 @@
 import { ArrowUp, Square, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import type { FocusedItem } from "../../shared/types";
+import type { FocusedItem, PromptSuggestion } from "../../shared/types";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -9,20 +9,60 @@ interface ChatInputProps {
   isStreaming: boolean;
   showStarters?: boolean;
   focusedItems?: FocusedItem[];
-  focusBullets?: string[] | null;
+  focusBullets?: PromptSuggestion[] | null;
+  followUpSuggestions?: PromptSuggestion[] | null;
   onRemoveItem?: (index: number) => void;
   onClearFocus?: () => void;
 }
 
-const QUICK_STARTERS = ["Summarize this PR", "Any potential issues?"];
-
-const FILE_STARTERS = [
-  "Explain these changes",
-  "Any bugs or edge cases?",
-  "How does this fit the PR?",
+const QUICK_STARTERS: PromptSuggestion[] = [
+  {
+    label: "Summarize",
+    prompt:
+      "Give me a concise summary of this pull request — what it changes, why, and any notable technical decisions.",
+  },
+  {
+    label: "Potential issues",
+    prompt:
+      "Review this PR for potential issues: bugs, security vulnerabilities, edge cases, performance problems, or anything that could break in production.",
+  },
 ];
 
-const LINE_STARTERS = ["What does this do?", "Any edge cases?", "How to improve this?"];
+const FILE_STARTERS: PromptSuggestion[] = [
+  {
+    label: "Explain changes",
+    prompt:
+      "Explain what changed in this file and why — what was the intent behind these modifications?",
+  },
+  {
+    label: "Bugs or edge cases",
+    prompt:
+      "Look at the changes to this file and identify any bugs, edge cases, or scenarios that could cause unexpected behavior.",
+  },
+  {
+    label: "Fits the PR?",
+    prompt:
+      "Do this file's changes fit well with the overall PR goal? Are they cohesive and complete?",
+  },
+];
+
+const LINE_STARTERS: PromptSuggestion[] = [
+  {
+    label: "What does this do",
+    prompt:
+      "Explain what these specific lines do — their purpose, logic, and how they fit into the surrounding code.",
+  },
+  {
+    label: "Edge cases",
+    prompt:
+      "Are there any edge cases or error conditions that these specific lines don't handle correctly?",
+  },
+  {
+    label: "How to improve",
+    prompt:
+      "How could these specific lines be improved? Consider readability, performance, correctness, or best practices.",
+  },
+];
 
 export function ChatInput({
   onSend,
@@ -32,6 +72,7 @@ export function ChatInput({
   showStarters,
   focusedItems = [],
   focusBullets,
+  followUpSuggestions,
   onRemoveItem,
   onClearFocus,
 }: ChatInputProps) {
@@ -79,29 +120,45 @@ export function ChatInput({
         <div className="px-3 pt-3 space-y-2 border-t border-border">
           {hasFocusBullets && focusBullets && (
             <div className="flex flex-col gap-1.5">
-              {focusBullets.map((text, i) => (
+              {focusBullets.map((item, i) => (
                 <button
                   key={i}
-                  onClick={() => onSend(text)}
+                  onClick={() => onSend(item.prompt)}
                   className="starter-pill w-full px-3 py-2 rounded-xl text-xs text-left truncate"
-                  title={text}
+                  title={item.prompt}
                 >
-                  {text}
+                  {item.label}
                 </button>
               ))}
             </div>
           )}
           <div className={`grid gap-2 ${contextStarters ? "grid-cols-1" : "grid-cols-2"}`}>
-            {(contextStarters ?? QUICK_STARTERS).map((text) => (
+            {(contextStarters ?? QUICK_STARTERS).map((item) => (
               <button
-                key={text}
-                onClick={() => onSend(text)}
+                key={item.label}
+                onClick={() => onSend(item.prompt)}
                 className="starter-pill px-3 py-2 rounded-xl text-xs truncate"
+                title={item.prompt}
               >
-                {text}
+                {item.label}
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {!showStarters && !isStreaming && followUpSuggestions && followUpSuggestions.length > 0 && (
+        <div className="flex gap-2 px-3 py-2.5 border-t border-border">
+          {followUpSuggestions.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => onSend(item.prompt)}
+              className="starter-pill flex-1 px-3 py-2 rounded-xl text-xs truncate"
+              title={item.prompt}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       )}
 

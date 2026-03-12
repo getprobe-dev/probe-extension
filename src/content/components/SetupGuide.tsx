@@ -30,7 +30,8 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
   }, [onKeysReady]);
 
   const handleOpenSettings = () => {
-    chrome.runtime.sendMessage({ type: "open-popup" });
+    const popupUrl = chrome.runtime.getURL("popup/index.html");
+    window.open(popupUrl, "_blank");
   };
 
   return (
@@ -40,9 +41,7 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
         alt="PRobe"
         className="size-16 rounded-2xl mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
       />
-      <h2 className="text-base font-bold text-foreground tracking-tight mb-6">
-        Welcome to PRobe
-      </h2>
+      <h2 className="text-base font-bold text-foreground tracking-tight mb-6">Welcome to PRobe</h2>
 
       <button
         onClick={handleOpenSettings}
@@ -55,9 +54,7 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
           <span className="text-[0.75rem] font-bold text-foreground block">
             Open PRobe Settings
           </span>
-          <span className="text-[0.62rem] text-muted-foreground">
-            Enter your keys and hit save
-          </span>
+          <span className="text-[0.62rem] text-muted-foreground">Enter your keys and hit save</span>
         </div>
       </button>
     </div>

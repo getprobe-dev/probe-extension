@@ -16,6 +16,7 @@ import type {
   FocusedItem,
   SkillIndicator,
   FetchEnrichedContextResponse,
+  PromptSuggestion,
 } from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/types";
 import {
@@ -48,14 +49,16 @@ export function ChatPanel({
   const [prContext, setPrContext] = useState<PRContext | null>(null);
   const [enrichedContext, setEnrichedContext] = useState<EnrichedPRContext | null>(null);
   const [pendingReview, setPendingReview] = useState<ReviewPendingComment[]>([]);
-  const [focusBullets, setFocusBullets] = useState<string[] | null>(null);
+  const [focusBullets, setFocusBullets] = useState<PromptSuggestion[] | null>(null);
   const [activeSkills, setActiveSkills] = useState<SkillIndicator[]>([]);
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [showInspector, setShowInspector] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [hasGithubToken, setHasGithubToken] = useState<boolean | null>(null);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<PromptSuggestion[] | null>(null);
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const storageKeyRef = useRef<string>("");
+  const lastAssistantContentRef = useRef<string>("");
   const reviewKeyRef = useRef<string>("");
 
   const checkKeys = useCallback(() => {
@@ -194,6 +197,9 @@ export function ChatPanel({
     async (content: string) => {
       if (!prContext || isStreaming) return;
 
+      setFollowUpSuggestions(null);
+      lastAssistantContentRef.current = "";
+
       const userMessage: ChatMessage = { role: "user", content, timestamp: Date.now() };
       const assistantMessage: ChatMessage = {
         role: "assistant",
@@ -295,15 +301,44 @@ export function ChatPanel({
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last.role === "assistant") {
-              updated[updated.length - 1] = { ...last, content: last.content + event.content };
+              const newContent = last.content + event.content;
+              lastAssistantContentRef.current = newContent;
+              updated[updated.length - 1] = { ...last, content: newContent };
             }
             return updated;
           });
         } else if (event.type === "done") {
           setIsStreaming(false);
+          const fullContent = lastAssistantContentRef.current;
+          const match = fullContent.match(/\n*%%SUGGESTIONS:(\[[\s\S]*?\])\s*$/);
+          let cleanContent = fullContent;
+          if (match) {
+            try {
+              const parsed: unknown = JSON.parse(match[1]);
+              if (Array.isArray(parsed)) {
+                const suggestions = parsed
+                  .filter(
+                    (s): s is PromptSuggestion =>
+                      typeof s === "object" &&
+                      s !== null &&
+                      typeof (s as Record<string, unknown>).label === "string" &&
+                      typeof (s as Record<string, unknown>).prompt === "string",
+                  )
+                  .slice(0, 2);
+                if (suggestions.length > 0) setFollowUpSuggestions(suggestions);
+              }
+            } catch { /* malformed JSON — skip */ }
+            cleanContent = fullContent.slice(0, fullContent.length - match[0].length).trimEnd();
+          }
+          lastAssistantContentRef.current = "";
           setMessages((prev) => {
-            persistMessages(prev);
-            return prev;
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant" && match) {
+              updated[updated.length - 1] = { ...last, content: cleanContent };
+            }
+            persistMessages(updated);
+            return updated;
           });
           port.disconnect();
         } else if (event.type === "error") {
@@ -472,6 +507,7 @@ export function ChatPanel({
             showStarters={isEmpty && !isLoading}
             focusedItems={focusedItems}
             focusBullets={focusBullets}
+            followUpSuggestions={followUpSuggestions}
             onRemoveItem={onRemoveItem}
             onClearFocus={onClearFocus}
           />

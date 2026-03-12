@@ -22,7 +22,7 @@ const QUICK_STARTERS: PromptSuggestion[] = [
       "Give me a concise summary of this pull request — what it changes, why, and any notable technical decisions.",
   },
   {
-    label: "Potential issues",
+    label: "Find issues",
     prompt:
       "Review this PR for potential issues: bugs, security vulnerabilities, edge cases, performance problems, or anything that could break in production.",
   },
@@ -35,12 +35,12 @@ const FILE_STARTERS: PromptSuggestion[] = [
       "Explain what changed in this file and why — what was the intent behind these modifications?",
   },
   {
-    label: "Bugs or edge cases",
+    label: "Find bugs",
     prompt:
       "Look at the changes to this file and identify any bugs, edge cases, or scenarios that could cause unexpected behavior.",
   },
   {
-    label: "Fits the PR?",
+    label: "Assess PR fit",
     prompt:
       "Do this file's changes fit well with the overall PR goal? Are they cohesive and complete?",
   },
@@ -48,17 +48,17 @@ const FILE_STARTERS: PromptSuggestion[] = [
 
 const LINE_STARTERS: PromptSuggestion[] = [
   {
-    label: "What does this do",
+    label: "Explain this code",
     prompt:
       "Explain what these specific lines do — their purpose, logic, and how they fit into the surrounding code.",
   },
   {
-    label: "Edge cases",
+    label: "Find edge cases",
     prompt:
       "Are there any edge cases or error conditions that these specific lines don't handle correctly?",
   },
   {
-    label: "How to improve",
+    label: "Suggest improvements",
     prompt:
       "How could these specific lines be improved? Consider readability, performance, correctness, or best practices.",
   },
@@ -119,12 +119,12 @@ export function ChatInput({
       {showStarters && (
         <div className="px-3 pt-3 space-y-2 border-t border-border">
           {hasFocusBullets && focusBullets && (
-            <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {focusBullets.map((item, i) => (
                 <button
                   key={i}
                   onClick={() => onSend(item.prompt)}
-                  className="starter-pill w-full px-3 py-2 rounded-xl text-xs text-left truncate"
+                  className="starter-pill px-3 py-2 rounded-xl text-xs truncate"
                   title={item.prompt}
                 >
                   {item.label}

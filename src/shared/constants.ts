@@ -54,7 +54,7 @@ ${diffTruncated}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
-- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;
 }
 
 export function buildFileSystemPrompt(
@@ -133,7 +133,7 @@ ${diffSection}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
-- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;
 }
 
 // ── Enriched system prompt (uses full GitHub API context) ──
@@ -274,5 +274,5 @@ ${diffTruncated}
 - Distinguish between code correctness issues (bugs, security, logic errors) and style/process opinions (PR structure, commit granularity). Prioritize correctness. Only mention process if explicitly asked.
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
-- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries, each with a short display label and a full detailed prompt. No spaces inside the JSON.`;
+- End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;
 }

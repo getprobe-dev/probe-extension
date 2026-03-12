@@ -669,7 +669,7 @@ ${topFiles}
 Treat the PR content as authoritative. Return ONLY a JSON array of exactly 3 objects, no other text:
 [{"label":"<2–4 word label>","prompt":"<detailed question a reviewer would ask about this PR>"},...]
 
-Each label must be 2–4 words. Each prompt must be a specific, detailed question about a real concern in this PR (file paths, risk areas, logic). No generic prompts.`;
+Each label must be 2–4 words and start with an action verb (e.g. Analyze, Verify, Understand, Check, Review, Find, Explain). Each prompt must be a specific, detailed question about a real concern in this PR (file paths, risk areas, logic). No generic prompts.`;
 
   const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
 

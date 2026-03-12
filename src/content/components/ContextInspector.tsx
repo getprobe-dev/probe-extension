@@ -14,10 +14,7 @@ export function ContextInspector({ systemPrompt, messages, onClose }: ContextIns
   return (
     <div className="flex flex-col h-full animate-fade-in" style={{ background: "#0b1a18" }}>
       <div className="flex items-center justify-between px-4 h-10 bg-navy text-white shrink-0 border-b border-mint/10">
-        <span
-          className="text-xs font-bold tracking-tight text-mint uppercase"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
+        <span className="text-xs font-bold tracking-tight text-mint uppercase">
           X-Ray
         </span>
         <button onClick={onClose} className="header-btn header-btn-close" title="Close X-Ray">

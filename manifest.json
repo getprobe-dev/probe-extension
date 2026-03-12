@@ -37,7 +37,11 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icon-48.png", "icon-128.png"],
+      "resources": [
+        "icon-48.png",
+        "icon-128.png",
+        "fonts/outfit-latin-wght-normal.woff2"
+      ],
       "matches": ["https://github.com/*"]
     }
   ]

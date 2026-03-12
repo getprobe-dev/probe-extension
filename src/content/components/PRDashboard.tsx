@@ -310,10 +310,7 @@ function DashboardSkeleton() {
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
     <div className="dash-card p-3 text-center">
-      <div
-        className="text-xl font-bold text-foreground tracking-tight"
-        style={{ fontFamily: "'Outfit', sans-serif" }}
-      >
+      <div className="text-xl font-bold text-foreground tracking-tight">
         {formatNumber(value)}
       </div>
       <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-0.5">

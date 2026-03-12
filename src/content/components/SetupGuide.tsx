@@ -40,10 +40,7 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
         alt="PRobe"
         className="size-16 rounded-2xl mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
       />
-      <h2
-        className="text-base font-bold text-foreground tracking-tight mb-6"
-        style={{ fontFamily: "'Outfit', sans-serif" }}
-      >
+      <h2 className="text-base font-bold text-foreground tracking-tight mb-6">
         Welcome to PRobe
       </h2>
 
@@ -55,10 +52,7 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
           <ChromeExtensionsIcon className="size-5 text-mint" />
         </div>
         <div className="text-left min-w-0">
-          <span
-            className="text-[0.75rem] font-bold text-foreground block"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
+          <span className="text-[0.75rem] font-bold text-foreground block">
             Open PRobe Settings
           </span>
           <span className="text-[0.62rem] text-muted-foreground">

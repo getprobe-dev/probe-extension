@@ -28,11 +28,13 @@ function mount() {
 
   const shadow = host.attachShadow({ mode: "open" });
 
-  const fontLink = document.createElement("link");
-  fontLink.rel = "stylesheet";
-  fontLink.href =
-    "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap";
-  shadow.appendChild(fontLink);
+  const outfitUrl = chrome.runtime.getURL("fonts/outfit-latin-wght-normal.woff2");
+  const face = new FontFace("Outfit", `url(${outfitUrl}) format('woff2')`, {
+    weight: "100 900",
+    style: "normal",
+  });
+  document.fonts.add(face);
+  face.load();
 
   const styleEl = document.createElement("style");
   styleEl.textContent = shadowStyles;

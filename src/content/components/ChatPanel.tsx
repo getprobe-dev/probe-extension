@@ -373,17 +373,11 @@ export function ChatPanel({
             height={22}
             className="rounded-md shrink-0"
           />
-          <span
-            className="text-sm font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
+          <span className="text-sm font-bold tracking-tight text-white">
             PRobe
           </span>
           {prContext && (
-            <span
-              className="text-xs font-medium text-white/40"
-              style={{ fontFamily: "'Outfit', sans-serif" }}
-            >
+            <span className="text-xs font-medium text-white/40">
               #{prContext.number}
             </span>
           )}

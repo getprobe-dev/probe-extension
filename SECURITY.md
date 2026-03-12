@@ -13,7 +13,7 @@ Only the latest version of PRobe is actively supported.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-PRobe handles sensitive credentials — an Anthropic API key and optionally a GitHub Classic Token. If you discover a vulnerability (e.g., a way to exfiltrate keys, bypass origin restrictions, or exploit the Cloudflare proxy), please report it privately.
+PRobe handles sensitive credentials — an Anthropic API key and a GitHub Classic Token. If you discover a vulnerability (e.g., a way to exfiltrate keys, bypass origin restrictions, or exploit the Cloudflare proxy), please report it privately.
 
 **Email:** [sgunturi@protonmail.com](mailto:sgunturi@protonmail.com)  
 **Subject line:** `[SECURITY] PRobe — <short description>`

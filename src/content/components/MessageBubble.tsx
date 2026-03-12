@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 import { CommentComposer } from "./CommentComposer";
 import { Copy, Check, MessageSquare } from "lucide-react";
 import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
+
+const REMARK_PLUGINS = [remarkGfm];
+const REHYPE_PLUGINS: [[typeof rehypeHighlight, { detect: boolean }]] = [
+  [rehypeHighlight, { detect: true }],
+];
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -71,7 +77,7 @@ export function MessageBubble({
             </div>
           ) : (
             <div className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}>
-              <Markdown remarkPlugins={[remarkGfm]}>
+              <Markdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS}>
                 {message.content}
               </Markdown>
             </div>

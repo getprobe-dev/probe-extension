@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { PRDashboard } from "./PRDashboard";
-import type { ChatMessage, PRContext, ReviewPendingComment } from "../../shared/types";
+import { getIconUrl } from "../utils/theme";
+import type { ChatMessage, PRContext, ReviewPendingComment, PromptSuggestion } from "../../shared/types";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -11,7 +12,8 @@ interface MessageListProps {
   fileLine: number;
   fileSide: "LEFT" | "RIGHT";
   onAddToReview: (comment: ReviewPendingComment) => void;
-  onSummaryReady?: (bullets: string[]) => void;
+  onSummaryLoading?: () => void;
+  onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
 
 export function MessageList({
@@ -22,6 +24,7 @@ export function MessageList({
   fileLine,
   fileSide,
   onAddToReview,
+  onSummaryLoading,
   onSummaryReady,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,10 +36,10 @@ export function MessageList({
   }, [messages, lastMsg?.content]);
 
   if (messages.length === 0) {
-    if (prContext) return <PRDashboard prContext={prContext} onSummaryReady={onSummaryReady} />;
+    if (prContext) return <PRDashboard prContext={prContext} onSummaryLoading={onSummaryLoading} onSummaryReady={onSummaryReady} />;
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <p className="text-xs text-muted-foreground">Loading…</p>
+      <div className="flex-1 flex items-center justify-center">
+        <img src={getIconUrl(128)} alt="PRobe" className="size-14 rounded-2xl animate-logo-pulse" />
       </div>
     );
   }

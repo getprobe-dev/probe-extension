@@ -172,11 +172,13 @@ The PR dashboard shows per-commit change statistics in the commit timeline. This
 
 ## Web Accessible Resources (`"web_accessible_resources"`)
 
-### `["icon-48.png", "icon-128.png"]` on `https://github.com/*`
+### `["icon-48.png", "icon-128.png", "fonts/outfit-latin-wght-normal.woff2"]` on `https://github.com/*`
 
-**What it grants:** Content scripts running on GitHub pages can reference these two files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
+**What it grants:** Content scripts running on GitHub pages can reference these files via `chrome.runtime.getURL()`, producing `chrome-extension://` URLs that the browser will serve from the extension package.
 
-**Why it is required:**
+**Why each file is required:**
+
+#### Icons — `icon-48.png`, `icon-128.png`
 
 `src/content/utils/theme.ts` line 3:
 ```typescript
@@ -194,13 +196,26 @@ This function is called from six content script components, all using size 48 or
 | `src/content/components/FileButtons.tsx` (file focus button) | 48 |
 | `src/content/components/LineCommentButton.tsx` (line comment button) | 48 |
 
-`icon-16.png` is used in `manifest.json` for the toolbar icon and extension metadata, but it is never referenced via `chrome.runtime.getURL()` in any content script. It therefore does not need to be web-accessible.
+`icon-16.png` is used in `manifest.json` for the toolbar icon and extension metadata, but is never referenced via `chrome.runtime.getURL()` in any content script. It therefore does not need to be web-accessible.
 
-Extension-packaged resources are blocked by default in web page contexts. Without `web_accessible_resources`, every `chrome.runtime.getURL()` call returns an inaccessible URL and all icons fail to load.
+#### Font — `fonts/outfit-latin-wght-normal.woff2`
 
-**Why only these two files:** These are the only extension-packaged assets loaded by `getURL()` in content scripts. `icon-16.png` is excluded because no content script references it.
+`src/content/index.tsx` (mount function):
+```typescript
+const outfitUrl = chrome.runtime.getURL("fonts/outfit-latin-wght-normal.woff2");
+const face = new FontFace("Outfit", `url(${outfitUrl}) format('woff2')`, {
+  weight: "100 900",
+  style: "normal",
+});
+document.fonts.add(face);
+face.load();
+```
 
-**Why `https://github.com/*` and not narrower:** The `web_accessible_resources` `matches` field does not support path-restricted patterns (e.g. `/*/*/pull/*`) — Chrome rejects them as invalid match patterns. `https://github.com/*` is the narrowest valid pattern. In practice, only the content script (which injects exclusively on PR pages) references these icons, so exposure is limited to three read-only PNG files on a single host.
+The Outfit variable font is registered via the `FontFace` API using a `chrome-extension://` URL. This is required because GitHub enforces a strict Content Security Policy (`font-src github.githubassets.com`) that blocks all external font sources including Google Fonts. Loading the font from a `chrome-extension://` URL bypasses the host page's CSP, which is the only reliable mechanism for a content script to load a custom typeface on GitHub. The font is a read-only static asset — a subset of the Outfit variable font (latin glyphs, full weight axis) from the Fontsource project.
+
+**Why only these three files:** These are the only extension-packaged assets loaded by `chrome.runtime.getURL()` in content scripts. No other assets are referenced this way.
+
+**Why `https://github.com/*` and not narrower:** The `web_accessible_resources` `matches` field does not support path-restricted patterns (e.g. `/*/*/pull/*`) — Chrome rejects them as invalid match patterns. `https://github.com/*` is the narrowest valid pattern. In practice, only the content script (which injects exclusively on PR pages) references these files, so exposure is limited to two read-only PNGs and one read-only font file on a single host.
 
 ---
 

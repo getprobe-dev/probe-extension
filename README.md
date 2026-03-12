@@ -33,7 +33,7 @@ PRobe is a Chrome extension that adds a streaming AI chat panel to every GitHub 
 
 - Chrome (or Chromium-based browser)
 - [Node.js](https://nodejs.org/) 18+
-- An [Anthropic API key](https://console.anthropic.com/)
+- An [Anthropic API key](https://platform.claude.com/settings/keys)
 
 ### Install & Build
 
@@ -49,9 +49,8 @@ npm run build
 1. Open `chrome://extensions` in Chrome.
 2. Enable **Developer mode** (top-right toggle).
 3. Click **Load unpacked** and select the `dist/` folder.
-4. Click the PRobe extension icon and enter your **Anthropic API key**.
-5. (Optional) Add a **GitHub Classic Token** with `repo` scope to enable posting comments.
-6. Navigate to any GitHub pull request and click the floating PRobe button (or press `Cmd+Shift+P`).
+4. Click the PRobe extension icon and enter your **Anthropic API key** and **GitHub Classic Token** (with `repo` scope).
+5. Navigate to any GitHub pull request and click the floating PRobe button (or press `Cmd+Shift+P`).
 
 ### Development
 
@@ -136,7 +135,7 @@ All configuration is stored in `chrome.storage.sync` — no `.env` files needed.
 | Setting | Required | Description |
 |---|---|---|
 | Anthropic API Key | Yes | Powers chat and PR summaries. Set via the extension popup. |
-| GitHub Classic Token | No | Enables posting PR comments and reviews. Needs `repo` scope. |
+| GitHub Classic Token | Yes | Required for PR stats, reviews, and comments. Needs `repo` scope. |
 
 The proxy URL defaults to a hosted Cloudflare Worker — no setup required. To self-host, deploy the `proxy/` directory:
 

@@ -35,9 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
             height={36}
             className="rounded-xl opacity-60"
           />
-          <p className="text-sm font-medium text-foreground">
-            Something went wrong
-          </p>
+          <p className="text-sm font-medium text-foreground">Something went wrong</p>
           <p className="text-xs text-muted-foreground max-w-[240px]">
             An unexpected error occurred. Try reloading the panel.
           </p>

@@ -2,6 +2,35 @@
 
 This document describes the mechanics of how issues, labels, branches, and pull requests are managed in this repository. Both contributors and maintainers follow these conventions — see [CONTRIBUTING.md](../CONTRIBUTING.md) and [MAINTAINERS.md](MAINTAINERS.md) for the audience-specific steps around each stage.
 
+## Non-negotiable rules
+
+These rules apply to every contributor, including maintainers, without exception.
+
+### 1. Direct commits to `main` are prohibited
+
+Never commit directly to `main`, and never merge a branch into `main` outside of a pull request. The `main` branch is protected — all changes must arrive through a reviewed, approved PR.
+
+This means:
+- No `git push origin main`
+- No merging feature branches locally and pushing
+- No "quick fixes" pushed directly — every change, however small, goes through a PR
+
+### 2. Issues are the source of truth
+
+Every piece of work begins with a GitHub issue. The issue is the equivalent of a Linear story or a Jira ticket — it defines *what* needs to be done, *why*, and tracks *progress*. Work should never start before an issue exists.
+
+**A single issue can have multiple pull requests.** This is expected and encouraged. For example, an issue titled "CWS v1.1.0 readiness check" may be addressed through several PRs, each tackling a different aspect — permissions hardening, prompt grounding, syntax highlighting polish, and so on. Each PR references the same issue. The issue stays open until all necessary work is done and the goal is fully met.
+
+Think of it this way:
+- **Issue** = the goal (what we're trying to achieve)
+- **PR** = one attempt or one slice of work toward that goal
+
+### 3. Always branch from an issue
+
+Cut a branch only after an issue exists (and has been labeled `approved` for non-trivial work). Name the branch after the issue number so the relationship is always traceable. See [Branch naming](#branch-naming) for the exact patterns.
+
+---
+
 ## Opening an issue
 
 When you open an issue, populate all five fields before saving:
@@ -75,16 +104,18 @@ Create a branch only after the issue has been labeled `approved`. Name the branc
 |---|---|---|
 | Bug fix | `fix/<issue-number>-<slug>` | `fix/42-chat-panel-flicker` |
 | Feature | `feat/<issue-number>-<slug>` | `feat/43-model-selector` |
+| Task / chore | `task/<issue-number>-<slug>` | `task/45-cws-readiness` |
 | Documentation | `docs/<issue-number>-<slug>` | `docs/44-update-readme` |
 
 External contributors branch from their fork. Maintainers branch directly in the main repository.
 
 ## Pull request conventions
 
-- **Title** should match (or closely paraphrase) the issue title.
-- **Description** must reference the approved issue: `Closes #<number>`.
+- **Title** should match (or closely paraphrase) the issue title, with a short qualifier if it is one of multiple PRs (e.g. `[1/3]`).
+- **Description** must reference the issue. Use `Closes #<number>` only on the *final* PR that fully resolves the issue. For intermediate PRs, use `Part of #<number>` to keep the issue open.
 - For code changes, include a **Self-Review** section summarising what you verified with PRobe.
 - PRs should target `main`. Do not open PRs against other feature branches unless explicitly coordinated.
+- A single issue may have many PRs. This is normal — see [Non-negotiable rules](#non-negotiable-rules).
 
 When opening a PR, populate the sidebar fields to mirror the linked issue:
 

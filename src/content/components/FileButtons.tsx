@@ -13,8 +13,8 @@ import { getIconUrl } from "../utils/theme";
 // Match on the stable prefix — the hash (e.g. __Zcm) changes per deploy.
 const FILE_PATH_SELECTOR = [
   '[class*="DiffFileHeader-module__file-path-section"]',
-  '.file-header',
-  '[data-tagsearch-path]',
+  ".file-header",
+  "[data-tagsearch-path]",
 ].join(", ");
 
 function extractFilePath(el: Element): string | null {
@@ -109,7 +109,9 @@ function injectButton(container: Element, onFileSelect: (filePath: string) => vo
 
 export function FileButtons({ onFileSelect }: FileButtonsProps) {
   const callbackRef = useRef(onFileSelect);
-  useEffect(() => { callbackRef.current = onFileSelect; }, [onFileSelect]);
+  useEffect(() => {
+    callbackRef.current = onFileSelect;
+  }, [onFileSelect]);
 
   useEffect(() => {
     function inject() {

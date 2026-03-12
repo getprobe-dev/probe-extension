@@ -133,14 +133,11 @@ export function extractFilePathsFromDiff(diff: string): string[] {
  * Match the best skills for the detected extensions, capped at `maxSkills`.
  * Higher priority (lower number) wins. Within the same priority, registry order wins.
  */
-export function matchSkills(
-  extensions: Set<string>,
-  maxSkills = 3
-): SkillEntry[] {
+export function matchSkills(extensions: Set<string>, maxSkills = 3): SkillEntry[] {
   if (extensions.size === 0) return [];
 
   const candidates = SKILL_REGISTRY.filter((s) =>
-    s.triggerExtensions.some((ext) => extensions.has(ext))
+    s.triggerExtensions.some((ext) => extensions.has(ext)),
   );
 
   candidates.sort((a, b) => a.priority - b.priority);

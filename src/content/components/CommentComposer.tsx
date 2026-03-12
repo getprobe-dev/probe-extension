@@ -114,7 +114,17 @@ export function CommentComposer({
           <span>
             {focusedFile ? "Review comment posted" : "Comment posted"}
             {commentUrl && (
-              <>{" \u2014 "}<a href={commentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">view</a></>
+              <>
+                {" \u2014 "}
+                <a
+                  href={commentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  view
+                </a>
+              </>
             )}
           </span>
         </div>

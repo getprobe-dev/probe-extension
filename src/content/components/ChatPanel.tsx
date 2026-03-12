@@ -6,6 +6,7 @@ import { SetupGuide } from "./SetupGuide";
 import { X, ArrowLeft, Zap, ExternalLink, ScanEye } from "lucide-react";
 import { ContextInspector } from "./ContextInspector";
 import { getIconUrl } from "../utils/theme";
+import { parsePromptSuggestions } from "../../shared/parsing";
 import type {
   ChatMessage,
   PRContext,
@@ -61,6 +62,8 @@ export function ChatPanel({
   const storageKeyRef = useRef<string>("");
   const lastAssistantContentRef = useRef<string>("");
   const reviewKeyRef = useRef<string>("");
+  const onDiffLoadedRef = useRef(onDiffLoaded);
+  useEffect(() => { onDiffLoadedRef.current = onDiffLoaded; }, [onDiffLoaded]);
 
   const checkKeys = useCallback(() => {
     chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
@@ -92,7 +95,7 @@ export function ChatPanel({
         const context = await extractPRContext();
         if (cancelled) return;
         setPrContext(context);
-        onDiffLoaded(context.diff);
+        onDiffLoadedRef.current(context.diff);
 
         const key = STORAGE_KEYS.chatHistory(context.owner, context.repo, context.number);
         storageKeyRef.current = key;
@@ -140,7 +143,6 @@ export function ChatPanel({
         chrome.runtime.sendMessage({ type: "cancel-enriched-context", requestId: enrichedContextRequestId });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsSetup]);
 
   const focusKey = focusedItems
@@ -196,6 +198,12 @@ export function ChatPanel({
     setPendingReview([]);
     persistReview([]);
   }, [persistReview]);
+
+  const handleSummaryLoading = useCallback(() => setFocusBulletsLoading(true), []);
+  const handleSummaryReady = useCallback((bullets: PromptSuggestion[]) => {
+    setFocusBullets(bullets);
+    setFocusBulletsLoading(false);
+  }, []);
 
   const primaryFile = focusedItems.length > 0 ? focusedItems[0].file : null;
 
@@ -325,19 +333,8 @@ export function ChatPanel({
           let cleanContent = fullContent;
           if (match) {
             try {
-              const parsed: unknown = JSON.parse(match[1]);
-              if (Array.isArray(parsed)) {
-                const suggestions = parsed
-                  .filter(
-                    (s): s is PromptSuggestion =>
-                      typeof s === "object" &&
-                      s !== null &&
-                      typeof (s as Record<string, unknown>).label === "string" &&
-                      typeof (s as Record<string, unknown>).prompt === "string",
-                  )
-                  .slice(0, 2);
-                if (suggestions.length > 0) setFollowUpSuggestions(suggestions);
-              }
+              const suggestions = parsePromptSuggestions(JSON.parse(match[1]));
+              if (suggestions.length > 0) setFollowUpSuggestions(suggestions);
             } catch { /* malformed JSON — skip */ }
             cleanContent = fullContent.slice(0, fullContent.length - match[0].length).trimEnd();
           }
@@ -505,11 +502,8 @@ export function ChatPanel({
               fileLine={fileLine.line}
               fileSide={fileLine.side}
               onAddToReview={handleAddToReview}
-              onSummaryLoading={() => setFocusBulletsLoading(true)}
-              onSummaryReady={(bullets) => {
-                setFocusBullets(bullets);
-                setFocusBulletsLoading(false);
-              }}
+              onSummaryLoading={handleSummaryLoading}
+              onSummaryReady={handleSummaryReady}
             />
           )}
 

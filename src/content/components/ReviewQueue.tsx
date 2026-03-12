@@ -98,7 +98,7 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
               <div className="max-h-[160px] overflow-y-auto p-2 space-y-1">
                 {pending.map((c, i) => (
                   <div
-                    key={i}
+                    key={`${c.path}:${c.line}:${c.timestamp}`}
                     className="group flex items-start gap-2 p-2 rounded-lg bg-surface border border-border hover:border-mint/40 transition-colors"
                   >
                     <div className="flex-1 min-w-0">

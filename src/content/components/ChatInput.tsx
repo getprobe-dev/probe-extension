@@ -128,9 +128,9 @@ export function ChatInput({
           )}
           {hasFocusBullets && focusBullets && (
             <div className="grid grid-cols-2 gap-2">
-              {focusBullets.map((item, i) => (
+              {focusBullets.map((item) => (
                 <button
-                  key={i}
+                  key={item.label}
                   onClick={() => onSend(item.prompt)}
                   className="starter-pill px-3 py-2 rounded-xl text-xs truncate"
                   title={item.prompt}
@@ -157,9 +157,9 @@ export function ChatInput({
 
       {!showStarters && !isStreaming && followUpSuggestions && followUpSuggestions.length > 0 && (
         <div className="flex gap-2 px-3 py-2.5 border-t border-border">
-          {followUpSuggestions.map((item, i) => (
+          {followUpSuggestions.map((item) => (
             <button
-              key={i}
+              key={item.label}
               onClick={() => onSend(item.prompt)}
               className="starter-pill flex-1 px-3 py-2 rounded-xl text-xs truncate"
               title={item.prompt}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   PRContext,
   PRStats,
@@ -38,11 +38,23 @@ const REVIEW_STATE_LABELS: Record<string, string> = {
   PENDING: "Pending",
 };
 
+const REVIEW_STATE_COLORS: Record<string, string> = {
+  APPROVED: "text-[#16a34a]",
+  CHANGES_REQUESTED: "text-[#dc2626]",
+};
+
 export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRDashboardProps) {
   const [stats, setStats] = useState<PRStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [_summary, setSummary] = useState<PromptSuggestion[] | null>(null);
   const [_summaryLoading, setSummaryLoading] = useState(false);
+
+  const onSummaryLoadingRef = useRef(onSummaryLoading);
+  const onSummaryReadyRef = useRef(onSummaryReady);
+  useEffect(() => {
+    onSummaryLoadingRef.current = onSummaryLoading;
+    onSummaryReadyRef.current = onSummaryReady;
+  }, [onSummaryLoading, onSummaryReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +71,7 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
         if (res?.ok && res.stats) {
           setStats(res.stats);
           setSummaryLoading(true);
-          onSummaryLoading?.();
+          onSummaryLoadingRef.current?.();
           chrome.runtime.sendMessage(
             {
               type: "generate-pr-summary",
@@ -74,7 +86,7 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
               if (cancelled) return;
               if (sumRes?.ok && sumRes.bullets) {
                 setSummary(sumRes.bullets);
-                onSummaryReady?.(sumRes.bullets);
+                onSummaryReadyRef.current?.(sumRes.bullets);
               }
               setSummaryLoading(false);
             },
@@ -87,8 +99,7 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prContext.owner, prContext.repo, prContext.number]);
+  }, [prContext.owner, prContext.repo, prContext.number, prContext.title, prContext.description]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -190,13 +201,7 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
                 )}
                 <span className="text-[0.7rem] text-foreground">{r.login}</span>
                 <span
-                  className={`text-[0.6rem] ml-auto ${
-                    r.state === "APPROVED"
-                      ? "text-[#16a34a]"
-                      : r.state === "CHANGES_REQUESTED"
-                        ? "text-[#dc2626]"
-                        : "text-muted-foreground"
-                  }`}
+                  className={`text-[0.6rem] ml-auto ${REVIEW_STATE_COLORS[r.state] ?? "text-muted-foreground"}`}
                 >
                   {REVIEW_STATE_LABELS[r.state] ?? r.state}
                 </span>

@@ -227,17 +227,22 @@ function buildLinkedIssuesSection(ctx: EnrichedPRContext): string {
   return `\n\n## Linked Issues\n${blocks.join("\n\n")}`;
 }
 
+const FILE_STATUS_INDICATOR: Record<string, string> = {
+  added: "(new)",
+  removed: "(deleted)",
+  renamed: "(renamed)",
+};
+
+const FILE_STATUS_LABELS: Record<string, string> = {
+  added: "new file",
+  removed: "deleted",
+  renamed: "renamed",
+};
+
 function buildFileTreeSection(ctx: EnrichedPRContext): string {
   if (ctx.files.length === 0) return "";
   const lines = ctx.files.map((f) => {
-    const indicator =
-      f.status === "added"
-        ? "(new)"
-        : f.status === "removed"
-          ? "(deleted)"
-          : f.status === "renamed"
-            ? "(renamed)"
-            : "";
+    const indicator = FILE_STATUS_INDICATOR[f.status] ?? "";
     return `- ${f.filename} ${indicator} +${f.additions}/-${f.deletions}`.trimEnd();
   });
   return `\n\n## Changed Files (${ctx.files.length} files)\n${lines.join("\n")}`;
@@ -288,14 +293,7 @@ function buildPerFileSections(ctx: EnrichedPRContext): string {
     const fullContent = fileContents[f.filename];
     const isDeleted = f.status === "removed";
 
-    const statusLabel =
-      f.status === "added"
-        ? "new file"
-        : f.status === "removed"
-          ? "deleted"
-          : f.status === "renamed"
-            ? "renamed"
-            : "modified";
+    const statusLabel = FILE_STATUS_LABELS[f.status] ?? "modified";
 
     const header = `## File: \`${f.filename}\` (${statusLabel}, +${f.additions}/-${f.deletions})`;
 

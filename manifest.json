@@ -29,13 +29,13 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://github.com/*/*/pull/*",
-    "https://patch-diff.githubusercontent.com/*",
+    "https://patch-diff.githubusercontent.com/raw/*",
     "https://raw.githubusercontent.com/*",
     "https://api.github.com/repos/*"
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icon-16.png", "icon-48.png", "icon-128.png"],
+      "resources": ["icon-48.png", "icon-128.png"],
       "matches": ["https://github.com/*"]
     }
   ]

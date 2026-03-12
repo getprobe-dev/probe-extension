@@ -56,9 +56,9 @@ The unified `.diff` file is not available through the GitHub REST API — it is 
 
 ---
 
-### `https://patch-diff.githubusercontent.com/*`
+### `https://patch-diff.githubusercontent.com/raw/*`
 
-**What it grants:** The background service worker can `fetch()` URLs on `patch-diff.githubusercontent.com`.
+**What it grants:** The background service worker can `fetch()` URLs under the `/raw/` path on `patch-diff.githubusercontent.com`.
 
 **Why it is required:**
 
@@ -67,7 +67,9 @@ The unified `.diff` file is not available through the GitHub REST API — it is 
 const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
 fetch(url)
 ```
-GitHub's PR `.diff` URLs redirect to `https://patch-diff.githubusercontent.com/raw/{owner}/{repo}/pull/{number}.diff` as the actual delivery CDN. The extension service worker follows this redirect to retrieve the unified diff. Without host permission for `patch-diff.githubusercontent.com`, the redirect fails and every feature that depends on the diff (chat, focused-file review, PR dashboard) stops working with a "Failed to fetch" error.
+GitHub's PR `.diff` URLs 302-redirect to `https://patch-diff.githubusercontent.com/raw/{owner}/{repo}/pull/{number}.diff` as the actual delivery CDN. The redirect target always starts with `/raw/`.
+
+**Why `/raw/*` rather than `/*`:** Every observed redirect lands under `/raw/`. Restricting to this path prefix excludes any other content that may exist on this CDN host, applying the same path-narrowing strategy used for `api.github.com/repos/*`.
 
 **Why this exact subdomain and not `*.githubusercontent.com/*`:** The previous manifest used the wildcard `*.githubusercontent.com/*`, which granted access to every subdomain including `avatars.githubusercontent.com`, `codeload.githubusercontent.com`, `objects.githubusercontent.com`, and others. Only two subdomains are actually used: `patch-diff` (here) and `raw` (below). Explicitly listing both is strictly narrower than the wildcard.
 
@@ -140,9 +142,9 @@ All GitHub REST API calls in `src/background/index.ts` are under `/repos/`:
 
 ## Web Accessible Resources (`"web_accessible_resources"`)
 
-### `["icon-16.png", "icon-48.png", "icon-128.png"]` on `https://github.com/*`
+### `["icon-48.png", "icon-128.png"]` on `https://github.com/*`
 
-**What it grants:** Content scripts running on GitHub pages can reference these three files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
+**What it grants:** Content scripts running on GitHub pages can reference these two files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
 
 **Why it is required:**
 
@@ -151,17 +153,22 @@ All GitHub REST API calls in `src/background/index.ts` are under `/repos/`:
 return chrome.runtime.getURL(`icon-${size}.png`);
 ```
 
-This function is called from six content script components:
-- `src/content/components/ChatPanel.tsx` (panel header logo)
-- `src/content/components/PRDashboard.tsx` (loading spinner logo)
-- `src/content/components/ErrorBoundary.tsx` (error state logo)
-- `src/content/App.tsx` (floating trigger button)
-- `src/content/components/FileButtons.tsx` (file focus button)
-- `src/content/components/LineCommentButton.tsx` (line comment button)
+This function is called from six content script components, all using size 48 or 128:
+
+| Component | Size |
+|---|---|
+| `src/content/components/ChatPanel.tsx` (panel header logo) | 48 |
+| `src/content/components/PRDashboard.tsx` (loading spinner logo) | 128 |
+| `src/content/components/ErrorBoundary.tsx` (error state logo) | 48 |
+| `src/content/App.tsx` (floating trigger button) | 48 |
+| `src/content/components/FileButtons.tsx` (file focus button) | 48 |
+| `src/content/components/LineCommentButton.tsx` (line comment button) | 48 |
+
+`icon-16.png` is used in `manifest.json` for the toolbar icon and extension metadata, but it is never referenced via `chrome.runtime.getURL()` in any content script. It therefore does not need to be web-accessible.
 
 Extension-packaged resources are blocked by default in web page contexts. Without `web_accessible_resources`, every `chrome.runtime.getURL()` call returns an inaccessible URL and all icons fail to load.
 
-**Why only these three files:** These are the only extension-packaged assets loaded by `getURL()`. No other file in the package is accessed this way.
+**Why only these two files:** These are the only extension-packaged assets loaded by `getURL()` in content scripts. `icon-16.png` is excluded because no content script references it.
 
 **Why `https://github.com/*` and not narrower:** The `web_accessible_resources` `matches` field does not support path-restricted patterns (e.g. `/*/*/pull/*`) — Chrome rejects them as invalid match patterns. `https://github.com/*` is the narrowest valid pattern. In practice, only the content script (which injects exclusively on PR pages) references these icons, so exposure is limited to three read-only PNG files on a single host.
 

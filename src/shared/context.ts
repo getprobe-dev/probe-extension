@@ -19,10 +19,16 @@ export function scrapePRMetadata(): { title: string; description: string; author
   const descriptionEl = document.querySelector<HTMLElement>(".comment-body");
   const description = descriptionEl?.textContent?.trim() ?? "";
 
-  const authorEl = document.querySelector<HTMLElement>(".gh-header-meta .author");
+  const authorEl =
+    document.querySelector<HTMLElement>('[class*="PullRequestHeaderSummary"] a[data-hovercard-type="user"]') ??
+    document.querySelector<HTMLElement>(".gh-header-meta .author");
   const author = authorEl?.textContent?.trim() ?? "";
 
   return { title, description, author };
+}
+
+export function scrapeViewerLogin(): string {
+  return document.querySelector<HTMLMetaElement>('meta[name="user-login"]')?.content ?? "";
 }
 
 export function scrapeHeadBranch(): string {

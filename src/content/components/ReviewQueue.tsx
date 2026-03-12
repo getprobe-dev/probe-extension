@@ -1,5 +1,5 @@
 import { Check, FileText, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type {
   ReviewPendingComment,
   SubmitReviewRequest,
@@ -12,6 +12,7 @@ interface ReviewQueueProps {
   owner: string;
   repo: string;
   number: number;
+  isSelfReview?: boolean;
   onClear: () => void;
   onRemove: (index: number) => void;
 }
@@ -19,12 +20,16 @@ interface ReviewQueueProps {
 type SubmitState = "idle" | "submitting" | "submitted" | "error";
 type ReviewEvent = "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
 
-export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }: ReviewQueueProps) {
+export function ReviewQueue({ pending, owner, repo, number, isSelfReview, onClear, onRemove }: ReviewQueueProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [body, setBody] = useState("");
   const [event, setEvent] = useState<ReviewEvent>("COMMENT");
   const [state, setState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isSelfReview && event !== "COMMENT") setEvent("COMMENT");
+  }, [isSelfReview, event]);
 
   if (pending.length === 0) return null;
 
@@ -138,21 +143,23 @@ export function ReviewQueue({ pending, owner, repo, number, onClear, onRemove }:
               </div>
 
               {/* Event selector */}
-              <div className="mx-2 mb-2 flex rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] p-0.5">
-                {(["COMMENT", "APPROVE", "REQUEST_CHANGES"] as const).map((ev) => (
-                  <button
-                    key={ev}
-                    onClick={() => setEvent(ev)}
-                    className={`flex-1 py-1 rounded-md text-[0.65rem] font-semibold text-center cursor-pointer transition-all ${
-                      event === ev
-                        ? "bg-white text-navy shadow-sm border border-border"
-                        : "text-[#94a3b8] hover:text-[#64748b] border border-transparent"
-                    }`}
-                  >
-                    {eventLabel(ev)}
-                  </button>
-                ))}
-              </div>
+              {!isSelfReview && (
+                <div className="mx-2 mb-2 flex rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] p-0.5">
+                  {(["COMMENT", "APPROVE", "REQUEST_CHANGES"] as const).map((ev) => (
+                    <button
+                      key={ev}
+                      onClick={() => setEvent(ev)}
+                      className={`flex-1 py-1 rounded-md text-[0.65rem] font-semibold text-center cursor-pointer transition-all ${
+                        event === ev
+                          ? "bg-white text-navy shadow-sm border border-border"
+                          : "text-[#94a3b8] hover:text-[#64748b] border border-transparent"
+                      }`}
+                    >
+                      {eventLabel(ev)}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {state === "error" && (
                 <div className="mx-2 mb-2 px-2.5 py-1.5 text-[0.68rem] text-[#ef4444] bg-[#fef2f2] border border-[#fecaca] rounded-lg">

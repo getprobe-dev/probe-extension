@@ -25,6 +25,7 @@ import {
   extractDiffForFile,
   fetchFileContent,
   extractFirstChangedLine,
+  scrapeViewerLogin,
 } from "../../shared/context";
 import { sendMessage } from "../../shared/messaging";
 
@@ -204,6 +205,9 @@ export function ChatPanel({
     setFocusBullets(bullets);
     setFocusBulletsLoading(false);
   }, []);
+
+  const viewerLogin = scrapeViewerLogin();
+  const isSelfReview = !!(prContext?.author && viewerLogin && prContext.author === viewerLogin);
 
   const primaryFile = focusedItems.length > 0 ? focusedItems[0].file : null;
 
@@ -442,6 +446,7 @@ export function ChatPanel({
               owner={prContext.owner}
               repo={prContext.repo}
               number={prContext.number}
+              isSelfReview={isSelfReview}
               onClear={handleClearReview}
               onRemove={handleRemoveFromReview}
             />

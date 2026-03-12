@@ -101,28 +101,58 @@ The extension's review quality depends on domain-specific knowledge (e.g., React
 
 ---
 
-### `https://api.github.com/repos/*`
+### `https://api.github.com/repos/*/*/pulls/*`
 
-**What it grants:** The background service worker can make authenticated `fetch()` calls to the GitHub REST API under the `/repos/` path.
+**What it grants:** The background service worker can make authenticated `fetch()` calls to GitHub REST API pull request endpoints.
 
 **Why it is required:**
 
-All GitHub REST API calls in `src/background/index.ts` are under `/repos/`:
-
 | Handler | Endpoint | Purpose |
 |---|---|---|
-| `handlePostComment` (line 125) | `POST /repos/{owner}/{repo}/issues/{number}/comments` | Post a PR-level comment |
 | `handlePostReviewComment` (line 137) | `POST /repos/{owner}/{repo}/pulls/{number}/reviews` | Post an inline review comment |
 | `handleSubmitReview` (line 156) | `POST /repos/{owner}/{repo}/pulls/{number}/reviews` | Submit a full review (Comment / Approve / Request Changes) |
 | `handleFetchPRStats` (line 239) | `GET /repos/{owner}/{repo}/pulls/{number}` | Fetch PR metadata (additions, deletions, labels, author) |
 | `handleFetchPRStats` (line 243) | `GET /repos/{owner}/{repo}/pulls/{number}/files` | Fetch per-file change stats |
 | `handleFetchPRStats` (line 244) | `GET /repos/{owner}/{repo}/pulls/{number}/commits` | Fetch commit list |
 | `handleFetchPRStats` (line 245) | `GET /repos/{owner}/{repo}/pulls/{number}/reviews` | Fetch reviewer states |
-| `handleFetchPRStats` (line 265) | `GET /repos/{owner}/{repo}/commits/{sha}` | Fetch per-commit stats |
 
-**Why `/repos/*` rather than `/*`:** No call accesses `/user`, `/orgs`, `/gists`, `/search`, `/notifications`, or any other top-level GitHub API path. Restricting to `/repos/*` ensures the host permission cannot be used to read or write anything outside repository data.
+**What breaks without it:** Review submission fails. PR metadata, file stats, commit list, and reviewer states cannot load.
 
-**What breaks without it:** Posting comments and reviews fails. The PR dashboard (stats, commit timeline, reviewer states) cannot load.
+---
+
+### `https://api.github.com/repos/*/*/issues/*/comments`
+
+**What it grants:** The background service worker can post PR-level comments via the GitHub Issues API.
+
+**Why it is required:**
+
+| Handler | Endpoint | Purpose |
+|---|---|---|
+| `handlePostComment` (line 125) | `POST /repos/{owner}/{repo}/issues/{number}/comments` | Post a PR-level comment |
+
+GitHub models PR comments through the Issues API (`/issues/{number}/comments`), not the Pulls API. This requires a separate host permission pattern because the path contains `/issues/` rather than `/pulls/`.
+
+**What breaks without it:** The "Post comment" action in the chat panel fails.
+
+---
+
+### `https://api.github.com/repos/*/*/commits/*`
+
+**What it grants:** The background service worker can fetch per-commit statistics from the GitHub Commits API.
+
+**Why it is required:**
+
+| Handler | Endpoint | Purpose |
+|---|---|---|
+| `handleFetchPRStats` (line 265) | `GET /repos/{owner}/{repo}/commits/{sha}` | Fetch per-commit stats (additions, deletions) |
+
+The PR dashboard shows per-commit change statistics in the commit timeline. This endpoint is under `/commits/{sha}`, which is not covered by the `/pulls/*` pattern.
+
+**What breaks without it:** Per-commit stats in the PR dashboard show as unavailable.
+
+---
+
+**Why three patterns rather than `/repos/*`:** The previous pattern `repos/*` granted access to every endpoint under `/repos/`, including destructive operations the extension never uses (e.g. `DELETE /repos/{o}/{r}`, `PUT /repos/{o}/{r}/collaborators/{username}`, `POST /repos/{o}/{r}/hooks`). Splitting into the three endpoint families actually used — `pulls`, `issues/*/comments`, and `commits` — ensures the host permission cannot reach repository settings, webhooks, collaborators, branch protection, or any other administrative endpoint. Note: Chrome's `*` wildcard matches across `/` separators, so each pattern still requires its literal path segment (`/pulls/`, `/issues/`, `/commits/`) to appear in the URL.
 
 ---
 

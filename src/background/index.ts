@@ -463,6 +463,43 @@ async function handleFetchEnrichedContext(
   const partial =
     !headers || (!pr && commits.length === 0 && reviews.length === 0 && files.length === 0);
 
+  // Full head-branch file contents — fetch for all non-deleted files,
+  // subject to a 400K char total budget. Files sorted by change volume so
+  // the highest-impact files get full content first.
+  const FILE_CONTENT_BUDGET = 400_000;
+  const PER_FILE_CONTENT_CAP = 30_000;
+
+  const fetchableFiles = [...files]
+    .filter((f) => f.status !== "removed")
+    .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions));
+
+  const rawBase = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${headSha}`;
+
+  const fileContents: Record<string, string> = {};
+  let contentBudgetRemaining = FILE_CONTENT_BUDGET;
+
+  if (headSha) {
+    const contentResults = await Promise.allSettled(
+      fetchableFiles.map((f) => fetch(`${rawBase}/${f.filename}`)),
+    );
+
+    for (let i = 0; i < fetchableFiles.length; i++) {
+      if (contentBudgetRemaining <= 0) break;
+      const result = contentResults[i];
+      if (result.status !== "fulfilled" || !result.value.ok) continue;
+      const text = await result.value.text();
+      // Skip likely binary files (null bytes in first 1K chars)
+      if (text.slice(0, 1024).includes("\0")) continue;
+      const capped =
+        text.length > PER_FILE_CONTENT_CAP
+          ? text.slice(0, PER_FILE_CONTENT_CAP) + "\n… [truncated]"
+          : text;
+      if (capped.length > contentBudgetRemaining) break;
+      fileContents[fetchableFiles[i].filename] = capped;
+      contentBudgetRemaining -= capped.length;
+    }
+  }
+
   const context: EnrichedPRContext = {
     owner: msg.owner,
     repo: msg.repo,
@@ -487,6 +524,7 @@ async function handleFetchEnrichedContext(
     checks,
     files,
     linkedIssues,
+    fileContents: Object.keys(fileContents).length > 0 ? fileContents : undefined,
     ...(partial ? { partial: true } : {}),
   };
 

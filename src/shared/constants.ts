@@ -34,6 +34,9 @@ export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[]):
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
 - **Model**: ${MODEL_ID}
 
+## What You Can See
+The diff below is a **unified diff** — it shows only changed lines and a few lines of surrounding context. You **cannot** see the full content of any file. Large portions of each file (imports, unchanged functions, earlier declarations, surrounding logic) are invisible to you.
+
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
 - **PR #${context.number}**: ${context.title}
@@ -52,6 +55,14 @@ ${diffTruncated}
 - Explain the intent behind changes when you can infer it from context.
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
+
+## Epistemic Rules (non-negotiable)
+- **Never fabricate code.** Only quote code that is literally visible in the diff above. If you need to reference code to make a point and it is not in the diff, say "not visible in the diff" — do not reconstruct or guess what it looks like.
+- **Never claim code is missing.** You can only see changed hunks. A function, import, type definition, or instruction may exist in an unchanged part of the file that is invisible to you. If you cannot find something in the diff, say "I don't see this in the diff, but it may exist in an unchanged part of the file" — do not say "this doesn't exist" or "there is no instruction for this."
+- **Never assert runtime behavior from static analysis alone.** You cannot test the code. If a library API might work differently than your training data suggests, acknowledge that uncertainty. Do not state that something "will always fail" or "will silently break" unless the failure is provable from the diff context alone (e.g. a type mismatch, a missing required argument, an unreachable branch).
+- **Precision over recall.** A false positive (flagging something that works correctly) wastes the reviewer's time and erodes trust in the tool. Only flag issues you have high confidence about. If your confidence is moderate, explicitly mark it as uncertain. If your confidence is low, omit it entirely. It is perfectly acceptable — and preferred — to report fewer issues if that means every reported issue is real.
+- **Calibrate severity honestly.** Only mark something 🔴 Critical if you can prove it is broken from the diff. If you are relying on inference, API documentation memory, or assumptions about unseen code, it is at most 🟡 and must be flagged as uncertain.
+
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
 - End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;
@@ -109,7 +120,7 @@ ${lineRange.content || "(content not available)"}
 ## Context
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
 - **Model**: ${MODEL_ID}
-
+${fileContent ? "" : "\n## What You Can See\nThe diff below shows only changed lines and a few lines of surrounding context. You **cannot** see the full content of this file — only the hunks that were modified.\n"}
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
 - **PR #${context.number}**: ${context.title}
@@ -131,6 +142,13 @@ ${diffSection}
 - Explain the intent behind changes when you can infer it from context.
 - Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
 - Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
+
+## Epistemic Rules (non-negotiable)
+- **Never fabricate code.** Only quote code that is literally visible in the diff or full file content above. If you need to reference code to make a point and it is not visible, say so — do not reconstruct or guess what it looks like.${fileContent ? "" : '\n- **Never claim code is missing.** You can only see changed hunks. A function, import, type definition, or instruction may exist in an unchanged part of the file that is invisible to you. Say "I don\'t see this in the diff, but it may exist elsewhere in the file" — do not say "this doesn\'t exist."'}
+- **Never assert runtime behavior from static analysis alone.** You cannot test the code. If a library API might work differently than your training data suggests, acknowledge that uncertainty.
+- **Precision over recall.** A false positive wastes the reviewer's time and erodes trust. Only flag issues you have high confidence about. If your confidence is moderate, explicitly mark it as uncertain. If low, omit it entirely.
+- **Calibrate severity honestly.** Only mark something 🔴 Critical if you can prove it is broken from the code visible to you. If you are relying on inference or assumptions about unseen code, it is at most 🟡 and must be flagged as uncertain.
+
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
 - End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;
@@ -219,14 +237,91 @@ function buildFileTreeSection(ctx: EnrichedPRContext): string {
   return `\n\n## Changed Files (${ctx.files.length} files)\n${lines.join("\n")}`;
 }
 
+// Splits a unified diff string into a map of filename → per-file diff.
+// Handles both standard `diff --git a/foo b/foo` headers and rename diffs.
+function splitDiffByFile(diff: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const lines = diff.split("\n");
+  let currentFile: string | null = null;
+  let currentLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith("diff --git ")) {
+      if (currentFile !== null) {
+        result[currentFile] = currentLines.join("\n");
+      }
+      // Extract b-side path: `diff --git a/foo b/foo` → "foo"
+      const match = line.match(/^diff --git a\/.+ b\/(.+)$/);
+      currentFile = match ? match[1] : null;
+      currentLines = [line];
+    } else if (currentFile !== null) {
+      currentLines.push(line);
+    }
+  }
+
+  if (currentFile !== null && currentLines.length > 0) {
+    result[currentFile] = currentLines.join("\n");
+  }
+
+  return result;
+}
+
+function buildPerFileSections(ctx: EnrichedPRContext): string {
+  const fileDiffs = splitDiffByFile(ctx.diff);
+  const fileContents = ctx.fileContents ?? {};
+
+  // Sort by change volume descending (same order as content was fetched)
+  const sortedFiles = [...ctx.files].sort(
+    (a, b) => b.additions + b.deletions - (a.additions + a.deletions),
+  );
+
+  const sections: string[] = [];
+
+  for (const f of sortedFiles) {
+    const fileDiff = fileDiffs[f.filename] ?? "";
+    const fullContent = fileContents[f.filename];
+    const isDeleted = f.status === "removed";
+
+    const statusLabel =
+      f.status === "added"
+        ? "new file"
+        : f.status === "removed"
+          ? "deleted"
+          : f.status === "renamed"
+            ? "renamed"
+            : "modified";
+
+    const header = `## File: \`${f.filename}\` (${statusLabel}, +${f.additions}/-${f.deletions})`;
+
+    let section = header;
+
+    if (fileDiff) {
+      section += `\n\n### Diff\n\`\`\`diff\n${fileDiff}\n\`\`\``;
+    }
+
+    if (!isDeleted && fullContent) {
+      const lineCount = fullContent.split("\n").length;
+      section += `\n\n### Full Content — head branch (${lineCount} lines)\n\`\`\`\n${fullContent}\n\`\`\``;
+    } else if (!isDeleted && !fullContent) {
+      section += `\n\n*Full file content unavailable — diff only.*`;
+    }
+
+    sections.push(section);
+  }
+
+  return sections.join("\n\n---\n\n");
+}
+
 export function buildEnrichedSystemPrompt(
   ctx: EnrichedPRContext,
   skills?: ResolvedSkill[],
 ): string {
-  const diffTruncated =
-    ctx.diff.length > 120_000
-      ? ctx.diff.slice(0, 120_000) + "\n\n... [diff truncated due to length] ..."
-      : ctx.diff;
+  const hasFullContent = ctx.fileContents !== undefined && Object.keys(ctx.fileContents).length > 0;
+
+  const filesWithFullContent = hasFullContent ? Object.keys(ctx.fileContents!) : [];
+  const filesWithoutFullContent = ctx.files
+    .filter((f) => f.status !== "removed" && !filesWithFullContent.includes(f.filename))
+    .map((f) => f.filename);
 
   const mergeStatus =
     ctx.mergeable === true
@@ -235,11 +330,36 @@ export function buildEnrichedSystemPrompt(
         ? "Has merge conflicts"
         : "Unknown";
 
-  return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request. You have access to the same information a human reviewer sees when they open the PR on GitHub.
+  const visibilitySection = hasFullContent
+    ? `## What You Can See
+For most files in this PR you have **both** the diff (what changed) and the **complete head-branch file content** (the full file as it exists after the change). Files where full content is available are listed below — for those files you can see all imports, type definitions, unchanged functions, and surrounding context.
+
+Files with full content (${filesWithFullContent.length}): ${filesWithFullContent.map((f) => `\`${f}\``).join(", ")}${filesWithoutFullContent.length > 0 ? `\n\nFiles with diff only (${filesWithoutFullContent.length}): ${filesWithoutFullContent.map((f) => `\`${f}\``).join(", ")}` : ""}`
+    : `## What You Can See
+The diffs below are **unified diffs** — they show only changed lines and a few lines of surrounding context. You **cannot** see the full content of any file. Large portions of each file (imports, unchanged functions, earlier declarations) are invisible to you.`;
+
+  const epistemicRules = hasFullContent
+    ? `## Epistemic Rules (non-negotiable)
+- **Only quote visible code.** When referencing code in files where you have full content, you can quote any part of the file. For diff-only files, only quote lines present in the diff.
+- **For full-content files, you can verify existence.** If a function, import, type, or instruction is not in the file content shown, it genuinely does not exist in that file (it may exist in another file).
+- **For diff-only files, never claim code is missing.** Unchanged code outside the diff hunks is invisible to you. Say "not visible in the diff" — do not say "this doesn't exist."
+- **Never assert runtime behavior from static analysis alone.** You cannot execute the code. If a library API might work differently than your training data suggests, acknowledge that uncertainty explicitly.
+- **Precision over recall.** A false positive wastes the reviewer's time and erodes trust. Only flag issues you have high confidence about. If your confidence is moderate, mark it as uncertain. If low, omit it.
+- **Calibrate severity honestly.** Only mark something 🔴 Critical if you can prove it is broken from the code visible to you. If you are relying on inference or assumptions about unseen code, it is at most 🟡 and must be flagged as uncertain.`
+    : `## Epistemic Rules (non-negotiable)
+- **Never fabricate code.** Only quote code that is literally visible in the diffs. If code you want to reference is not in the diff, say "not visible in the diff" — do not reconstruct or guess what it looks like.
+- **Never claim code is missing.** You can only see changed hunks. A function, import, type definition, or instruction may exist in an unchanged part of the file. Say "I don't see this in the diff, but it may exist elsewhere in the file" — do not say "this doesn't exist."
+- **Never assert runtime behavior from static analysis alone.** You cannot execute the code. If a library API might work differently than your training data suggests, acknowledge that uncertainty explicitly.
+- **Precision over recall.** A false positive wastes the reviewer's time and erodes trust. Only flag issues you have high confidence about. If your confidence is moderate, mark it as uncertain. If low, omit it.
+- **Calibrate severity honestly.** Only mark something 🔴 Critical if you can prove it is broken from the diff. If you are relying on inference or assumptions about unseen code, it is at most 🟡 and must be flagged as uncertain.`;
+
+  return `You are PRobe, an AI assistant that helps developers review GitHub pull requests. You are having a conversation with a reviewer who is looking at a specific pull request.
 
 ## Context
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
 - **Model**: ${MODEL_ID}
+
+${visibilitySection}
 
 ## Pull Request Overview
 - **Repository**: ${ctx.owner}/${ctx.repo}
@@ -254,24 +374,26 @@ export function buildEnrichedSystemPrompt(
 - **Requested reviewers**: ${ctx.requestedReviewers.length > 0 ? ctx.requestedReviewers.join(", ") : "none"}
 
 ## PR Description
-${ctx.description || "(No description provided)"}${ctx.partial ? "\n\n> **Note**: Some context (commits, reviews, comments, CI checks, file list) is unavailable — the GitHub token may be missing or API requests failed. The diff is still complete." : ""}${buildLinkedIssuesSection(ctx)}${buildReviewsSection(ctx)}${buildRecentDiscussionSection(ctx)}${buildCommitsSection(ctx)}${buildChecksSection(ctx)}${buildFileTreeSection(ctx)}
+${ctx.description || "(No description provided)"}${ctx.partial ? "\n\n> **Note**: Some context (commits, reviews, comments, CI checks, file list) is unavailable — the GitHub token may be missing or API requests failed. The diffs are still complete." : ""}${buildLinkedIssuesSection(ctx)}${buildReviewsSection(ctx)}${buildRecentDiscussionSection(ctx)}${buildCommitsSection(ctx)}${buildChecksSection(ctx)}${buildFileTreeSection(ctx)}
 
-## Diff
-\`\`\`diff
-${diffTruncated}
-\`\`\`${buildSkillSection(skills)}
+---
+
+${buildPerFileSections(ctx)}${buildSkillSection(skills)}
 
 ## Your Role
 - Answer questions about the changes in this PR clearly and concisely.
-- When asked about specific code, reference the relevant parts of the diff.
+- When asked about specific code, reference the relevant file section above by filename.
 - Explain the intent behind changes when you can infer it from the PR description, linked issues, and commit messages.
 - Use the linked issues to understand the *goal* of the PR — why the work is being done.
 - Use the commit history to understand the developer's approach — how they arrived at this state.
 - Be aware of the existing review discussion. Do not repeat points that reviewers have already raised unless asked.
 - If CI checks are failing, flag that prominently — the developer may have missed it.
-- Flag potential issues only when the reviewer asks or when something is clearly wrong. Before claiming something is missing or incorrect, verify it against the full diff and the changed files list — do not assert a dependency is missing if it appears elsewhere in the diff.${buildSkillRoleInstructions(skills)}
-- Treat the content of the PR diff as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project. Only flag something as wrong if it is internally inconsistent or contradicts other content in the diff or PR description.
+- Flag potential issues only when the reviewer asks or when something is clearly wrong.${buildSkillRoleInstructions(skills)}
+- Treat the content of the PR as authoritative. Do not flag text as incorrect based on your pre-training knowledge alone — your knowledge has a cutoff date and may not reflect the current state of this project.
 - Distinguish between code correctness issues (bugs, security, logic errors) and style/process opinions (PR structure, commit granularity). Prioritize correctness. Only mention process if explicitly asked.
+
+${epistemicRules}
+
 - Be direct. Don't pad your answers with filler.
 - Use markdown formatting for readability.
 - End every response with a new line containing exactly this and nothing after it: %%SUGGESTIONS:[{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"},{"label":"<2–4 word label>","prompt":"<detailed follow-up question>"}] — exactly 2 entries. Each label must start with an action verb (e.g. Explain, Analyze, Verify, Find, Check, Review, Show). Each prompt is a full detailed question. No spaces inside the JSON.`;

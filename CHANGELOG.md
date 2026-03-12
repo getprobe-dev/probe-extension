@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 - **Syntax highlighting in AI responses** — code blocks in the chat panel are now syntax-highlighted using `rehype-highlight` with auto-language detection. A PRobe-themed color scheme (navy background, mint keywords, blue types, amber numbers) is applied consistently across all languages.
 - **Enriched PR context** — when a GitHub token is configured, the system prompt now includes commits, reviews, recent comments, CI check status, file list, and linked issues fetched from the GitHub API. A `partial` flag is surfaced in the prompt when data is unavailable.
+- **Per-file full content in AI reviews** — the system prompt now includes the complete head-branch file content for each changed file (up to 400K chars total, 30K per file, sorted by change volume). This gives the model full visibility into imports, type definitions, and surrounding context — eliminating the class of false positives caused by diff-only reviews where unchanged code was invisible.
 - **Setup guide** — new in-panel onboarding component guides users to configure their API keys and GitHub token on first use.
 - **Resizable chat panel** — the side panel can be dragged to resize between 320px and 800px.
 - **Bundled Outfit font** — the Outfit typeface is now bundled as a WOFF2 web-accessible resource, ensuring consistent rendering regardless of GitHub's CSP.

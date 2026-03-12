@@ -93,6 +93,7 @@ export interface EnrichedPRContext {
   checks: PRCheckRun[];
   files: PRFileEntry[];
   linkedIssues: LinkedIssue[];
+  fileContents?: Record<string, string>;
   partial?: boolean;
   focusedFile?: string;
   focusedFileContent?: string;

@@ -388,6 +388,7 @@ export function ChatPanel({
   }, [persistMessages]);
 
   const handleClear = useCallback(() => {
+    setShowInspector(false);
     setMessages([]);
     setError(null);
     if (storageKeyRef.current) chrome.storage.local.remove(storageKeyRef.current);

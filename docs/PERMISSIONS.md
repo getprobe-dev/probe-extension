@@ -81,21 +81,21 @@ GitHub's PR `.diff` URLs redirect to `https://patch-diff.githubusercontent.com/r
 
 **Why it is required:**
 
-Two distinct fetch patterns use this host:
+Two fetch patterns use this host, both directly serving the extension's core purpose of producing high-quality AI code reviews:
 
 1. **Raw file content for focused-file review** — `src/background/index.ts` line 58:
 ```typescript
 const url = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${msg.branch}/${path}`;
 fetch(url)
 ```
-When a user focuses on a specific file, the extension fetches its full content so the AI has complete context, not just the diff hunks. The path includes owner, repo, branch, and file path — all of which are dynamic and not known at manifest-declaration time.
+When a user focuses on a specific file, the extension fetches its full content so the AI has complete context beyond the diff hunks. The path includes owner, repo, branch, and file path — all dynamic values unknown at manifest-declaration time.
 
-2. **Review skill markdown** — `src/background/index.ts` line 442 (via `fetchSkillContent`):
-The skill registry in `src/shared/skills.ts` stores `rawUrl` fields pointing to public `SKILL.md` files on `raw.githubusercontent.com` (e.g. `vercel-labs/agent-skills`, `wshobson/agents`). These are fetched on demand and cached locally for 24 hours.
+2. **Review skill knowledge** — `src/background/index.ts` line 442 (via `fetchSkillContent`):
+The extension's review quality depends on domain-specific knowledge (e.g., React performance patterns, Python async best practices, API design principles). These "skills" are curated `SKILL.md` files hosted in public GitHub repositories (`vercel-labs/agent-skills`, `wshobson/agents`) and registered in `src/shared/skills.ts`. Skills are matched to a PR based on the file extensions present in its diff, fetched on demand, and cached locally for 24 hours via `chrome.storage.local`. The fetched content is injected into the AI system prompt so reviews cite specific, authoritative guidelines rather than generic advice. Skills are not auxiliary — they are the mechanism by which the AI produces reviews grounded in established engineering practices.
 
-**Why `/*` rather than a narrower path:** Both uses require arbitrary owner/repo/branch/path combinations that are unknown at build time. The host itself (`raw.githubusercontent.com`) is the narrowing — it is a read-only content delivery host with no authenticated write operations.
+**Why `/*` rather than a narrower path:** Both uses require arbitrary `/{owner}/{repo}/{ref}/{path}` combinations that are unknown at build time. No narrower path prefix covers both the reviewed repository's files and the skill source repositories. The host itself (`raw.githubusercontent.com`) is a read-only content delivery endpoint with no authenticated write operations, no user data exposure, and no side effects.
 
-**What breaks without it:** Focused-file context is unavailable. Review skills cannot be loaded. AI responses become less accurate for file-level reviews.
+**What breaks without it:** Focused-file context is unavailable — the AI only sees diff hunks, not full file context. Review skills cannot be loaded — the AI produces generic reviews without domain-specific guidance. Both directly degrade the extension's core value proposition.
 
 ---
 
@@ -140,9 +140,9 @@ All GitHub REST API calls in `src/background/index.ts` are under `/repos/`:
 
 ## Web Accessible Resources (`"web_accessible_resources"`)
 
-### `["icon-16.png", "icon-48.png", "icon-128.png"]` on `https://github.com/*`
+### `["icon-16.png", "icon-48.png", "icon-128.png"]` on `https://github.com/*/*/pull/*`
 
-**What it grants:** Content scripts running on `github.com` can reference these three files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
+**What it grants:** Content scripts running on GitHub pull request pages can reference these three files via `chrome.runtime.getURL()`, making them loadable in `<img>` `src` attributes inside the Shadow DOM.
 
 **Why it is required:**
 
@@ -163,7 +163,7 @@ Extension-packaged resources are blocked by default in web page contexts. Withou
 
 **Why only these three files:** These are the only extension-packaged assets loaded by `getURL()`. No other file in the package is accessed this way.
 
-**Why only on `https://github.com/*`:** The content script only runs on GitHub. No other origin needs to load these icons.
+**Why only on `https://github.com/*/*/pull/*`:** The content script only injects on PR pages (`/*/*/pull/*`), and only content script components reference these icons. No other page on `github.com` needs access. This match pattern is identical to the `content_scripts.matches` pattern, applying least privilege to resource exposure as well as script injection.
 
 ---
 

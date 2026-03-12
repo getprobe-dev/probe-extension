@@ -26,24 +26,16 @@
       "css": ["src/styles/content.css"]
     }
   ],
-  "permissions": ["storage", "activeTab", "declarativeNetRequest"],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://github.com/*/*/pull/*",
-    "https://*.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/repos/*"
   ],
   "web_accessible_resources": [
     {
-      "resources": ["*.png"],
+      "resources": ["icon-16.png", "icon-48.png", "icon-128.png"],
       "matches": ["https://github.com/*"]
     }
-  ],
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "cors_rules",
-        "enabled": true,
-        "path": "rules.json"
-      }
-    ]
-  }
+  ]
 }

@@ -152,10 +152,8 @@ npm run deploy   # deploys via wrangler
 
 PRobe requests the minimum permissions needed:
 
-- **`storage`** — Persist API keys and chat history.
-- **`activeTab`** — Access the current GitHub tab.
-- **`declarativeNetRequest`** — Add CORS headers for patch diff fetches.
-- **Host permissions** — `github.com/*/*/pull/*` (PR pages only), `*.githubusercontent.com` (diff and raw file fetches).
+- **`storage`** — Persist API keys and per-PR chat/review state.
+- **Host permissions** — `github.com/*/*/pull/*` (PR diff fetch), `raw.githubusercontent.com/*` (raw file content), `api.github.com/*` (PR stats + posting comments/reviews).
 
 ---
 

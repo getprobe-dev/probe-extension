@@ -397,9 +397,10 @@ chrome.runtime.onConnect.addListener((port) => {
 async function getSettings(): Promise<{ apiKey: string | null; proxyUrl: string }> {
   return new Promise((resolve) => {
     chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL], (result) => {
+      const raw = (result[STORAGE_KEYS.PROXY_URL] as string) || "";
       resolve({
         apiKey: (result[STORAGE_KEYS.API_KEY] as string) ?? null,
-        proxyUrl: (result[STORAGE_KEYS.PROXY_URL] as string) || DEFAULT_PROXY_URL,
+        proxyUrl: raw.startsWith("https://") ? raw : DEFAULT_PROXY_URL,
       });
     });
   });

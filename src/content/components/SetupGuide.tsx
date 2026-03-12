@@ -30,8 +30,7 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
   }, [onKeysReady]);
 
   const handleOpenSettings = () => {
-    const popupUrl = chrome.runtime.getURL("popup/index.html");
-    window.open(popupUrl, "_blank");
+    chrome.runtime.sendMessage({ type: "open-popup" });
   };
 
   return (

@@ -43,6 +43,7 @@ import type {
 } from "../shared/types";
 
 type IncomingMessage =
+  | { type: "open-popup" }
   | FetchDiffRequest
   | FetchFileRequest
   | FetchEnrichedContextRequest
@@ -53,6 +54,14 @@ type IncomingMessage =
   | GeneratePRSummaryRequest;
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
+  if (msg.type === "open-popup") {
+    chrome.action
+      .openPopup()
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
   if (msg.type === "fetch-diff") {
     const url = `https://github.com/${msg.owner}/${msg.repo}/pull/${msg.number}.diff`;
     fetch(url)

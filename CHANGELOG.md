@@ -21,7 +21,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Code block border-radius** — reduced from `12px` to `8px` to prevent text near the left/right edges from appearing visually clipped by the corners.
 - **CWS permissions scope** — manifest host permissions narrowed to the exact GitHub API endpoints used (PR diffs, files, commits, reviews, comments). Removed overly broad patterns that caused the previous CWS rejection.
 - **System prompt grounding** — current date is now injected into all system prompts, preventing false positives when reviewing documentation PRs with version numbers or dates.
-- **SetupGuide settings button** — replaced `chrome.action.openPopup()` (which silently fails from content script context) with `chrome.runtime.getURL()` opened in a new tab.
 - **Resize listener cleanup** — drag listeners on `document` are now tracked in a ref and properly removed if the panel unmounts mid-drag.
 - **Enriched context degradation** — when the GitHub token is missing or API calls fail, the system prompt now explicitly notes that some context is unavailable instead of silently including empty sections.
 

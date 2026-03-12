@@ -12,18 +12,16 @@ PRobe is a Chrome extension that adds a streaming AI chat panel to every GitHub 
 
 ---
 
-## Features
+## Highlights
 
-- **PR-wide chat** — Have a conversation grounded in the full PR diff, title, and description.
-- **File-level focus** — Click a file header in the diff view to scope the AI's context to that file.
-- **Line-level focus** — Select specific lines via GitHub's "Add comment" UI to discuss a precise code region.
-- **Multi-focus** — Pin up to 3 files/line-ranges simultaneously as context for your question.
-- **Review skills** — Automatically loads best-practice review guidelines (React, Python, API design) based on the file types in the diff. Skills are sourced from open repos like [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) and [wshobson/agents](https://github.com/wshobson/agents).
-- **Post comments** — Turn any AI response into a GitHub PR comment (issue comment or inline review comment) with one click.
-- **Review queue** — Collect multiple inline comments and submit them as a single GitHub review (Comment, Approve, or Request Changes).
-- **PR dashboard** — When you first open the panel, see stats (additions/deletions, commits, reviewers, top files) and an AI-generated 3-bullet summary of what to focus on.
-- **Chat history** — Conversations are persisted per-PR in local storage so you can pick up where you left off.
-- **Keyboard shortcut** — `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux) to toggle the panel.
+- **Context-aware chat** — Ask anything about a PR, scoped to the full diff, a single file, or specific lines.
+- **Auto-loaded review skills** — Detects file types and injects best-practice guidelines (React, Python, API design) into the AI's context.
+- **X-Ray mode** — Inspect the full system prompt the AI receives — every instruction, every piece of context, every skill.
+- **Post comments & submit reviews** — Turn AI responses into GitHub comments, or batch inline comments into a single review.
+- **PR dashboard** — Stats, reviewers, top changed files, and AI-generated focus prompts at a glance.
+- **Your keys, your control** — Uses your own Anthropic API key. No account, no subscription, no data on external servers.
+
+See the full feature list and version history in the [Changelog](CHANGELOG.md).
 
 ---
 
@@ -106,7 +104,7 @@ The **content script** renders inside a Shadow DOM to avoid CSS conflicts with G
 2. The background worker fetches the unified diff from GitHub.
 3. File extensions are matched against the skill registry to load relevant review guidelines (cached 24 hours).
 4. A system prompt is assembled from the PR metadata, diff (up to 80K chars), focused file/lines (if any), and matched skills.
-5. Messages are sent to the Anthropic Messages API (`claude-sonnet-4-20250514`) via the proxy with streaming enabled.
+5. Messages are sent to the Anthropic Messages API (`claude-opus-4-6`) via the proxy with streaming enabled.
 6. SSE chunks are forwarded through the port to the content script and rendered incrementally.
 
 ### Review Skills
@@ -123,7 +121,7 @@ PRobe automatically detects file extensions in the diff and injects domain-speci
 | Markdown | react-markdown, remark-gfm, rehype-highlight |
 | Build | Vite 7, vite-plugin-web-extension |
 | Extension | Chrome Manifest V3 |
-| AI | Anthropic `claude-sonnet-4-20250514` (streaming) |
+| AI | Anthropic `claude-opus-4-6` (streaming) |
 | Proxy | Cloudflare Workers |
 
 ---

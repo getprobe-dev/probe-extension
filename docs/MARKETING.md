@@ -17,7 +17,7 @@ YouTube Video
 https://www.youtube.com/watch?v=iErUTRXXKQg
 
 Storylane Interactive Demo
-https://app.storylane.io/share/qywabynn1mgv
+https://app.storylane.io/share/v83hknt1p880
 
 Blog
 https://getprobe.dev/blog/building-probe-in-24-hours

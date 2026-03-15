@@ -37,9 +37,7 @@ export async function extractGhError(res: Response): Promise<string> {
     if (errors?.length) {
       const reasons = errors
         .map((e: unknown) =>
-          e && typeof e === "object" && "message" in e
-            ? (e as { message: string }).message
-            : null,
+          e && typeof e === "object" && "message" in e ? (e as { message: string }).message : null,
         )
         .filter(Boolean);
       detail = reasons.length ? reasons.join("; ") : (msg ?? detail);

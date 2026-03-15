@@ -53,8 +53,15 @@ export function ChatPanel({
   const needsSetup = hasApiKey === false || hasGithubToken === false;
 
   // PR context loading
-  const { prContext, enrichedContext, isLoading, error: contextError, storageKeyRef, reviewKeyRef, setInitialMessages } =
-    usePRLoader(needsSetup, onDiffLoaded);
+  const {
+    prContext,
+    enrichedContext,
+    isLoading,
+    error: contextError,
+    storageKeyRef,
+    reviewKeyRef,
+    setInitialMessages,
+  } = usePRLoader(needsSetup, onDiffLoaded);
 
   // Messages and persistence
   const [messages, setMessages] = useState<ChatMessage[]>([]);

@@ -34,7 +34,13 @@ export function ChatHeader({
     <div className="flex items-center justify-between px-4 h-12 bg-[#1a2e2b] text-white shrink-0 border-b border-[#5eead4]/10">
       <div className="flex items-center gap-2 min-w-0">
         {hasMessages && (
-          <button onClick={onClear} className="header-btn shrink-0" title="New chat" type="button" aria-label="New chat">
+          <button
+            onClick={onClear}
+            className="header-btn shrink-0"
+            title="New chat"
+            type="button"
+            aria-label="New chat"
+          >
             <ArrowLeft className="size-4" />
           </button>
         )}

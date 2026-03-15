@@ -21,3 +21,6 @@ https://app.storylane.io/demo/qywabynn1mgv
 
 Blog
 https://getprobe.dev/blog/building-probe-in-24-hours
+
+LinkedIn
+https://www.linkedin.com/posts/sankalpgunturi_probe-is-a-free-open-source-ai-code-review-activity-7438846624631603200-M9ia

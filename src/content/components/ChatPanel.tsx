@@ -67,10 +67,18 @@ export function ChatPanel({
   useEffect(() => { onDiffLoadedRef.current = onDiffLoaded; }, [onDiffLoaded]);
 
   const checkKeys = useCallback(() => {
-    chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
-      setHasApiKey(!!result[STORAGE_KEYS.API_KEY]);
-      setHasGithubToken(!!result[STORAGE_KEYS.GITHUB_TOKEN]);
-    });
+    chrome.storage.sync.get(
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.OPENAI_API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.GITHUB_TOKEN],
+      (result) => {
+        const provider = (result[STORAGE_KEYS.LLM_PROVIDER] as string) || "anthropic";
+        const hasKey =
+          provider === "openai"
+            ? !!result[STORAGE_KEYS.OPENAI_API_KEY]
+            : !!result[STORAGE_KEYS.API_KEY];
+        setHasApiKey(hasKey);
+        setHasGithubToken(!!result[STORAGE_KEYS.GITHUB_TOKEN]);
+      },
+    );
   }, []);
 
   useEffect(() => {

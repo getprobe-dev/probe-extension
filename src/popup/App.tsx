@@ -2,42 +2,71 @@ import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS } from "../shared/types";
+import type { LLMProvider } from "../shared/types";
 
 export function PopupApp() {
+  const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [storedValues, setStoredValues] = useState({ apiKey: "", githubToken: "" });
+  const [storedValues, setStoredValues] = useState({
+    provider: "anthropic" as LLMProvider,
+    apiKey: "",
+    openaiApiKey: "",
+    githubToken: "",
+  });
 
   useEffect(() => {
-    chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
-      const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
-      const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
-      setApiKey(key);
-      setGithubToken(token);
-      setStoredValues({ apiKey: key, githubToken: token });
-      setLoading(false);
-    });
+    chrome.storage.sync.get(
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.OPENAI_API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.GITHUB_TOKEN],
+      (result) => {
+        const prov = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
+        const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
+        const oaiKey = (result[STORAGE_KEYS.OPENAI_API_KEY] as string) ?? "";
+        const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
+        setProvider(prov);
+        setApiKey(key);
+        setOpenaiApiKey(oaiKey);
+        setGithubToken(token);
+        setStoredValues({ provider: prov, apiKey: key, openaiApiKey: oaiKey, githubToken: token });
+        setLoading(false);
+      },
+    );
   }, []);
 
-  const hasDelta =
-    apiKey.trim() !== storedValues.apiKey || githubToken.trim() !== storedValues.githubToken;
+  const activeApiKey = provider === "openai" ? openaiApiKey : apiKey;
 
-  const hasStored = !!storedValues.apiKey && !!storedValues.githubToken;
+  const hasDelta =
+    provider !== storedValues.provider ||
+    apiKey.trim() !== storedValues.apiKey ||
+    openaiApiKey.trim() !== storedValues.openaiApiKey ||
+    githubToken.trim() !== storedValues.githubToken;
+
+  const hasStored = !!(storedValues.apiKey || storedValues.openaiApiKey) && !!storedValues.githubToken;
 
   const handleSave = () => {
     const trimmedKey = apiKey.trim();
+    const trimmedOaiKey = openaiApiKey.trim();
     const trimmedGithub = githubToken.trim();
-    if (!trimmedKey || !trimmedGithub) return;
+    const activeKey = provider === "openai" ? trimmedOaiKey : trimmedKey;
+    if (!activeKey || !trimmedGithub) return;
 
     const settings: Record<string, string> = {
-      [STORAGE_KEYS.API_KEY]: trimmedKey,
+      [STORAGE_KEYS.LLM_PROVIDER]: provider,
       [STORAGE_KEYS.GITHUB_TOKEN]: trimmedGithub,
     };
+    if (trimmedKey) settings[STORAGE_KEYS.API_KEY] = trimmedKey;
+    if (trimmedOaiKey) settings[STORAGE_KEYS.OPENAI_API_KEY] = trimmedOaiKey;
 
     chrome.storage.sync.set(settings, () => {
-      setStoredValues({ apiKey: trimmedKey, githubToken: trimmedGithub });
+      setStoredValues({
+        provider,
+        apiKey: trimmedKey,
+        openaiApiKey: trimmedOaiKey,
+        githubToken: trimmedGithub,
+      });
       setSaved(true);
       setTimeout(() => window.close(), 2000);
     });
@@ -45,11 +74,19 @@ export function PopupApp() {
 
   const handleClear = () => {
     chrome.storage.sync.remove(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL, STORAGE_KEYS.GITHUB_TOKEN],
+      [
+        STORAGE_KEYS.API_KEY,
+        STORAGE_KEYS.OPENAI_API_KEY,
+        STORAGE_KEYS.LLM_PROVIDER,
+        STORAGE_KEYS.PROXY_URL,
+        STORAGE_KEYS.GITHUB_TOKEN,
+      ],
       () => {
+        setProvider("anthropic");
         setApiKey("");
+        setOpenaiApiKey("");
         setGithubToken("");
-        setStoredValues({ apiKey: "", githubToken: "" });
+        setStoredValues({ provider: "anthropic", apiKey: "", openaiApiKey: "", githubToken: "" });
         setSaved(false);
       },
     );
@@ -73,8 +110,15 @@ export function PopupApp() {
   const inputClass =
     "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
 
-  const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
-  const showClear = hasStored || apiKey.trim().length > 0;
+  const showSave = hasDelta && activeApiKey.trim().length > 0 && githubToken.trim().length > 0;
+  const showClear = hasStored || activeApiKey.trim().length > 0;
+
+  const providerTabClass = (p: LLMProvider) =>
+    `flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+      provider === p
+        ? "bg-background text-foreground shadow-sm"
+        : "text-muted-foreground hover:text-foreground"
+    }`;
 
   return (
     <div className="w-80">
@@ -93,25 +137,72 @@ export function PopupApp() {
       </div>
 
       <div className="px-5 pb-5">
-        <a
-          href="https://platform.claude.com/settings/keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
-        >
-          Anthropic API Key
-          <ExternalLink className="size-2.5 opacity-40" />
-        </a>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => {
-            setApiKey(e.target.value);
-            setSaved(false);
-          }}
-          placeholder="sk-ant-..."
-          className={inputClass}
-        />
+        {/* Provider selector */}
+        <label className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+          LLM Provider
+        </label>
+        <div className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50">
+          <button
+            type="button"
+            className={providerTabClass("anthropic")}
+            onClick={() => { setProvider("anthropic"); setSaved(false); }}
+          >
+            Anthropic
+          </button>
+          <button
+            type="button"
+            className={providerTabClass("openai")}
+            onClick={() => { setProvider("openai"); setSaved(false); }}
+          >
+            OpenAI
+          </button>
+        </div>
+
+        {provider === "anthropic" ? (
+          <>
+            <a
+              href="https://platform.claude.com/settings/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
+            >
+              Anthropic API Key
+              <ExternalLink className="size-2.5 opacity-40" />
+            </a>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="sk-ant-..."
+              className={inputClass}
+            />
+          </>
+        ) : (
+          <>
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
+            >
+              OpenAI API Key
+              <ExternalLink className="size-2.5 opacity-40" />
+            </a>
+            <input
+              type="password"
+              value={openaiApiKey}
+              onChange={(e) => {
+                setOpenaiApiKey(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="sk-..."
+              className={inputClass}
+            />
+          </>
+        )}
 
         <a
           href="https://github.com/settings/tokens/new?scopes=repo&description=PRobe"

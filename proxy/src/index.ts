@@ -14,7 +14,7 @@ function corsHeaders(origin: string): HeadersInit {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version",
+    "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version, Authorization",
     Vary: "Origin",
   };
 }
@@ -41,7 +41,7 @@ export default {
     const target = `https://api.anthropic.com${url.pathname}${url.search}`;
 
     const headers = new Headers();
-    for (const key of ["content-type", "x-api-key", "anthropic-version"]) {
+    for (const key of ["content-type", "x-api-key", "anthropic-version", "authorization"]) {
       const val = request.headers.get(key);
       if (val) headers.set(key, val);
     }

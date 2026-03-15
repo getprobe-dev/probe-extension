@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { getIconUrl } from "../utils/theme";
-import { STORAGE_KEYS } from "../../shared/types";
+import { getIconUrl } from "../utils/iconUtils";
+import { STORAGE_KEYS } from "../../shared/config";
 
 interface SetupGuideProps {
   onKeysReady: () => void;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/types";
-import type { LLMProvider } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/config";
+import type { LLMProvider } from "../shared/config";
 
 const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
   anthropic: {

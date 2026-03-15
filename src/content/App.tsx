@@ -4,7 +4,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FileButtons } from "./components/FileButtons";
 import { LineCommentButton } from "./components/LineCommentButton";
-import { getIconUrl } from "./utils/theme";
+import { getIconUrl } from "./utils/iconUtils";
 
 const DEFAULT_PANEL_WIDTH = 400;
 const MIN_PANEL_WIDTH = 320;
@@ -21,6 +21,7 @@ export function App() {
   const dragListenersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) setPanelWidth(DEFAULT_PANEL_WIDTH);
   }, [isOpen]);
 
@@ -146,6 +147,8 @@ export function App() {
           className="fab-glow fixed bottom-6 right-6 size-12 rounded-2xl flex items-center justify-center border-0 cursor-pointer overflow-hidden p-0"
           style={{ zIndex: 2147483646, background: "transparent" }}
           title="Open PRobe (Ctrl+Shift+P)"
+          aria-label="Open PRobe (Ctrl+Shift+P)"
+          type="button"
         >
           <img
             src={getIconUrl(48)}
@@ -159,13 +162,18 @@ export function App() {
 
       {/* Side panel */}
       {isOpen && (
+        /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */
         <div
+          role="dialog"
+          aria-label="PRobe chat panel"
+          tabIndex={-1}
           className="fixed top-0 right-0 h-full panel-border-left bg-background flex flex-col animate-slide-in"
           style={{ zIndex: 2147483647, width: `${panelWidth}px` }}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}
         >
           {/* Resize handle */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div className="resize-handle" onMouseDown={handleResizeStart} />
           <ErrorBoundary>
             <ChatPanel

@@ -9,14 +9,12 @@ export function dispatchAsync<T extends { ok: boolean; error?: string }>(
   promise: Promise<T>,
   sendResponse: (response: T) => void,
 ): true {
-  promise
-    .then(sendResponse)
-    .catch((err: unknown) => {
-      sendResponse({
-        ok: false,
-        error: err instanceof Error ? err.message : "Unknown error",
-      } as T);
-    });
+  promise.then(sendResponse).catch((err: unknown) => {
+    sendResponse({
+      ok: false,
+      error: err instanceof Error ? err.message : "Unknown error",
+    } as T);
+  });
   return true;
 }
 

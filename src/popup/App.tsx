@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS } from "../shared/types";
+import { STORAGE_KEYS } from "../shared/config";
 
 export function PopupApp() {
   const [apiKey, setApiKey] = useState("");
@@ -87,9 +87,7 @@ export function PopupApp() {
           height={30}
           className="rounded-lg ring-1 ring-white/10"
         />
-        <h1 className="text-lg font-bold tracking-tight">
-          PRobe
-        </h1>
+        <h1 className="text-lg font-bold tracking-tight">PRobe</h1>
       </div>
 
       <div className="px-5 pb-5">
@@ -134,8 +132,7 @@ export function PopupApp() {
         />
         <p className="mt-1 text-[0.62rem] text-muted-foreground">
           Classic token with{" "}
-          <code className="text-[0.6rem] bg-muted px-1 py-0.5 rounded font-medium">repo</code>{" "}
-          scope
+          <code className="text-[0.6rem] bg-muted px-1 py-0.5 rounded font-medium">repo</code> scope
         </p>
 
         <div className="flex gap-2 mt-4">

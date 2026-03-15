@@ -578,7 +578,9 @@
   border-radius: 4px 0 0 4px;
   background: #e2e8f0;
   opacity: 0.6;
-  transition: opacity 0.2s, background 0.2s;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
   pointer-events: none;
 }
 /* Three dots inside the tab */
@@ -594,10 +596,13 @@
   transform: translateY(-50%);
   box-shadow:
     0 -6px 0 0 #94a3b8,
-    0  6px 0 0 #94a3b8;
+    0 6px 0 0 #94a3b8;
   z-index: 1;
   opacity: 0.5;
-  transition: opacity 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    opacity 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
   pointer-events: none;
 }
 .resize-handle:hover::after {
@@ -609,7 +614,7 @@
   background: #64748b;
   box-shadow:
     0 -6px 0 0 #64748b,
-    0  6px 0 0 #64748b;
+    0 6px 0 0 #64748b;
 }
 
 /* ── Floating button glow ───────────────────────────────── */
@@ -719,13 +724,17 @@
 .setup-btn {
   background: #ecfdf5;
   border: 1px solid #5eead4;
-  box-shadow: 0 2px 0 0 #5eead4, 0 2px 8px rgba(94, 234, 212, 0.12);
+  box-shadow:
+    0 2px 0 0 #5eead4,
+    0 2px 8px rgba(94, 234, 212, 0.12);
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .setup-btn:hover {
   background: #d1fae5;
   border-color: #2dd4bf;
-  box-shadow: 0 2px 0 0 #2dd4bf, 0 4px 14px rgba(94, 234, 212, 0.2);
+  box-shadow:
+    0 2px 0 0 #2dd4bf,
+    0 4px 14px rgba(94, 234, 212, 0.2);
 }
 .setup-btn:active {
   transform: translateY(2px);
@@ -902,12 +911,7 @@
   }
 }
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    #e2e8f0 25%,
-    #f1f5f9 37%,
-    #e2e8f0 63%
-  );
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 37%, #e2e8f0 63%);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }

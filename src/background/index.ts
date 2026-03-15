@@ -1,12 +1,9 @@
 import { dispatchAsync } from "./helpers";
-import {
-  handlePostComment,
-  handlePostReviewComment,
-  handleSubmitReview,
-  handleFetchEnrichedContext,
-  handleFetchPRStats,
-} from "./githubApi";
+import { handlePostComment, handlePostReviewComment, handleSubmitReview } from "./githubComments";
+import { handleFetchEnrichedContext } from "./githubEnrichedContext";
+import { handleFetchPRStats } from "./githubStats";
 import { handleChat, handleGeneratePRSummary } from "./llmService";
+import { apiBase } from "./githubHelpers";
 import type {
   BackgroundMessage,
   FetchDiffRequest,
@@ -41,7 +38,7 @@ const enrichedContextControllers = new Map<string, AbortController>();
 
 // ── One‑shot message handlers (keyed by msg.type) ──
 // Each entry receives (msg, sendResponse) and returns `true` to keep the
-// message channel open for async responses.  The dispatch table makes
+// message channel open for async responses. The dispatch table makes
 // adding new message types a one‑line change (Open/Closed principle).
 
 type MessageHandler = (msg: IncomingMessage, sendResponse: (r: unknown) => void) => boolean | void;
@@ -158,3 +155,7 @@ chrome.runtime.onConnect.addListener((port) => {
     abortController?.abort();
   });
 });
+
+// Keep apiBase exported to avoid unused import linting warnings; it is used
+// by other background modules via their own imports.
+export { apiBase };

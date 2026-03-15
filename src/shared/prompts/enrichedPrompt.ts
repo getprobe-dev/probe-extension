@@ -38,8 +38,7 @@ function buildChecksSection(ctx: EnrichedPRContext): string {
 function buildCommitsSection(ctx: EnrichedPRContext): string {
   if (ctx.commits.length === 0) return "";
   const lines = ctx.commits.map(
-    (c, i) =>
-      `${i + 1}. \`${c.sha}\` by **${c.author}** (${formatTimeAgo(c.date)}) — ${c.message}`,
+    (c, i) => `${i + 1}. \`${c.sha}\` by **${c.author}** (${formatTimeAgo(c.date)}) — ${c.message}`,
   );
   return `\n\n## Commits (oldest → newest)\n${lines.join("\n")}`;
 }

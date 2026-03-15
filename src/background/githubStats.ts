@@ -49,9 +49,7 @@ interface GHReviewEntry {
 
 const MAX_COMMIT_DETAILS = 30;
 
-export async function handleFetchPRStats(
-  msg: FetchPRStatsRequest,
-): Promise<FetchPRStatsResponse> {
+export async function handleFetchPRStats(msg: FetchPRStatsRequest): Promise<FetchPRStatsResponse> {
   const headers = await ghHeaders();
   if (!headers) return { ok: false, error: "No GitHub token configured." };
 

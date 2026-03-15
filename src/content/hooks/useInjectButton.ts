@@ -130,9 +130,7 @@ export function useInjectButton(options: UseInjectButtonOptions): void {
     }
 
     function inject() {
-      document
-        .querySelectorAll(optionsRef.current.containerSelector)
-        .forEach(injectIntoContainer);
+      document.querySelectorAll(optionsRef.current.containerSelector).forEach(injectIntoContainer);
     }
 
     inject();
@@ -140,9 +138,7 @@ export function useInjectButton(options: UseInjectButtonOptions): void {
 
     return () => {
       unsubscribe();
-      document
-        .querySelectorAll(`.${optionsRef.current.buttonClass}`)
-        .forEach((b) => b.remove());
+      document.querySelectorAll(`.${optionsRef.current.buttonClass}`).forEach((b) => b.remove());
     };
   }, []);
 }

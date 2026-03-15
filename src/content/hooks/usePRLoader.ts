@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import type { PRContext, EnrichedPRContext, FetchEnrichedContextResponse } from "../../shared/types";
+import type {
+  PRContext,
+  EnrichedPRContext,
+  FetchEnrichedContextResponse,
+} from "../../shared/types";
 import { STORAGE_KEYS } from "../../shared/config";
 import { extractPRContext } from "../../shared/context";
 import { sendMessage } from "../../shared/messaging";
@@ -11,9 +15,7 @@ interface PRLoaderResult {
   error: string | null;
   storageKeyRef: React.MutableRefObject<string>;
   reviewKeyRef: React.MutableRefObject<string>;
-  setInitialMessages: (
-    callback: (stored: Record<string, unknown>) => void,
-  ) => void;
+  setInitialMessages: (callback: (stored: Record<string, unknown>) => void) => void;
 }
 
 export function usePRLoader(

@@ -41,7 +41,8 @@ export function buildFileSystemPrompt(
   if (fileContent) {
     const truncated =
       fileContent.length > MAX_FILE_CONTENT_CHARS
-        ? fileContent.slice(0, MAX_FILE_CONTENT_CHARS) + "\n\n... [file truncated due to length] ..."
+        ? fileContent.slice(0, MAX_FILE_CONTENT_CHARS) +
+          "\n\n... [file truncated due to length] ..."
         : fileContent;
     fullFileSection = `
 

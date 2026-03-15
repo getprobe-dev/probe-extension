@@ -60,7 +60,11 @@ export function useChatStreaming({
       lastAssistantContentRef.current = "";
 
       const userMessage: ChatMessage = { role: "user", content, timestamp: Date.now() };
-      const assistantMessage: ChatMessage = { role: "assistant", content: "", timestamp: Date.now() };
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+      };
       const newMessages = [...messages, userMessage, assistantMessage];
       setMessages(newMessages);
       setIsStreaming(true);

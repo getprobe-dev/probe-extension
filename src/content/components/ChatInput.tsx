@@ -91,19 +91,22 @@ export function ChatInput({
     }
   }, [value, disabled, onSend]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [handleSubmit],
+  );
 
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
     const el = e.target;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
-  };
+  }, []);
 
   const hasLineRange = focusedItems.some((it) => it.lineRange);
   const contextStarters = hasLineRange
@@ -199,6 +202,8 @@ export function ChatInput({
                   }}
                   className="inline-flex items-center justify-center size-4 rounded hover:bg-[#5eead4]/20 text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer"
                   title="Remove"
+                  type="button"
+                  aria-label="Remove focused item"
                 >
                   <X className="size-2.5" />
                 </button>
@@ -216,10 +221,17 @@ export function ChatInput({
             rows={3}
             disabled={disabled && !isStreaming}
             className="block w-full resize-none bg-transparent px-3.5 pt-3 pb-10 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Message input"
           />
           <div className="absolute right-2.5 bottom-2.5">
             {isStreaming ? (
-              <button onClick={onStop} className="send-btn" title="Stop generating">
+              <button
+                onClick={onStop}
+                className="send-btn"
+                title="Stop generating"
+                type="button"
+                aria-label="Stop generating"
+              >
                 <Square className="size-3" />
               </button>
             ) : (
@@ -228,6 +240,8 @@ export function ChatInput({
                 disabled={!hasContent || disabled}
                 className="send-btn"
                 title="Send message"
+                type="button"
+                aria-label="Send message"
               >
                 <ArrowUp className="size-4" strokeWidth={2.5} />
               </button>

@@ -34,7 +34,10 @@ async function fetchSkillContent(skill: SkillEntry): Promise<string | null> {
 
   try {
     const res = await fetch(skill.rawUrl);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[PRobe] Failed to fetch skill "${skill.id}": HTTP ${res.status}`);
+      return null;
+    }
 
     let content = stripYamlFrontmatter(await res.text());
 
@@ -45,12 +48,18 @@ async function fetchSkillContent(skill: SkillEntry): Promise<string | null> {
         "\n\n… [truncated for brevity]";
     }
 
-    chrome.storage.local.set({
-      [cacheKey]: { content, fetchedAt: Date.now() } satisfies CachedSkill,
-    });
+    chrome.storage.local.set(
+      { [cacheKey]: { content, fetchedAt: Date.now() } satisfies CachedSkill },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.warn("[PRobe] Failed to cache skill:", chrome.runtime.lastError.message);
+        }
+      },
+    );
 
     return content;
-  } catch {
+  } catch (err) {
+    console.warn(`[PRobe] Error fetching skill "${skill.id}":`, err);
     return null;
   }
 }

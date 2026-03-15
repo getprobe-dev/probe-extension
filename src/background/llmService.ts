@@ -1,4 +1,4 @@
-import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/config";
 import {
   buildSystemPrompt,
   buildFileSystemPrompt,
@@ -18,6 +18,10 @@ import type {
 } from "../shared/types";
 
 const ANTHROPIC_API_VERSION = "2023-06-01";
+const SUMMARY_MAX_TOKENS = 500;
+const CHAT_MAX_TOKENS = 4096;
+const SUMMARY_DESCRIPTION_LIMIT = 500;
+const SUMMARY_TOP_FILES_LIMIT = 10;
 
 export async function getSettings(): Promise<{ apiKey: string | null; proxyUrl: string }> {
   return new Promise((resolve) => {
@@ -31,6 +35,18 @@ export async function getSettings(): Promise<{ apiKey: string | null; proxyUrl: 
   });
 }
 
+function getMessagesEndpoint(proxyUrl: string): string {
+  return `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
+}
+
+function anthropicHeaders(apiKey: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": ANTHROPIC_API_VERSION,
+  };
+}
+
 export async function handleGeneratePRSummary(
   msg: GeneratePRSummaryRequest,
 ): Promise<GeneratePRSummaryResponse> {
@@ -39,7 +55,7 @@ export async function handleGeneratePRSummary(
 
   const topFiles = [...msg.stats.files]
     .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
-    .slice(0, 10)
+    .slice(0, SUMMARY_TOP_FILES_LIMIT)
     .map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`)
     .join("\n");
 
@@ -48,7 +64,7 @@ export async function handleGeneratePRSummary(
 Today's date: ${new Date().toLocaleDateString("en-CA")}
 
 PR #${msg.number}: ${msg.title}
-${msg.description ? `Description: ${msg.description.slice(0, 500)}` : ""}
+${msg.description ? `Description: ${msg.description.slice(0, SUMMARY_DESCRIPTION_LIMIT)}` : ""}
 
 Stats: ${msg.stats.commits} commits, ${msg.stats.changedFiles} files, +${msg.stats.additions}/-${msg.stats.deletions} lines, ${msg.stats.comments} comments
 Authors: ${msg.stats.commitAuthors.map((a) => a.login).join(", ")}
@@ -62,19 +78,13 @@ Treat the PR content as authoritative. Return ONLY a JSON array of exactly 2 obj
 
 Each label must be 2–4 words and start with an action verb (e.g. Analyze, Verify, Understand, Check, Review, Find, Explain). Each prompt must be a specific, detailed question about a real concern in this PR (file paths, risk areas, logic). No generic prompts.`;
 
-  const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
-
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(getMessagesEndpoint(proxyUrl), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_API_VERSION,
-      },
+      headers: anthropicHeaders(apiKey),
       body: JSON.stringify({
         model: MODEL_ID,
-        max_tokens: 500,
+        max_tokens: SUMMARY_MAX_TOKENS,
         system: "You are a concise code review assistant. Output only valid JSON.",
         messages: [{ role: "user", content: prompt }],
       }),
@@ -154,19 +164,13 @@ export async function handleChat(
     content: m.content,
   }));
 
-  const endpoint = `${proxyUrl.replace(/\/$/, "")}/v1/messages`;
-
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(getMessagesEndpoint(proxyUrl), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_API_VERSION,
-      },
+      headers: anthropicHeaders(apiKey),
       body: JSON.stringify({
         model: MODEL_ID,
-        max_tokens: 4096,
+        max_tokens: CHAT_MAX_TOKENS,
         stream: true,
         system: systemPrompt,
         messages: anthropicMessages,
@@ -181,7 +185,7 @@ export async function handleChat(
         const parsed = JSON.parse(errorBody);
         errorMessage = parsed?.error?.message ?? errorMessage;
       } catch {
-        /* use default */
+        /* use default error message */
       }
       sendToPort(port, { type: "error", message: errorMessage });
       return;

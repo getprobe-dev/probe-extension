@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS } from "../shared/types";
+import { STORAGE_KEYS } from "../shared/config";
 
 export function PopupApp() {
   const [apiKey, setApiKey] = useState("");

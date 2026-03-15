@@ -1,33 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { CommitTimeline } from "./CommitTimeline";
+import { DashboardSkeleton } from "./DashboardSkeleton";
+import { formatNumber, timeAgo } from "../utils/format";
 import type {
   PRContext,
   PRStats,
-  CommitDetail,
   FetchPRStatsResponse,
   GeneratePRSummaryResponse,
   PromptSuggestion,
 } from "../../shared/types";
+
 interface PRDashboardProps {
   prContext: PRContext;
   onSummaryLoading?: () => void;
   onSummaryReady?: (bullets: PromptSuggestion[]) => void;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
-}
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = now - then;
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 1) return "just now";
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
 }
 
 const REVIEW_STATE_LABELS: Record<string, string> = {
@@ -43,11 +29,24 @@ const REVIEW_STATE_COLORS: Record<string, string> = {
   CHANGES_REQUESTED: "text-[#dc2626]",
 };
 
-export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRDashboardProps) {
+function StatCard({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="dash-card p-3 text-center">
+      <div className="text-xl font-bold text-foreground tracking-tight">{formatNumber(value)}</div>
+      <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-0.5">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export const PRDashboard = memo(function PRDashboard({
+  prContext,
+  onSummaryLoading,
+  onSummaryReady,
+}: PRDashboardProps) {
   const [stats, setStats] = useState<PRStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [_summary, setSummary] = useState<PromptSuggestion[] | null>(null);
-  const [_summaryLoading, setSummaryLoading] = useState(false);
 
   const onSummaryLoadingRef = useRef(onSummaryLoading);
   const onSummaryReadyRef = useRef(onSummaryReady);
@@ -70,7 +69,6 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
         if (cancelled) return;
         if (res?.ok && res.stats) {
           setStats(res.stats);
-          setSummaryLoading(true);
           onSummaryLoadingRef.current?.();
           chrome.runtime.sendMessage(
             {
@@ -85,10 +83,8 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
             (sumRes: GeneratePRSummaryResponse) => {
               if (cancelled) return;
               if (sumRes?.ok && sumRes.bullets) {
-                setSummary(sumRes.bullets);
                 onSummaryReadyRef.current?.(sumRes.bullets);
               }
-              setSummaryLoading(false);
             },
           );
         }
@@ -101,9 +97,21 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
     };
   }, [prContext.owner, prContext.repo, prContext.number, prContext.title, prContext.description]);
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const topFiles = useMemo(
+    () =>
+      stats
+        ? [...stats.files]
+            .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
+            .slice(0, 5)
+        : [],
+    [stats],
+  );
+  const maxFileChange = useMemo(
+    () => (topFiles.length > 0 ? topFiles[0].additions + topFiles[0].deletions : 1),
+    [topFiles],
+  );
+
+  if (loading) return <DashboardSkeleton />;
 
   if (!stats) {
     return (
@@ -120,21 +128,14 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
   const totalLines = stats.additions + stats.deletions;
   const addPct = totalLines > 0 ? (stats.additions / totalLines) * 100 : 50;
 
-  const topFiles = [...stats.files]
-    .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
-    .slice(0, 5);
-  const maxFileChange = topFiles.length > 0 ? topFiles[0].additions + topFiles[0].deletions : 1;
-
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 animate-fade-in">
-      {/* Stats row: files, lines, comments */}
       <div className="grid grid-cols-3 gap-2">
         <StatCard value={stats.changedFiles} label="files" />
         <StatCard value={totalLines} label="lines" />
         <StatCard value={stats.comments} label="comments" />
       </div>
 
-      {/* Additions / deletions bar */}
       <div className="dash-card p-3">
         <div className="flex items-center justify-between text-[0.65rem] font-medium mb-1.5">
           <span className="text-[#16a34a]">+{formatNumber(stats.additions)}</span>
@@ -148,10 +149,8 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
         </div>
       </div>
 
-      {/* Commit timeline */}
       {stats.commitDetails.length > 0 && <CommitTimeline commits={stats.commitDetails} />}
 
-      {/* People */}
       <div className="dash-card p-3 space-y-2">
         <h4 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">
           People
@@ -211,7 +210,6 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
         )}
       </div>
 
-      {/* Top changed files */}
       {topFiles.length > 0 && (
         <div className="dash-card p-3 space-y-1.5">
           <h4 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -239,229 +237,6 @@ export function PRDashboard({ prContext, onSummaryLoading, onSummaryReady }: PRD
           })}
         </div>
       )}
-
     </div>
   );
-}
-
-function Shimmer({ className = "" }: { className?: string }) {
-  return <div className={`shimmer rounded ${className}`} />;
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 animate-fade-in">
-      {/* Stats row skeleton */}
-      <div className="grid grid-cols-3 gap-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="dash-card p-3 flex flex-col items-center gap-1.5">
-            <Shimmer className="h-5 w-10 rounded-md" />
-            <Shimmer className="h-2.5 w-12 rounded-md" />
-          </div>
-        ))}
-      </div>
-
-      {/* Additions / deletions bar skeleton */}
-      <div className="dash-card p-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <Shimmer className="h-3 w-8 rounded-md" />
-          <Shimmer className="h-3 w-8 rounded-md" />
-        </div>
-        <Shimmer className="h-2 w-full rounded-full" />
-      </div>
-
-      {/* Commits skeleton */}
-      <div className="dash-card p-3 space-y-2">
-        <Shimmer className="h-2.5 w-14 rounded-md" />
-        <Shimmer className="h-16 w-full rounded-lg" />
-      </div>
-
-      {/* People skeleton */}
-      <div className="dash-card p-3 space-y-2">
-        <Shimmer className="h-2.5 w-12 rounded-md" />
-        <div className="flex items-center gap-2">
-          <Shimmer className="size-5 rounded-full" />
-          <Shimmer className="h-3 w-20 rounded-md" />
-          <Shimmer className="h-4 w-12 rounded" />
-        </div>
-      </div>
-
-      {/* Top files skeleton */}
-      <div className="dash-card p-3 space-y-2">
-        <Shimmer className="h-2.5 w-20 rounded-md" />
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex items-center gap-2">
-            <Shimmer className="h-3 flex-1 rounded-md" />
-            <Shimmer className="h-1.5 w-16 rounded-full" />
-            <Shimmer className="h-3 w-8 rounded-md" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="dash-card p-3 text-center">
-      <div className="text-xl font-bold text-foreground tracking-tight">
-        {formatNumber(value)}
-      </div>
-      <div className="text-[0.6rem] text-muted-foreground uppercase tracking-wider mt-0.5">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function CommitTimeline({ commits }: { commits: CommitDetail[] }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
-  if (commits.length === 0) return null;
-
-  const maxChange = Math.max(...commits.map((c) => c.additions + c.deletions), 1);
-  const minR = 4;
-  const maxR = 10;
-
-  const paddingX = maxR + 2;
-  const svgWidth = 340;
-  const svgHeight = 72;
-  const usableWidth = svgWidth - paddingX * 2;
-  const centerY = svgHeight / 2;
-  const step = commits.length > 1 ? usableWidth / (commits.length - 1) : 0;
-
-  const getX = (i: number) => paddingX + (commits.length === 1 ? usableWidth / 2 : i * step);
-  const getR = (c: CommitDetail) => {
-    const total = c.additions + c.deletions;
-    return minR + (total / maxChange) * (maxR - minR);
-  };
-
-  return (
-    <div className="dash-card p-3 space-y-1.5">
-      <h4 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">
-        Commits
-      </h4>
-      <div className="relative">
-        <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full" style={{ height: "72px" }}>
-          {/* Spine line */}
-          <line
-            x1={getX(0)}
-            y1={centerY}
-            x2={getX(commits.length - 1)}
-            y2={centerY}
-            stroke="#94a3b8"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            opacity={0.3}
-          />
-
-          {/* Per-commit segments colored by add/del ratio */}
-          {commits.map((c, i) => {
-            if (i === 0) return null;
-            const total = c.additions + c.deletions;
-            const addRatio = total > 0 ? c.additions / total : 0.5;
-            const r = Math.round(220 - addRatio * 186);
-            const g = Math.round(100 + addRatio * 134);
-            const b = Math.round(100 + addRatio * 112);
-            return (
-              <line
-                key={`seg-${c.sha}`}
-                x1={getX(i - 1)}
-                y1={centerY}
-                x2={getX(i)}
-                y2={centerY}
-                stroke={`rgb(${r},${g},${b})`}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                opacity={0.5}
-              />
-            );
-          })}
-
-          {/* Dots */}
-          {commits.map((c, i) => {
-            const cx = getX(i);
-            const r = getR(c);
-            const isLatest = i === commits.length - 1;
-            const isHovered = hoveredIdx === i;
-            const total = c.additions + c.deletions;
-            const addRatio = total > 0 ? c.additions / total : 0.5;
-            const fillG = Math.round(180 + addRatio * 54);
-            const fill = total === 0 ? "#94a3b8" : `rgb(34,${fillG},180)`;
-
-            return (
-              <g key={c.sha}>
-                {/* Glow for latest commit */}
-                {isLatest && (
-                  <circle
-                    cx={cx}
-                    cy={centerY}
-                    r={r + 4}
-                    fill="none"
-                    stroke="#5eead4"
-                    strokeWidth={1.5}
-                    opacity={0.35}
-                  >
-                    <animate
-                      attributeName="r"
-                      values={`${r + 3};${r + 6};${r + 3}`}
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0.35;0.12;0.35"
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                )}
-                {/* Hover ring */}
-                {isHovered && (
-                  <circle
-                    cx={cx}
-                    cy={centerY}
-                    r={r + 3}
-                    fill="none"
-                    stroke="#5eead4"
-                    strokeWidth={1}
-                    opacity={0.5}
-                  />
-                )}
-                <circle
-                  cx={cx}
-                  cy={centerY}
-                  r={isHovered ? r + 1 : r}
-                  fill={isLatest ? "#5eead4" : fill}
-                  opacity={isHovered ? 1 : 0.85}
-                  style={{ cursor: "pointer", transition: "r 0.15s, opacity 0.15s" }}
-                  onMouseEnter={() => setHoveredIdx(i)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Tooltip */}
-        {hoveredIdx !== null && (
-          <div
-            className="absolute bg-[#1a2e2b] text-white rounded-lg px-2.5 py-1.5 text-[0.65rem] leading-snug shadow-lg pointer-events-none max-w-[240px] z-10"
-            style={{
-              left: `${Math.min(Math.max((getX(hoveredIdx) / svgWidth) * 100, 15), 85)}%`,
-              transform: "translateX(-50%)",
-              bottom: "calc(100% - 4px)",
-            }}
-          >
-            <div className="font-medium truncate">{commits[hoveredIdx].message.split("\n")[0]}</div>
-            <div className="flex items-center gap-2 mt-0.5 text-white/60">
-              <span>{commits[hoveredIdx].author}</span>
-              <span className="text-[#5eead4]">+{commits[hoveredIdx].additions}</span>
-              <span className="text-[#f87171]">−{commits[hoveredIdx].deletions}</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+});

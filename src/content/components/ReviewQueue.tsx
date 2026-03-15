@@ -28,6 +28,7 @@ export function ReviewQueue({ pending, owner, repo, number, isSelfReview, onClea
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isSelfReview && event !== "COMMENT") setEvent("COMMENT");
   }, [isSelfReview, event]);
 

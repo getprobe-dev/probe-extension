@@ -1,3 +1,7 @@
+// Runtime config is in shared/config.ts — keep this file for type/interface definitions only.
+// Re-exported here for backward compatibility; prefer importing from shared/config directly.
+export { DEFAULT_PROXY_URL, STORAGE_KEYS } from "./config";
+
 export interface PromptSuggestion {
   label: string;
   prompt: string;
@@ -279,15 +283,3 @@ export type StreamEvent =
   | { type: "chunk"; content: string }
   | { type: "done" }
   | { type: "error"; message: string };
-
-export const DEFAULT_PROXY_URL: string =
-  import.meta.env.VITE_PROXY_URL || "https://pr-sidekick-proxy.sgunturi.workers.dev";
-
-export const STORAGE_KEYS = {
-  API_KEY: "anthropic_api_key",
-  PROXY_URL: "proxy_url",
-  GITHUB_TOKEN: "github_token",
-  chatHistory: (owner: string, repo: string, number: number) => `chat:${owner}/${repo}#${number}`,
-  pendingReview: (owner: string, repo: string, number: number) =>
-    `review:${owner}/${repo}#${number}`,
-} as const;

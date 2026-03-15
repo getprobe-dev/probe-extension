@@ -5,6 +5,7 @@ import type {
   FetchFileRequest,
   FetchFileResponse,
 } from "./types";
+import { sendMessage } from "./messaging";
 
 export function parsePRUrl(url: string): { owner: string; repo: string; number: number } | null {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
@@ -20,8 +21,9 @@ export function scrapePRMetadata(): { title: string; description: string; author
   const description = descriptionEl?.textContent?.trim() ?? "";
 
   const authorEl =
-    document.querySelector<HTMLElement>('[class*="PullRequestHeaderSummary"] a[data-hovercard-type="user"]') ??
-    document.querySelector<HTMLElement>(".gh-header-meta .author");
+    document.querySelector<HTMLElement>(
+      '[class*="PullRequestHeaderSummary"] a[data-hovercard-type="user"]',
+    ) ?? document.querySelector<HTMLElement>(".gh-header-meta .author");
   const author = authorEl?.textContent?.trim() ?? "";
 
   return { title, description, author };
@@ -65,6 +67,9 @@ export function extractDiffForFile(fullDiff: string, filePath: string): string {
   return result.join("\n");
 }
 
+/** Matches unified diff hunk headers: @@ -oldStart,oldCount +newStart,newCount @@ */
+const HUNK_HEADER_RE = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+
 export function extractFirstChangedLine(
   fullDiff: string,
   filePath: string,
@@ -76,7 +81,7 @@ export function extractFirstChangedLine(
   let _currentOldLine = 0;
 
   for (const line of lines) {
-    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    const hunkMatch = line.match(HUNK_HEADER_RE);
     if (hunkMatch) {
       _currentOldLine = parseInt(hunkMatch[1], 10);
       currentNewLine = parseInt(hunkMatch[2], 10);
@@ -114,7 +119,7 @@ export function extractLinesFromDiff(
   let currentOldLine = 0;
 
   for (const line of lines) {
-    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    const hunkMatch = line.match(HUNK_HEADER_RE);
     if (hunkMatch) {
       currentOldLine = parseInt(hunkMatch[1], 10);
       currentNewLine = parseInt(hunkMatch[2], 10);
@@ -188,19 +193,11 @@ export function getFilePathFromDiffId(diffId: string): string | null {
 
 async function fetchDiff(owner: string, repo: string, number: number): Promise<string> {
   const msg: FetchDiffRequest = { type: "fetch-diff", owner, repo, number };
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(msg, (response: FetchDiffResponse) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      if (!response.ok || !response.diff) {
-        reject(new Error(`Failed to fetch diff: ${response.error ?? "empty response"}`));
-        return;
-      }
-      resolve(response.diff);
-    });
-  });
+  const response = await sendMessage<FetchDiffResponse>(msg);
+  if (!response.ok || !response.diff) {
+    throw new Error(`Failed to fetch diff: ${response.error ?? "empty response"}`);
+  }
+  return response.diff;
 }
 
 export async function fetchFileContent(
@@ -210,15 +207,14 @@ export async function fetchFileContent(
   path: string,
 ): Promise<string | null> {
   const msg: FetchFileRequest = { type: "fetch-file", owner, repo, branch, path };
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage(msg, (response: FetchFileResponse) => {
-      if (chrome.runtime.lastError || !response?.ok || !response.content) {
-        resolve(null);
-        return;
-      }
-      resolve(response.content);
-    });
-  });
+  try {
+    const response = await sendMessage<FetchFileResponse>(msg);
+    if (!response?.ok || !response.content) return null;
+    return response.content;
+  } catch {
+    console.warn(`[PRobe] Failed to fetch file content: ${path}`);
+    return null;
+  }
 }
 
 export async function extractPRContext(): Promise<PRContext> {

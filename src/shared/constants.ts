@@ -2,6 +2,7 @@ import type { PRContext, EnrichedPRContext, FocusedLineRange } from "./types";
 import type { ResolvedSkill } from "./skills";
 
 export const MODEL_ID = "claude-opus-4-6";
+export const OPENAI_MODEL_ID = "gpt-4o";
 
 function buildSkillSection(skills?: ResolvedSkill[]): string {
   if (!skills || skills.length === 0) return "";

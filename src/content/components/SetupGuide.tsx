@@ -21,7 +21,12 @@ export function SetupGuide({ onKeysReady }: SetupGuideProps) {
   useEffect(() => {
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== "sync") return;
-      if (changes[STORAGE_KEYS.API_KEY] || changes[STORAGE_KEYS.GITHUB_TOKEN]) {
+      if (
+        changes[STORAGE_KEYS.API_KEY] ||
+        changes[STORAGE_KEYS.OPENAI_API_KEY] ||
+        changes[STORAGE_KEYS.LLM_PROVIDER] ||
+        changes[STORAGE_KEYS.GITHUB_TOKEN]
+      ) {
         onKeysReady();
       }
     };

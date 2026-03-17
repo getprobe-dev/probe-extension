@@ -2,7 +2,6 @@ import type { PRContext, EnrichedPRContext, FocusedLineRange } from "./types";
 import type { ResolvedSkill } from "./skills";
 
 export const MODEL_ID = "claude-opus-4-6";
-export const OPENAI_MODEL_ID = "gpt-4o";
 
 function buildSkillSection(skills?: ResolvedSkill[]): string {
   if (!skills || skills.length === 0) return "";
@@ -23,7 +22,7 @@ function buildSkillRoleInstructions(skills?: ResolvedSkill[]): string {
   return `\n- When the Review Guidelines section is present, proactively check the diff against those rules and cite rule names (e.g. "async-parallel", "architecture-avoid-boolean-props") when flagging issues.`;
 }
 
-export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[]): string {
+export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[], modelId?: string): string {
   const diffTruncated =
     context.diff.length > 80_000
       ? context.diff.slice(0, 80_000) + "\n\n... [diff truncated due to length] ..."
@@ -33,7 +32,7 @@ export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[]):
 
 ## Context
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
-- **Model**: ${MODEL_ID}
+- **Model**: ${modelId ?? MODEL_ID}
 
 ## What You Can See
 The diff below is a **unified diff** — it shows only changed lines and a few lines of surrounding context. You **cannot** see the full content of any file. Large portions of each file (imports, unchanged functions, earlier declarations, surrounding logic) are invisible to you.
@@ -79,6 +78,7 @@ export function buildFileSystemPrompt(
   fileContent?: string,
   lineRange?: FocusedLineRange,
   skills?: ResolvedSkill[],
+  modelId?: string,
 ): string {
   const diffSection =
     fileDiff.length > 40_000
@@ -123,7 +123,7 @@ ${lineRange.content || "(content not available)"}
 
 ## Context
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
-- **Model**: ${MODEL_ID}
+- **Model**: ${modelId ?? MODEL_ID}
 ${fileContent ? "" : "\n## What You Can See\nThe diff below shows only changed lines and a few lines of surrounding context. You **cannot** see the full content of this file — only the hunks that were modified.\n"}
 ## Pull Request
 - **Repository**: ${context.owner}/${context.repo}
@@ -320,6 +320,7 @@ function buildPerFileSections(ctx: EnrichedPRContext): string {
 export function buildEnrichedSystemPrompt(
   ctx: EnrichedPRContext,
   skills?: ResolvedSkill[],
+  modelId?: string,
 ): string {
   const hasFullContent = ctx.fileContents !== undefined && Object.keys(ctx.fileContents).length > 0;
 
@@ -362,7 +363,7 @@ The diffs below are **unified diffs** — they show only changed lines and a few
 
 ## Context
 - **Today's date**: ${new Date().toLocaleDateString("en-CA")}
-- **Model**: ${MODEL_ID}
+- **Model**: ${modelId ?? MODEL_ID}
 
 ${visibilitySection}
 

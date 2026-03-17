@@ -1,72 +1,83 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/types";
 import type { LLMProvider } from "../shared/types";
+
+const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
+  anthropic: {
+    label: "Anthropic API Key",
+    keyUrl: "https://platform.claude.com/settings/keys",
+    placeholder: "sk-ant-...",
+  },
+  openai: {
+    label: "OpenAI API Key",
+    keyUrl: "https://platform.openai.com/api-keys",
+    placeholder: "sk-...",
+  },
+};
 
 export function PopupApp() {
   const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [modelName, setModelName] = useState(DEFAULT_MODELS.anthropic);
   const [githubToken, setGithubToken] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [storedValues, setStoredValues] = useState({
     provider: "anthropic" as LLMProvider,
     apiKey: "",
-    openaiApiKey: "",
+    modelName: DEFAULT_MODELS.anthropic,
     githubToken: "",
   });
 
   useEffect(() => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.OPENAI_API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.GITHUB_TOKEN],
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.MODEL_NAME, STORAGE_KEYS.GITHUB_TOKEN],
       (result) => {
         const prov = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
         const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
-        const oaiKey = (result[STORAGE_KEYS.OPENAI_API_KEY] as string) ?? "";
+        const model = (result[STORAGE_KEYS.MODEL_NAME] as string) || DEFAULT_MODELS[prov];
         const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
         setProvider(prov);
         setApiKey(key);
-        setOpenaiApiKey(oaiKey);
+        setModelName(model);
         setGithubToken(token);
-        setStoredValues({ provider: prov, apiKey: key, openaiApiKey: oaiKey, githubToken: token });
+        setStoredValues({ provider: prov, apiKey: key, modelName: model, githubToken: token });
         setLoading(false);
       },
     );
   }, []);
 
-  const activeApiKey = provider === "openai" ? openaiApiKey : apiKey;
-
   const hasDelta =
     provider !== storedValues.provider ||
     apiKey.trim() !== storedValues.apiKey ||
-    openaiApiKey.trim() !== storedValues.openaiApiKey ||
+    modelName.trim() !== storedValues.modelName ||
     githubToken.trim() !== storedValues.githubToken;
 
-  const hasStored = !!(storedValues.apiKey || storedValues.openaiApiKey) && !!storedValues.githubToken;
+  const hasStored = !!storedValues.apiKey && !!storedValues.githubToken;
+
+  const handleProviderChange = (p: LLMProvider) => {
+    setProvider(p);
+    setModelName(DEFAULT_MODELS[p]);
+    setSaved(false);
+  };
 
   const handleSave = () => {
     const trimmedKey = apiKey.trim();
-    const trimmedOaiKey = openaiApiKey.trim();
+    const trimmedModel = modelName.trim() || DEFAULT_MODELS[provider];
     const trimmedGithub = githubToken.trim();
-    const activeKey = provider === "openai" ? trimmedOaiKey : trimmedKey;
-    if (!activeKey || !trimmedGithub) return;
+    if (!trimmedKey || !trimmedGithub) return;
 
     const settings: Record<string, string> = {
       [STORAGE_KEYS.LLM_PROVIDER]: provider,
+      [STORAGE_KEYS.API_KEY]: trimmedKey,
+      [STORAGE_KEYS.MODEL_NAME]: trimmedModel,
       [STORAGE_KEYS.GITHUB_TOKEN]: trimmedGithub,
     };
-    if (trimmedKey) settings[STORAGE_KEYS.API_KEY] = trimmedKey;
-    if (trimmedOaiKey) settings[STORAGE_KEYS.OPENAI_API_KEY] = trimmedOaiKey;
 
     chrome.storage.sync.set(settings, () => {
-      setStoredValues({
-        provider,
-        apiKey: trimmedKey,
-        openaiApiKey: trimmedOaiKey,
-        githubToken: trimmedGithub,
-      });
+      setStoredValues({ provider, apiKey: trimmedKey, modelName: trimmedModel, githubToken: trimmedGithub });
       setSaved(true);
       setTimeout(() => window.close(), 2000);
     });
@@ -76,17 +87,17 @@ export function PopupApp() {
     chrome.storage.sync.remove(
       [
         STORAGE_KEYS.API_KEY,
-        STORAGE_KEYS.OPENAI_API_KEY,
         STORAGE_KEYS.LLM_PROVIDER,
+        STORAGE_KEYS.MODEL_NAME,
         STORAGE_KEYS.PROXY_URL,
         STORAGE_KEYS.GITHUB_TOKEN,
       ],
       () => {
         setProvider("anthropic");
         setApiKey("");
-        setOpenaiApiKey("");
+        setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
-        setStoredValues({ provider: "anthropic", apiKey: "", openaiApiKey: "", githubToken: "" });
+        setStoredValues({ provider: "anthropic", apiKey: "", modelName: DEFAULT_MODELS.anthropic, githubToken: "" });
         setSaved(false);
       },
     );
@@ -110,8 +121,10 @@ export function PopupApp() {
   const inputClass =
     "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
 
-  const showSave = hasDelta && activeApiKey.trim().length > 0 && githubToken.trim().length > 0;
-  const showClear = hasStored || activeApiKey.trim().length > 0;
+  const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
+  const showClear = hasStored || apiKey.trim().length > 0;
+
+  const meta = PROVIDER_META[provider];
 
   const providerTabClass = (p: LLMProvider) =>
     `flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
@@ -145,64 +158,52 @@ export function PopupApp() {
           <button
             type="button"
             className={providerTabClass("anthropic")}
-            onClick={() => { setProvider("anthropic"); setSaved(false); }}
+            onClick={() => handleProviderChange("anthropic")}
           >
             Anthropic
           </button>
           <button
             type="button"
             className={providerTabClass("openai")}
-            onClick={() => { setProvider("openai"); setSaved(false); }}
+            onClick={() => handleProviderChange("openai")}
           >
             OpenAI
           </button>
         </div>
 
-        {provider === "anthropic" ? (
-          <>
-            <a
-              href="https://platform.claude.com/settings/keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
-            >
-              Anthropic API Key
-              <ExternalLink className="size-2.5 opacity-40" />
-            </a>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setSaved(false);
-              }}
-              placeholder="sk-ant-..."
-              className={inputClass}
-            />
-          </>
-        ) : (
-          <>
-            <a
-              href="https://platform.openai.com/api-keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
-            >
-              OpenAI API Key
-              <ExternalLink className="size-2.5 opacity-40" />
-            </a>
-            <input
-              type="password"
-              value={openaiApiKey}
-              onChange={(e) => {
-                setOpenaiApiKey(e.target.value);
-                setSaved(false);
-              }}
-              placeholder="sk-..."
-              className={inputClass}
-            />
-          </>
-        )}
+        <a
+          href={meta.keyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
+        >
+          {meta.label}
+          <ExternalLink className="size-2.5 opacity-40" />
+        </a>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={(e) => {
+            setApiKey(e.target.value);
+            setSaved(false);
+          }}
+          placeholder={meta.placeholder}
+          className={inputClass}
+        />
+
+        <label className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+          Model
+        </label>
+        <input
+          type="text"
+          value={modelName}
+          onChange={(e) => {
+            setModelName(e.target.value);
+            setSaved(false);
+          }}
+          placeholder={DEFAULT_MODELS[provider]}
+          className={inputClass}
+        />
 
         <a
           href="https://github.com/settings/tokens/new?scopes=repo&description=PRobe"

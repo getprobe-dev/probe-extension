@@ -34,8 +34,7 @@
     "https://api.github.com/repos/*/*/pulls/*",
     "https://api.github.com/repos/*/*/issues/*",
     "https://api.github.com/repos/*/*/issues/*/comments",
-    "https://api.github.com/repos/*/*/commits/*",
-    "https://api.openai.com/*"
+    "https://api.github.com/repos/*/*/commits/*"
   ],
   "web_accessible_resources": [
     {

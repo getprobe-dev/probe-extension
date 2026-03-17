@@ -1,11 +1,9 @@
-import { STORAGE_KEYS, DEFAULT_PROXY_URL } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_PROXY_URL, DEFAULT_MODELS } from "../shared/types";
 import type { LLMProvider } from "../shared/types";
 import {
   buildSystemPrompt,
   buildFileSystemPrompt,
   buildEnrichedSystemPrompt,
-  MODEL_ID,
-  OPENAI_MODEL_ID,
 } from "../shared/constants";
 import { parsePromptSuggestions } from "../shared/parsing";
 import { resolveSkillsForDiff } from "./skillResolver";
@@ -24,23 +22,23 @@ const ANTHROPIC_API_VERSION = "2023-06-01";
 interface LLMSettings {
   provider: LLMProvider;
   apiKey: string | null;
+  modelName: string;
   proxyUrl: string;
 }
 
 export async function getSettings(): Promise<LLMSettings> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.OPENAI_API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.PROXY_URL],
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.MODEL_NAME, STORAGE_KEYS.PROXY_URL],
       (result) => {
         const provider = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
         const raw = (result[STORAGE_KEYS.PROXY_URL] as string) || "";
-        const apiKey =
-          provider === "openai"
-            ? (result[STORAGE_KEYS.OPENAI_API_KEY] as string) ?? null
-            : (result[STORAGE_KEYS.API_KEY] as string) ?? null;
+        const modelName =
+          (result[STORAGE_KEYS.MODEL_NAME] as string) || DEFAULT_MODELS[provider];
         resolve({
           provider,
-          apiKey,
+          apiKey: (result[STORAGE_KEYS.API_KEY] as string) ?? null,
+          modelName,
           proxyUrl: raw.startsWith("https://") ? raw : DEFAULT_PROXY_URL,
         });
       },
@@ -48,10 +46,11 @@ export async function getSettings(): Promise<LLMSettings> {
   });
 }
 
-function buildAnthropicRequest(
+export function buildAnthropicRequest(
   apiKey: string,
   proxyUrl: string,
   body: Record<string, unknown>,
+  signal?: AbortSignal,
 ): { endpoint: string; init: RequestInit } {
   return {
     endpoint: `${proxyUrl.replace(/\/$/, "")}/v1/messages`,
@@ -63,16 +62,19 @@ function buildAnthropicRequest(
         "anthropic-version": ANTHROPIC_API_VERSION,
       },
       body: JSON.stringify(body),
+      signal,
     },
   };
 }
 
-function buildOpenAIRequest(
+export function buildOpenAIRequest(
   apiKey: string,
+  proxyUrl: string,
   body: Record<string, unknown>,
+  signal?: AbortSignal,
 ): { endpoint: string; init: RequestInit } {
   return {
-    endpoint: "https://api.openai.com/v1/chat/completions",
+    endpoint: `${proxyUrl.replace(/\/$/, "")}/openai/v1/chat/completions`,
     init: {
       method: "POST",
       headers: {
@@ -80,11 +82,12 @@ function buildOpenAIRequest(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal,
     },
   };
 }
 
-function extractTextFromResponse(provider: LLMProvider, data: Record<string, unknown>): string {
+export function extractTextFromResponse(provider: LLMProvider, data: Record<string, unknown>): string {
   if (provider === "openai") {
     const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
     return choices?.[0]?.message?.content ?? "";
@@ -93,10 +96,22 @@ function extractTextFromResponse(provider: LLMProvider, data: Record<string, unk
   return content?.[0]?.text ?? "";
 }
 
+export function extractStreamDelta(provider: LLMProvider, event: Record<string, unknown>): string | null {
+  if (provider === "openai") {
+    const choices = event.choices as Array<{ delta?: { content?: string } }> | undefined;
+    return choices?.[0]?.delta?.content ?? null;
+  }
+  if (event.type === "content_block_delta") {
+    const delta = event.delta as { type?: string; text?: string } | undefined;
+    if (delta?.type === "text_delta") return delta.text ?? null;
+  }
+  return null;
+}
+
 export async function handleGeneratePRSummary(
   msg: GeneratePRSummaryRequest,
 ): Promise<GeneratePRSummaryResponse> {
-  const { provider, apiKey, proxyUrl } = await getSettings();
+  const { provider, apiKey, modelName, proxyUrl } = await getSettings();
   if (!apiKey) return { ok: false, error: "No API key configured." };
 
   const topFiles = [...msg.stats.files]
@@ -130,8 +145,8 @@ Each label must be 2–4 words and start with an action verb (e.g. Analyze, Veri
   let init: RequestInit;
 
   if (provider === "openai") {
-    ({ endpoint, init } = buildOpenAIRequest(apiKey, {
-      model: OPENAI_MODEL_ID,
+    ({ endpoint, init } = buildOpenAIRequest(apiKey, proxyUrl, {
+      model: modelName,
       max_tokens: 500,
       messages: [
         { role: "system", content: systemContent },
@@ -140,7 +155,7 @@ Each label must be 2–4 words and start with an action verb (e.g. Analyze, Veri
     }));
   } else {
     ({ endpoint, init } = buildAnthropicRequest(apiKey, proxyUrl, {
-      model: MODEL_ID,
+      model: modelName,
       max_tokens: 500,
       system: systemContent,
       messages: [{ role: "user", content: prompt }],
@@ -178,7 +193,7 @@ export async function handleChat(
   signal: AbortSignal,
   enrichedContext?: EnrichedPRContext,
 ) {
-  const { provider, apiKey, proxyUrl } = await getSettings();
+  const { provider, apiKey, modelName, proxyUrl } = await getSettings();
   if (!apiKey) {
     sendToPort(port, {
       type: "error",
@@ -210,11 +225,12 @@ export async function handleChat(
       context.focusedFileContent,
       context.focusedLineRange,
       skills,
+      modelName,
     );
   } else if (enrichedContext) {
-    systemPrompt = buildEnrichedSystemPrompt(enrichedContext, skills);
+    systemPrompt = buildEnrichedSystemPrompt(enrichedContext, skills, modelName);
   } else {
-    systemPrompt = buildSystemPrompt(context, skills);
+    systemPrompt = buildSystemPrompt(context, skills, modelName);
   }
 
   sendToPort(port, { type: "system-prompt", content: systemPrompt });
@@ -228,25 +244,23 @@ export async function handleChat(
   let init: RequestInit;
 
   if (provider === "openai") {
-    ({ endpoint, init } = buildOpenAIRequest(apiKey, {
-      model: OPENAI_MODEL_ID,
+    ({ endpoint, init } = buildOpenAIRequest(apiKey, proxyUrl, {
+      model: modelName,
       max_tokens: 4096,
       stream: true,
       messages: [
         { role: "system", content: systemPrompt },
         ...formattedMessages,
       ],
-    }));
-    init.signal = signal;
+    }, signal));
   } else {
     ({ endpoint, init } = buildAnthropicRequest(apiKey, proxyUrl, {
-      model: MODEL_ID,
+      model: modelName,
       max_tokens: 4096,
       stream: true,
       system: systemPrompt,
       messages: formattedMessages,
-    }));
-    init.signal = signal;
+    }, signal));
   }
 
   try {
@@ -289,15 +303,9 @@ export async function handleChat(
         if (data === "[DONE]") continue;
         try {
           const event = JSON.parse(data);
-          if (provider === "openai") {
-            const delta = event.choices?.[0]?.delta?.content;
-            if (delta) {
-              sendToPort(port, { type: "chunk", content: delta });
-            }
-          } else {
-            if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
-              sendToPort(port, { type: "chunk", content: event.delta.text });
-            }
+          const delta = extractStreamDelta(provider, event);
+          if (delta) {
+            sendToPort(port, { type: "chunk", content: delta });
           }
         } catch {
           /* skip malformed SSE */

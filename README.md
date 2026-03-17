@@ -85,13 +85,13 @@ This starts Vite in watch mode. Changes hot-reload into the `dist/` folder — j
 │  - Resolves review skills based on file extensions           │
 │  - Streams chat responses from Anthropic or OpenAI           │
 └──────────────────────────┬───────────────────────────────────┘
-                           │  fetch (Anthropic Messages API / OpenAI Chat API)
+                           │  fetch (via proxy)
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  CORS Proxy (Cloudflare Worker) — Anthropic only             │
-│  - Forwards requests to api.anthropic.com                    │
+│  CORS Proxy (Cloudflare Worker)                              │
+│  - Routes to api.anthropic.com or api.openai.com             │
 │  - Adds CORS headers for the extension context               │
-│  - OpenAI calls go directly to api.openai.com (CORS native)  │
+│  - No LLM domains in manifest host_permissions               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -105,7 +105,7 @@ The **content script** renders inside a Shadow DOM to avoid CSS conflicts with G
 2. The background worker fetches the unified diff from GitHub.
 3. File extensions are matched against the skill registry to load relevant review guidelines (cached 24 hours).
 4. A system prompt is assembled from the PR metadata, diff (up to 80K chars), focused file/lines (if any), and matched skills.
-5. Messages are sent to the selected LLM (Anthropic `claude-opus-4-6` or OpenAI `gpt-4o`) with streaming enabled.
+5. Messages are sent to the selected LLM provider via the CORS proxy with streaming enabled.
 6. SSE chunks are forwarded through the port to the content script and rendered incrementally.
 
 ### Review Skills
@@ -122,7 +122,7 @@ PRobe automatically detects file extensions in the diff and injects domain-speci
 | Markdown | react-markdown, remark-gfm, rehype-highlight |
 | Build | Vite 7, vite-plugin-web-extension |
 | Extension | Chrome Manifest V3 |
-| AI | Anthropic `claude-opus-4-6` or OpenAI `gpt-4o` (streaming) |
+| AI | Anthropic or OpenAI (user-configurable model, streaming) |
 | Proxy | Cloudflare Workers |
 
 ---
@@ -134,8 +134,8 @@ All configuration is stored in `chrome.storage.sync` — no `.env` files needed.
 | Setting | Required | Description |
 |---|---|---|
 | LLM Provider | Yes | Choose between Anthropic and OpenAI. Set via the extension popup. |
-| Anthropic API Key | If using Anthropic | Powers chat and PR summaries via Claude. Set via the extension popup. |
-| OpenAI API Key | If using OpenAI | Powers chat and PR summaries via GPT-4o. Set via the extension popup. |
+| API Key | Yes | Your Anthropic or OpenAI API key (depending on provider). Set via the extension popup. |
+| Model | Yes | Model name to use (e.g. `claude-opus-4-6`, `gpt-4o`). Defaults per provider; user-configurable. |
 | GitHub Classic Token | Yes | Required for PR stats, reviews, and comments. Needs `repo` scope. |
 
 The proxy URL defaults to a hosted Cloudflare Worker — no setup required. To self-host, deploy the `proxy/` directory:

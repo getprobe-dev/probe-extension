@@ -68,14 +68,9 @@ export function ChatPanel({
 
   const checkKeys = useCallback(() => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.OPENAI_API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.GITHUB_TOKEN],
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN],
       (result) => {
-        const provider = (result[STORAGE_KEYS.LLM_PROVIDER] as string) || "anthropic";
-        const hasKey =
-          provider === "openai"
-            ? !!result[STORAGE_KEYS.OPENAI_API_KEY]
-            : !!result[STORAGE_KEYS.API_KEY];
-        setHasApiKey(hasKey);
+        setHasApiKey(!!result[STORAGE_KEYS.API_KEY]);
         setHasGithubToken(!!result[STORAGE_KEYS.GITHUB_TOKEN]);
       },
     );

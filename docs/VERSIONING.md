@@ -44,15 +44,27 @@ git push origin v1.0.1
 gh release create v1.0.1 --title "v1.0.1 — <short description>" --notes "<release notes>"
 ```
 
-After the release is created, build the submission ZIP and upload it to the Chrome Web Store:
+After the release is created, run the release script — it handles everything in one step:
 
 ```bash
-npm run build
-cd dist && zip -r ../probe-extension.zip . -x "*.DS_Store" -x "__MACOSX/*"
+# Must be on main with a clean working tree
+scripts/release.sh 1.1.1
 ```
+
+The script:
+1. Validates you are on `main` with no uncommitted changes
+2. Runs lint, format-check, and tests
+3. Bumps the version in `package.json` and `manifest.json`
+4. Builds the extension (`npm run build`)
+5. Creates `probe-extension-<version>.zip` from `dist/`
+6. Commits the version bump, creates a git tag, and opens a GitHub Release with the ZIP attached
+
+Upload the ZIP to the [Chrome Web Store Developer Console](https://chrome.google.com/webstore/devconsole).
 
 ## Version history
 
 | Version | Date | Submitted to Chrome | Notes |
 |---|---|---|---|
 | `v1.0.0` | 2026-03-08 | Yes | Initial release |
+| `v1.1.0` | 2026-03-13 | Yes | OpenAI support, code quality refactor, CI/CD pipeline |
+| `v1.1.1` | — | Pending | Live model dropdown, provider-agnostic sort, module decomposition |

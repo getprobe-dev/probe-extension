@@ -86,7 +86,9 @@ git push origin "$TAG"
 
 # ── GitHub Release ────────────────────────────────────────────────────────────
 info "Creating GitHub Release $TAG..."
+REPO=$(git remote get-url origin | sed 's|.*github.com[:/]\(.*\)\.git|\1|; s|.*github.com[:/]\(.*\)|\1|')
 gh release create "$TAG" \
+  --repo "$REPO" \
   --title "$TAG" \
   --generate-notes \
   "$ZIP_NAME"

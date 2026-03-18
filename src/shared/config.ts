@@ -5,7 +5,7 @@ export type LLMProvider = "anthropic" | "openai";
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   anthropic: "claude-opus-4-6",
-  openai: "gpt-4o",
+  openai: "gpt-5.4",
 };
 
 export const STORAGE_KEYS = {

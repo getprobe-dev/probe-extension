@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS, DEFAULT_MODELS, MODELS_CACHE_TTL_MS } from "../shared/config";
 import type { LLMProvider } from "../shared/config";
@@ -194,7 +194,7 @@ export function PopupApp() {
   const inputClass =
     "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
   const selectClass =
-    "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all appearance-none cursor-pointer";
+    "w-full pl-3 pr-8 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all appearance-none cursor-pointer";
 
   const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
@@ -298,21 +298,27 @@ export function PopupApp() {
         </div>
 
         {showDropdown ? (
-          <select
-            id="model-name"
-            value={modelName}
-            onChange={(e) => {
-              setModelName(e.target.value);
-              setSaved(false);
-            }}
-            className={selectClass}
-          >
-            {modelsToShow.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id="model-name"
+              value={modelName}
+              onChange={(e) => {
+                setModelName(e.target.value);
+                setSaved(false);
+              }}
+              className={selectClass}
+            >
+              {modelsToShow.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
+              aria-hidden
+            />
+          </div>
         ) : (
           <input
             id="model-name"

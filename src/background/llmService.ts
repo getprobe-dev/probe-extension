@@ -122,27 +122,6 @@ export function extractStreamDelta(
   return null;
 }
 
-const NON_CHAT_PREFIXES = [
-  "text-embedding",
-  "text-moderation",
-  "text-search",
-  "text-similarity",
-  "text-davinci",
-  "code-search",
-  "code-davinci",
-  "whisper",
-  "tts",
-  "dall-e",
-  "babbage",
-  "davinci",
-  "ada",
-  "curie",
-  "omni-moderation",
-];
-
-function isLikelyChatModel(id: string): boolean {
-  return !NON_CHAT_PREFIXES.some((prefix) => id.startsWith(prefix));
-}
 
 export async function fetchModels(
   provider: LLMProvider,
@@ -162,10 +141,14 @@ export async function fetchModels(
   const response = await fetch(endpoint, { method: "GET", headers });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const data = (await response.json()) as { data: { id: string }[] };
-  const ids = data.data.map((m) => m.id);
+  const data = (await response.json()) as { data: { id: string; created?: number }[] };
 
-  return provider === "openai" ? ids.filter(isLikelyChatModel) : ids;
+  // Sort newest-first using the `created` timestamp every provider includes.
+  // This naturally surfaces the latest models without any provider-specific logic.
+  return data.data
+    .slice()
+    .sort((a, b) => (b.created ?? 0) - (a.created ?? 0))
+    .map((m) => m.id);
 }
 
 export async function handleFetchModels(

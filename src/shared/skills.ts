@@ -16,6 +16,8 @@ export interface ResolvedSkill {
   description: string;
 }
 
+const DEFAULT_MAX_SKILLS = 3;
+
 /**
  * Curated registry of review skills, ordered by priority within each tech domain.
  *
@@ -117,23 +119,13 @@ export function detectExtensionsFromDiff(diff: string): Set<string> {
 }
 
 /**
- * Collect filenames from the diff to help with secondary signal matching.
- */
-export function extractFilePathsFromDiff(diff: string): string[] {
-  const paths: string[] = [];
-  let match: RegExpExecArray | null;
-  const re = /^\+\+\+ b\/(.+)$/gm;
-  while ((match = re.exec(diff)) !== null) {
-    paths.push(match[1]);
-  }
-  return paths;
-}
-
-/**
  * Match the best skills for the detected extensions, capped at `maxSkills`.
  * Higher priority (lower number) wins. Within the same priority, registry order wins.
  */
-export function matchSkills(extensions: Set<string>, maxSkills = 3): SkillEntry[] {
+export function matchSkills(
+  extensions: Set<string>,
+  maxSkills: number = DEFAULT_MAX_SKILLS,
+): SkillEntry[] {
   if (extensions.size === 0) return [];
 
   const candidates = SKILL_REGISTRY.filter((s) =>

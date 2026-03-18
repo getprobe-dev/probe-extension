@@ -1,39 +1,22 @@
-import { useState, useRef, useEffect } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { memo, useState, useRef, useEffect } from "react";
 import { CommentComposer } from "./CommentComposer";
+import { MarkdownContent } from "./MarkdownContent";
 import { Copy, Check, MessageSquare } from "lucide-react";
-import type { ChatMessage, ReviewPendingComment } from "../../shared/types";
-
-const REMARK_PLUGINS = [remarkGfm];
-const REHYPE_PLUGINS: [[typeof rehypeHighlight, { detect: boolean }]] = [
-  [rehypeHighlight, { detect: true }],
-];
+import { useReviewContext } from "../context/ReviewContext";
+import type { ChatMessage } from "../../shared/types";
 
 interface MessageBubbleProps {
   message: ChatMessage;
   isStreaming?: boolean;
-  prOwner?: string;
-  prRepo?: string;
-  prNumber?: number;
-  focusedFile: string | null;
-  fileLine: number;
-  fileSide: "LEFT" | "RIGHT";
-  onAddToReview: (comment: ReviewPendingComment) => void;
 }
 
-export function MessageBubble({
+export const MessageBubble = memo(function MessageBubble({
   message,
   isStreaming,
-  prOwner,
-  prRepo,
-  prNumber,
-  focusedFile,
-  fileLine,
-  fileSide,
-  onAddToReview,
 }: MessageBubbleProps) {
+  const { prOwner, prRepo, prNumber, focusedFile, fileLine, fileSide, onAddToReview } =
+    useReviewContext();
+
   const isUser = message.role === "user";
   const [showComposer, setShowComposer] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -70,17 +53,16 @@ export function MessageBubble({
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : message.content.length === 0 && isStreaming ? (
-            <div className="flex items-center gap-1.5 py-0.5">
+            <div className="flex items-center gap-1.5 py-0.5" aria-label="Generating response">
               <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:0ms]" />
               <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:150ms]" />
               <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:300ms]" />
             </div>
           ) : (
-            <div className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}>
-              <Markdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS}>
-                {message.content}
-              </Markdown>
-            </div>
+            <MarkdownContent
+              content={message.content}
+              className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}
+            />
           )}
         </div>
 
@@ -90,6 +72,8 @@ export function MessageBubble({
               onClick={handleCopy}
               className="p-1 rounded-md text-muted-foreground hover:text-[#1a2e2b] hover:bg-[#f1f5f9] cursor-pointer transition-colors"
               title={copied ? "Copied!" : "Copy to clipboard"}
+              type="button"
+              aria-label={copied ? "Copied!" : "Copy to clipboard"}
             >
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
             </button>
@@ -97,6 +81,8 @@ export function MessageBubble({
               onClick={() => setShowComposer(true)}
               className="p-1 rounded-md text-muted-foreground hover:text-[#1a2e2b] hover:bg-[#f1f5f9] cursor-pointer transition-colors"
               title="Post as PR comment"
+              type="button"
+              aria-label="Post as PR comment"
             >
               <MessageSquare className="size-3" />
             </button>
@@ -121,4 +107,4 @@ export function MessageBubble({
       )}
     </div>
   );
-}
+});

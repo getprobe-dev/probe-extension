@@ -4,6 +4,8 @@ import { subscribeMutation } from "./utils/domObserver";
 import shadowStyles from "../styles/content-shadow.css?inline";
 
 const PR_URL_RE = /github\.com\/[^/]+\/[^/]+\/pull\/\d+/;
+const ROOT_HOST_ID = "probe-root";
+const APP_CONTAINER_ID = "probe-app";
 
 function isContextValid(): boolean {
   try {
@@ -19,11 +21,10 @@ function mount() {
     return;
   }
 
-  const hostId = "probe-root";
-  if (document.getElementById(hostId)) return;
+  if (document.getElementById(ROOT_HOST_ID)) return;
 
   const host = document.createElement("div");
-  host.id = hostId;
+  host.id = ROOT_HOST_ID;
   document.body.appendChild(host);
 
   const shadow = host.attachShadow({ mode: "open" });
@@ -41,14 +42,14 @@ function mount() {
   shadow.appendChild(styleEl);
 
   const appContainer = document.createElement("div");
-  appContainer.id = "probe-app";
+  appContainer.id = APP_CONTAINER_ID;
   shadow.appendChild(appContainer);
 
   createRoot(appContainer).render(<App />);
 }
 
 function unmount() {
-  document.getElementById("probe-root")?.remove();
+  document.getElementById(ROOT_HOST_ID)?.remove();
 }
 
 let unsubscribe: (() => void) | null = null;

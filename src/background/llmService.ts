@@ -1,5 +1,5 @@
-import { STORAGE_KEYS, DEFAULT_PROXY_URL, DEFAULT_MODELS } from "../shared/types";
-import type { LLMProvider } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_PROXY_URL, DEFAULT_MODELS } from "../shared/config";
+import type { LLMProvider } from "../shared/config";
 import {
   buildSystemPrompt,
   buildFileSystemPrompt,
@@ -18,6 +18,10 @@ import type {
 } from "../shared/types";
 
 const ANTHROPIC_API_VERSION = "2023-06-01";
+const SUMMARY_MAX_TOKENS = 500;
+const CHAT_MAX_TOKENS = 4096;
+const SUMMARY_DESCRIPTION_LIMIT = 500;
+const SUMMARY_TOP_FILES_LIMIT = 10;
 
 interface LLMSettings {
   provider: LLMProvider;
@@ -29,12 +33,16 @@ interface LLMSettings {
 export async function getSettings(): Promise<LLMSettings> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.MODEL_NAME, STORAGE_KEYS.PROXY_URL],
+      [
+        STORAGE_KEYS.API_KEY,
+        STORAGE_KEYS.LLM_PROVIDER,
+        STORAGE_KEYS.MODEL_NAME,
+        STORAGE_KEYS.PROXY_URL,
+      ],
       (result) => {
         const provider = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
         const raw = (result[STORAGE_KEYS.PROXY_URL] as string) || "";
-        const modelName =
-          (result[STORAGE_KEYS.MODEL_NAME] as string) || DEFAULT_MODELS[provider];
+        const modelName = (result[STORAGE_KEYS.MODEL_NAME] as string) || DEFAULT_MODELS[provider];
         resolve({
           provider,
           apiKey: (result[STORAGE_KEYS.API_KEY] as string) ?? null,
@@ -87,7 +95,10 @@ export function buildOpenAIRequest(
   };
 }
 
-export function extractTextFromResponse(provider: LLMProvider, data: Record<string, unknown>): string {
+export function extractTextFromResponse(
+  provider: LLMProvider,
+  data: Record<string, unknown>,
+): string {
   if (provider === "openai") {
     const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
     return choices?.[0]?.message?.content ?? "";
@@ -96,7 +107,10 @@ export function extractTextFromResponse(provider: LLMProvider, data: Record<stri
   return content?.[0]?.text ?? "";
 }
 
-export function extractStreamDelta(provider: LLMProvider, event: Record<string, unknown>): string | null {
+export function extractStreamDelta(
+  provider: LLMProvider,
+  event: Record<string, unknown>,
+): string | null {
   if (provider === "openai") {
     const choices = event.choices as Array<{ delta?: { content?: string } }> | undefined;
     return choices?.[0]?.delta?.content ?? null;
@@ -116,7 +130,7 @@ export async function handleGeneratePRSummary(
 
   const topFiles = [...msg.stats.files]
     .sort((a, b) => b.additions + b.deletions - (a.additions + a.deletions))
-    .slice(0, 10)
+    .slice(0, SUMMARY_TOP_FILES_LIMIT)
     .map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`)
     .join("\n");
 
@@ -125,7 +139,7 @@ export async function handleGeneratePRSummary(
 Today's date: ${new Date().toLocaleDateString("en-CA")}
 
 PR #${msg.number}: ${msg.title}
-${msg.description ? `Description: ${msg.description.slice(0, 500)}` : ""}
+${msg.description ? `Description: ${msg.description.slice(0, SUMMARY_DESCRIPTION_LIMIT)}` : ""}
 
 Stats: ${msg.stats.commits} commits, ${msg.stats.changedFiles} files, +${msg.stats.additions}/-${msg.stats.deletions} lines, ${msg.stats.comments} comments
 Authors: ${msg.stats.commitAuthors.map((a) => a.login).join(", ")}
@@ -147,7 +161,7 @@ Each label must be 2–4 words and start with an action verb (e.g. Analyze, Veri
   if (provider === "openai") {
     ({ endpoint, init } = buildOpenAIRequest(apiKey, proxyUrl, {
       model: modelName,
-      max_tokens: 500,
+      max_tokens: SUMMARY_MAX_TOKENS,
       messages: [
         { role: "system", content: systemContent },
         { role: "user", content: prompt },
@@ -156,7 +170,7 @@ Each label must be 2–4 words and start with an action verb (e.g. Analyze, Veri
   } else {
     ({ endpoint, init } = buildAnthropicRequest(apiKey, proxyUrl, {
       model: modelName,
-      max_tokens: 500,
+      max_tokens: SUMMARY_MAX_TOKENS,
       system: systemContent,
       messages: [{ role: "user", content: prompt }],
     }));
@@ -197,8 +211,7 @@ export async function handleChat(
   if (!apiKey) {
     sendToPort(port, {
       type: "error",
-      message:
-        "No API key configured. Click the PRobe extension icon to add your API key.",
+      message: "No API key configured. Click the PRobe extension icon to add your API key.",
     });
     return;
   }
@@ -244,23 +257,30 @@ export async function handleChat(
   let init: RequestInit;
 
   if (provider === "openai") {
-    ({ endpoint, init } = buildOpenAIRequest(apiKey, proxyUrl, {
-      model: modelName,
-      max_tokens: 4096,
-      stream: true,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...formattedMessages,
-      ],
-    }, signal));
+    ({ endpoint, init } = buildOpenAIRequest(
+      apiKey,
+      proxyUrl,
+      {
+        model: modelName,
+        max_tokens: CHAT_MAX_TOKENS,
+        stream: true,
+        messages: [{ role: "system", content: systemPrompt }, ...formattedMessages],
+      },
+      signal,
+    ));
   } else {
-    ({ endpoint, init } = buildAnthropicRequest(apiKey, proxyUrl, {
-      model: modelName,
-      max_tokens: 4096,
-      stream: true,
-      system: systemPrompt,
-      messages: formattedMessages,
-    }, signal));
+    ({ endpoint, init } = buildAnthropicRequest(
+      apiKey,
+      proxyUrl,
+      {
+        model: modelName,
+        max_tokens: CHAT_MAX_TOKENS,
+        stream: true,
+        system: systemPrompt,
+        messages: formattedMessages,
+      },
+      signal,
+    ));
   }
 
   try {
@@ -274,7 +294,7 @@ export async function handleChat(
         const parsed = JSON.parse(errorBody);
         errorMessage = parsed?.error?.message ?? errorMessage;
       } catch {
-        /* use default */
+        /* use default error message */
       }
       sendToPort(port, { type: "error", message: errorMessage });
       return;

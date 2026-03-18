@@ -1,5 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from "react";
-import { getIconUrl } from "../utils/theme";
+import { getIconUrl } from "../utils/iconUtils";
 
 interface Props {
   children: ReactNode;

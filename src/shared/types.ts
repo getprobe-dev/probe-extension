@@ -1,3 +1,8 @@
+// Runtime config is in shared/config.ts — keep this file for type/interface definitions only.
+// Re-exported here for backward compatibility; prefer importing from shared/config directly.
+export { DEFAULT_PROXY_URL, STORAGE_KEYS, DEFAULT_MODELS } from "./config";
+export type { LLMProvider } from "./config";
+
 export interface PromptSuggestion {
   label: string;
   prompt: string;
@@ -279,24 +284,3 @@ export type StreamEvent =
   | { type: "chunk"; content: string }
   | { type: "done" }
   | { type: "error"; message: string };
-
-export const DEFAULT_PROXY_URL: string =
-  import.meta.env.VITE_PROXY_URL || "https://pr-sidekick-proxy.sgunturi.workers.dev";
-
-export type LLMProvider = "anthropic" | "openai";
-
-export const DEFAULT_MODELS: Record<LLMProvider, string> = {
-  anthropic: "claude-opus-4-6",
-  openai: "gpt-4o",
-};
-
-export const STORAGE_KEYS = {
-  API_KEY: "llm_api_key",
-  LLM_PROVIDER: "llm_provider",
-  MODEL_NAME: "llm_model_name",
-  PROXY_URL: "proxy_url",
-  GITHUB_TOKEN: "github_token",
-  chatHistory: (owner: string, repo: string, number: number) => `chat:${owner}/${repo}#${number}`,
-  pendingReview: (owner: string, repo: string, number: number) =>
-    `review:${owner}/${repo}#${number}`,
-} as const;

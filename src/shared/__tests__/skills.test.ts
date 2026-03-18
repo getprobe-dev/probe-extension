@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  detectExtensionsFromDiff,
-  extractFilePathsFromDiff,
-  matchSkills,
-  SKILL_REGISTRY,
-} from "../skills";
+import { detectExtensionsFromDiff, matchSkills, SKILL_REGISTRY } from "../skills";
 
 const SAMPLE_DIFF = `diff --git a/src/App.tsx b/src/App.tsx
 --- a/src/App.tsx
@@ -48,13 +43,6 @@ describe("detectExtensionsFromDiff", () => {
     const first = detectExtensionsFromDiff(SAMPLE_DIFF);
     const second = detectExtensionsFromDiff(SAMPLE_DIFF);
     expect(first).toEqual(second);
-  });
-});
-
-describe("extractFilePathsFromDiff", () => {
-  it("returns all file paths", () => {
-    const paths = extractFilePathsFromDiff(SAMPLE_DIFF);
-    expect(paths).toEqual(["src/App.tsx", "server/main.py", "README.md"]);
   });
 });
 

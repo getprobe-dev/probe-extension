@@ -20,7 +20,15 @@ interface ReviewQueueProps {
 type SubmitState = "idle" | "submitting" | "submitted" | "error";
 type ReviewEvent = "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
 
-export function ReviewQueue({ pending, owner, repo, number, isSelfReview, onClear, onRemove }: ReviewQueueProps) {
+export function ReviewQueue({
+  pending,
+  owner,
+  repo,
+  number,
+  isSelfReview,
+  onClear,
+  onRemove,
+}: ReviewQueueProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [body, setBody] = useState("");
   const [event, setEvent] = useState<ReviewEvent>("COMMENT");
@@ -28,6 +36,7 @@ export function ReviewQueue({ pending, owner, repo, number, isSelfReview, onClea
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isSelfReview && event !== "COMMENT") setEvent("COMMENT");
   }, [isSelfReview, event]);
 
@@ -188,11 +197,19 @@ export function ReviewQueue({ pending, owner, repo, number, isSelfReview, onClea
                       Submitting
                       <span className="flex gap-0.5">
                         <span className="size-1 rounded-full bg-current animate-pulse" />
-                        <span className="size-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.15s" }} />
-                        <span className="size-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.3s" }} />
+                        <span
+                          className="size-1 rounded-full bg-current animate-pulse"
+                          style={{ animationDelay: "0.15s" }}
+                        />
+                        <span
+                          className="size-1 rounded-full bg-current animate-pulse"
+                          style={{ animationDelay: "0.3s" }}
+                        />
                       </span>
                     </span>
-                  ) : `Submit Review (${pending.length})`}
+                  ) : (
+                    `Submit Review (${pending.length})`
+                  )}
                 </button>
               </div>
             </>

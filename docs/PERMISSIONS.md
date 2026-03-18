@@ -21,12 +21,12 @@ Use this file when:
 **Why it is required:**
 
 `chrome.storage.sync` — persists user configuration across devices:
-- `src/background/githubApi.ts` line 29: reads `GITHUB_TOKEN` to authenticate GitHub API calls.
-- `src/background/llmService.ts` line 24: reads `API_KEY` and `PROXY_URL` to authenticate Anthropic API calls.
-- `src/popup/App.tsx` lines 14, 39, 47: reads and writes all three settings from the popup.
+- `src/background/githubHelpers.ts` `ghHeaders()`: reads `GITHUB_TOKEN` to authenticate GitHub API calls.
+- `src/background/llmService.ts` `getSettings()`: reads `API_KEY`, `LLM_PROVIDER`, `MODEL_NAME`, and `PROXY_URL` to configure LLM API calls.
+- `src/popup/App.tsx`: reads and writes all settings from the popup.
 
 `chrome.storage.local` — persists per-PR state locally on the device:
-- `src/content/components/ChatPanel.tsx` lines 107, 164, 170, 172, 398: reads and writes per-PR chat history and pending review comments.
+- `src/content/components/ChatPanel.tsx` `persistMessages()` / `persistReview()`: reads and writes per-PR chat history and pending review comments.
 - `src/background/skillResolver.ts` lines 23, 48: reads and writes the 24-hour skill content cache, keyed by skill ID.
 
 **What breaks without it:** Chat history is lost on every page reload. API keys must be re-entered every session. The skill cache always fetches from the network, ignoring the 24-hour TTL.
@@ -92,7 +92,7 @@ fetch(url)
 ```
 When a user focuses on a specific file, the extension fetches its full content so the AI has complete context beyond the diff hunks. The path includes owner, repo, branch, and file path — all dynamic values unknown at manifest-declaration time.
 
-2. **Full head-branch file content for enriched context** — `src/background/githubApi.ts` line 343:
+2. **Full head-branch file content for enriched context** — `src/background/githubEnrichedContext.ts` line 221:
 ```typescript
 const rawBase = `https://raw.githubusercontent.com/${msg.owner}/${msg.repo}/${headSha}`;
 ```
@@ -113,19 +113,19 @@ The extension's review quality depends on domain-specific knowledge (e.g., React
 
 **Why it is required:**
 
-| Handler | File | Line | Endpoint | Purpose |
-|---|---|---|---|---|
-| `handlePostReviewComment` | `githubApi.ts` | 92 | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Post an inline review comment |
-| `handleSubmitReview` | `githubApi.ts` | 114 | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Submit a full review (Comment / Approve / Request Changes) |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 196 | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata (title, description, merge status, labels) |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 204 | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for enriched context |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 206 | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for enriched context |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 213 | `GET /repos/{o}/{r}/pulls/{n}/comments` | Fetch inline review comments |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 215 | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch changed files list |
-| `handleFetchPRStats` | `githubApi.ts` | 451 | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata for dashboard |
-| `handleFetchPRStats` | `githubApi.ts` | 453 | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch per-file change stats |
-| `handleFetchPRStats` | `githubApi.ts` | 454 | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for dashboard |
-| `handleFetchPRStats` | `githubApi.ts` | 455 | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for dashboard |
+| Handler | File | Endpoint | Purpose |
+|---|---|---|---|
+| `handlePostReviewComment` | `githubComments.ts` | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Post an inline review comment |
+| `handleSubmitReview` | `githubComments.ts` | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Submit a full review (Comment / Approve / Request Changes) |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata (title, description, merge status, labels) |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for enriched context |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for enriched context |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/pulls/{n}/comments` | Fetch inline review comments |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch changed files list |
+| `handleFetchPRStats` | `githubStats.ts` | `GET /repos/{o}/{r}/pulls/{n}` | Fetch PR metadata for dashboard |
+| `handleFetchPRStats` | `githubStats.ts` | `GET /repos/{o}/{r}/pulls/{n}/files` | Fetch per-file change stats |
+| `handleFetchPRStats` | `githubStats.ts` | `GET /repos/{o}/{r}/pulls/{n}/commits` | Fetch commit list for dashboard |
+| `handleFetchPRStats` | `githubStats.ts` | `GET /repos/{o}/{r}/pulls/{n}/reviews` | Fetch reviewer states for dashboard |
 
 **What breaks without it:** Review submission fails. PR metadata, file stats, commit list, and reviewer states cannot load. Both the enriched AI context and the PR dashboard become non-functional.
 
@@ -137,9 +137,9 @@ The extension's review quality depends on domain-specific knowledge (e.g., React
 
 **Why it is required:**
 
-| Handler | File | Line | Endpoint | Purpose |
-|---|---|---|---|---|
-| `handleFetchEnrichedContext` | `githubApi.ts` | 325 | `GET /repos/{o}/{r}/issues/{n}` | Fetch linked issue details (title, body) |
+| Handler | File | Endpoint | Purpose |
+|---|---|---|---|
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/issues/{n}` | Fetch linked issue details (title, body) |
 
 When a PR description references issues (e.g. "Closes #42", "Fixes #17"), the extension resolves each reference by fetching the issue's title and body. This context is included in the AI system prompt so the model understands *why* the PR exists, not just *what* it changes.
 
@@ -155,10 +155,10 @@ When a PR description references issues (e.g. "Closes #42", "Fixes #17"), the ex
 
 **Why it is required:**
 
-| Handler | File | Line | Endpoint | Purpose |
-|---|---|---|---|---|
-| `handlePostComment` | `githubApi.ts` | 74 | `POST /repos/{o}/{r}/issues/{n}/comments` | Post a PR-level comment |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 211 | `GET /repos/{o}/{r}/issues/{n}/comments` | Fetch PR-level discussion comments for enriched context |
+| Handler | File | Endpoint | Purpose |
+|---|---|---|---|
+| `handlePostComment` | `githubComments.ts` | `POST /repos/{o}/{r}/issues/{n}/comments` | Post a PR-level comment |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/issues/{n}/comments` | Fetch PR-level discussion comments for enriched context |
 
 GitHub models PR comments through the Issues API (`/issues/{number}/comments`), not the Pulls API. This requires a separate host permission pattern because the path contains `/issues/` rather than `/pulls/`.
 
@@ -172,10 +172,10 @@ GitHub models PR comments through the Issues API (`/issues/{number}/comments`), 
 
 **Why it is required:**
 
-| Handler | File | Line | Endpoint | Purpose |
-|---|---|---|---|---|
-| `handleFetchPRStats` | `githubApi.ts` | 478 | `GET /repos/{o}/{r}/commits/{sha}` | Fetch per-commit stats (additions, deletions) |
-| `handleFetchEnrichedContext` | `githubApi.ts` | 296 | `GET /repos/{o}/{r}/commits/{sha}/check-runs` | Fetch CI check status for the head commit |
+| Handler | File | Endpoint | Purpose |
+|---|---|---|---|
+| `handleFetchPRStats` | `githubStats.ts` | `GET /repos/{o}/{r}/commits/{sha}` | Fetch per-commit stats (additions, deletions) |
+| `handleFetchEnrichedContext` | `githubEnrichedContext.ts` | `GET /repos/{o}/{r}/commits/{sha}/check-runs` | Fetch CI check status for the head commit |
 
 The PR dashboard shows per-commit change statistics in the commit timeline. The enriched context includes CI check status. These endpoints are under `/commits/{sha}`, which is not covered by the `/pulls/*` pattern.
 
@@ -211,7 +211,7 @@ The PR dashboard shows per-commit change statistics in the commit timeline. The 
 
 #### Icons — `icon-48.png`, `icon-128.png`
 
-`src/content/utils/theme.ts` line 3:
+`src/content/utils/iconUtils.ts` line 3:
 ```typescript
 return chrome.runtime.getURL(`icon-${size}.png`);
 ```
@@ -261,4 +261,5 @@ The Outfit variable font is registered via the `FontFace` API using a `chrome-ex
 | `cookies` | Not used. Authentication uses API keys stored in `chrome.storage`, not cookies. |
 | `identity` | Not used. No OAuth flow is implemented. |
 | `notifications` | Not used. The extension has no notification UI. |
-| `https://api.anthropic.com/*` | Not used as a host permission. The Anthropic API is accessed through the CORS proxy (`pr-sidekick-proxy.sgunturi.workers.dev`), which is a first-party URL and does not require a separate host permission. |
+| `https://api.anthropic.com/*` | Not used as a host permission. The Anthropic API is accessed through the CORS proxy (`probe-proxy.sgunturi.workers.dev`), which is a first-party URL and does not require a separate host permission. |
+| `https://api.openai.com/*` | Not used as a host permission. OpenAI API calls are routed through the same CORS proxy (via the `/openai/` path prefix), so no additional host permission is needed. |

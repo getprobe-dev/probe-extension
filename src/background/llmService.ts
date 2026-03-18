@@ -122,7 +122,6 @@ export function extractStreamDelta(
   return null;
 }
 
-
 export async function fetchModels(
   provider: LLMProvider,
   apiKey: string,

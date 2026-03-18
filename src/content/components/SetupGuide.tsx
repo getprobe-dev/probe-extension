@@ -19,14 +19,19 @@ function ChromeExtensionsIcon({ className = "" }: { className?: string }) {
 
 export function SetupGuide({ onKeysReady }: SetupGuideProps) {
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== "sync") return;
       if (changes[STORAGE_KEYS.API_KEY] || changes[STORAGE_KEYS.GITHUB_TOKEN]) {
-        onKeysReady();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(onKeysReady, 100);
       }
     };
     chrome.storage.onChanged.addListener(listener);
-    return () => chrome.storage.onChanged.removeListener(listener);
+    return () => {
+      chrome.storage.onChanged.removeListener(listener);
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [onKeysReady]);
 
   const handleOpenSettings = () => {

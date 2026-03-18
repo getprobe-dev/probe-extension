@@ -14,8 +14,28 @@ function corsHeaders(origin: string): HeadersInit {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version",
+    "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version, Authorization",
     Vary: "Origin",
+  };
+}
+
+interface RouteConfig {
+  targetBase: string;
+  forwardHeaders: string[];
+}
+
+const OPENAI_PREFIX = "/openai/";
+
+function resolveRoute(pathname: string): RouteConfig {
+  if (pathname.startsWith(OPENAI_PREFIX)) {
+    return {
+      targetBase: "https://api.openai.com",
+      forwardHeaders: ["content-type", "authorization"],
+    };
+  }
+  return {
+    targetBase: "https://api.anthropic.com",
+    forwardHeaders: ["content-type", "x-api-key", "anthropic-version"],
   };
 }
 
@@ -38,10 +58,16 @@ export default {
     }
 
     const url = new URL(request.url);
-    const target = `https://api.anthropic.com${url.pathname}${url.search}`;
+    const route = resolveRoute(url.pathname);
+
+    const upstreamPath = url.pathname.startsWith(OPENAI_PREFIX)
+      ? url.pathname.slice(OPENAI_PREFIX.length - 1)
+      : url.pathname;
+
+    const target = `${route.targetBase}${upstreamPath}${url.search}`;
 
     const headers = new Headers();
-    for (const key of ["content-type", "x-api-key", "anthropic-version"]) {
+    for (const key of route.forwardHeaders) {
       const val = request.headers.get(key);
       if (val) headers.set(key, val);
     }

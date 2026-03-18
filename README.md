@@ -19,7 +19,7 @@ PRobe is a Chrome extension that adds a streaming AI chat panel to every GitHub 
 - **X-Ray mode** — Inspect the full system prompt the AI receives — every instruction, every piece of context, every skill.
 - **Post comments & submit reviews** — Turn AI responses into GitHub comments, or batch inline comments into a single review.
 - **PR dashboard** — Stats, reviewers, top changed files, and AI-generated focus prompts at a glance.
-- **Your keys, your control** — Uses your own Anthropic API key. No account, no subscription, no data on external servers.
+- **Your keys, your control** — Uses your own Anthropic or OpenAI API key. No account, no subscription, no data on external servers.
 
 See the full feature list and version history in the [Changelog](CHANGELOG.md).
 
@@ -31,7 +31,7 @@ See the full feature list and version history in the [Changelog](CHANGELOG.md).
 
 - Chrome (or Chromium-based browser)
 - [Node.js](https://nodejs.org/) 18+
-- An [Anthropic API key](https://platform.claude.com/settings/keys)
+- An [Anthropic API key](https://platform.claude.com/settings/keys) or [OpenAI API key](https://platform.openai.com/api-keys)
 
 ### Install & Build
 
@@ -47,7 +47,7 @@ npm run build
 1. Open `chrome://extensions` in Chrome.
 2. Enable **Developer mode** (top-right toggle).
 3. Click **Load unpacked** and select the `dist/` folder.
-4. Click the PRobe extension icon and enter your **Anthropic API key** and **GitHub Classic Token** (with `repo` scope).
+4. Click the PRobe extension icon, choose your **LLM provider** (Anthropic or OpenAI), enter the corresponding **API key**, and your **GitHub Classic Token** (with `repo` scope).
 5. Navigate to any GitHub pull request and click the floating PRobe button (or press `Cmd+Shift+P`).
 
 ### Development
@@ -83,18 +83,19 @@ This starts Vite in watch mode. Changes hot-reload into the `dist/` folder — j
 │  - Fetches PR diffs and file content from GitHub             │
 │  - Posts comments and reviews via the GitHub API             │
 │  - Resolves review skills based on file extensions           │
-│  - Streams chat responses from Anthropic via the proxy       │
+│  - Streams chat responses from Anthropic or OpenAI           │
 └──────────────────────────┬───────────────────────────────────┘
-                           │  fetch (Anthropic Messages API)
+                           │  fetch (via proxy)
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  CORS Proxy (Cloudflare Worker)                              │
-│  - Forwards requests to api.anthropic.com                    │
+│  - Routes to api.anthropic.com or api.openai.com             │
 │  - Adds CORS headers for the extension context               │
+│  - No LLM domains in manifest host_permissions               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The **content script** renders inside a Shadow DOM to avoid CSS conflicts with GitHub. The **background service worker** handles all network requests (GitHub API, Anthropic API) and streams SSE chunks back to the UI over a long-lived `chrome.runtime.connect` port. The **proxy** is a lightweight Cloudflare Worker that adds CORS headers — your API key is passed through and never stored server-side.
+The **content script** renders inside a Shadow DOM to avoid CSS conflicts with GitHub. The **background service worker** handles all network requests (GitHub API, LLM APIs) and streams SSE chunks back to the UI over a long-lived `chrome.runtime.connect` port. The **proxy** is a lightweight Cloudflare Worker that adds CORS headers — your API key is passed through and never stored server-side.
 
 ---
 
@@ -104,7 +105,7 @@ The **content script** renders inside a Shadow DOM to avoid CSS conflicts with G
 2. The background worker fetches the unified diff from GitHub.
 3. File extensions are matched against the skill registry to load relevant review guidelines (cached 24 hours).
 4. A system prompt is assembled from the PR metadata, diff (up to 80K chars), focused file/lines (if any), and matched skills.
-5. Messages are sent to the Anthropic Messages API (`claude-opus-4-6`) via the proxy with streaming enabled.
+5. Messages are sent to the selected LLM provider via the CORS proxy with streaming enabled.
 6. SSE chunks are forwarded through the port to the content script and rendered incrementally.
 
 ### Review Skills
@@ -121,7 +122,7 @@ PRobe automatically detects file extensions in the diff and injects domain-speci
 | Markdown | react-markdown, remark-gfm, rehype-highlight |
 | Build | Vite 7, vite-plugin-web-extension |
 | Extension | Chrome Manifest V3 |
-| AI | Anthropic `claude-opus-4-6` (streaming) |
+| AI | Anthropic or OpenAI (user-configurable model, streaming) |
 | Proxy | Cloudflare Workers |
 
 ---
@@ -132,7 +133,9 @@ All configuration is stored in `chrome.storage.sync` — no `.env` files needed.
 
 | Setting | Required | Description |
 |---|---|---|
-| Anthropic API Key | Yes | Powers chat and PR summaries. Set via the extension popup. |
+| LLM Provider | Yes | Choose between Anthropic and OpenAI. Set via the extension popup. |
+| API Key | Yes | Your Anthropic or OpenAI API key (depending on provider). Set via the extension popup. |
+| Model | Yes | Model name to use (e.g. `claude-opus-4-6`, `gpt-4o`). Defaults per provider; user-configurable. |
 | GitHub Classic Token | Yes | Required for PR stats, reviews, and comments. Needs `repo` scope. |
 
 The proxy URL defaults to a hosted Cloudflare Worker — no setup required. To self-host, deploy the `proxy/` directory:

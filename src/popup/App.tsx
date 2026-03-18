@@ -1,43 +1,83 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS } from "../shared/types";
+import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/types";
+import type { LLMProvider } from "../shared/types";
+
+const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
+  anthropic: {
+    label: "Anthropic API Key",
+    keyUrl: "https://platform.claude.com/settings/keys",
+    placeholder: "sk-ant-...",
+  },
+  openai: {
+    label: "OpenAI API Key",
+    keyUrl: "https://platform.openai.com/api-keys",
+    placeholder: "sk-...",
+  },
+};
 
 export function PopupApp() {
+  const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
+  const [modelName, setModelName] = useState(DEFAULT_MODELS.anthropic);
   const [githubToken, setGithubToken] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [storedValues, setStoredValues] = useState({ apiKey: "", githubToken: "" });
+  const [storedValues, setStoredValues] = useState({
+    provider: "anthropic" as LLMProvider,
+    apiKey: "",
+    modelName: DEFAULT_MODELS.anthropic,
+    githubToken: "",
+  });
 
   useEffect(() => {
-    chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
-      const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
-      const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
-      setApiKey(key);
-      setGithubToken(token);
-      setStoredValues({ apiKey: key, githubToken: token });
-      setLoading(false);
-    });
+    chrome.storage.sync.get(
+      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.MODEL_NAME, STORAGE_KEYS.GITHUB_TOKEN],
+      (result) => {
+        const prov = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
+        const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
+        const model = (result[STORAGE_KEYS.MODEL_NAME] as string) || DEFAULT_MODELS[prov];
+        const token = (result[STORAGE_KEYS.GITHUB_TOKEN] as string) ?? "";
+        setProvider(prov);
+        setApiKey(key);
+        setModelName(model);
+        setGithubToken(token);
+        setStoredValues({ provider: prov, apiKey: key, modelName: model, githubToken: token });
+        setLoading(false);
+      },
+    );
   }, []);
 
   const hasDelta =
-    apiKey.trim() !== storedValues.apiKey || githubToken.trim() !== storedValues.githubToken;
+    provider !== storedValues.provider ||
+    apiKey.trim() !== storedValues.apiKey ||
+    modelName.trim() !== storedValues.modelName ||
+    githubToken.trim() !== storedValues.githubToken;
 
   const hasStored = !!storedValues.apiKey && !!storedValues.githubToken;
 
+  const handleProviderChange = (p: LLMProvider) => {
+    setProvider(p);
+    setModelName(DEFAULT_MODELS[p]);
+    setSaved(false);
+  };
+
   const handleSave = () => {
     const trimmedKey = apiKey.trim();
+    const trimmedModel = modelName.trim() || DEFAULT_MODELS[provider];
     const trimmedGithub = githubToken.trim();
     if (!trimmedKey || !trimmedGithub) return;
 
     const settings: Record<string, string> = {
+      [STORAGE_KEYS.LLM_PROVIDER]: provider,
       [STORAGE_KEYS.API_KEY]: trimmedKey,
+      [STORAGE_KEYS.MODEL_NAME]: trimmedModel,
       [STORAGE_KEYS.GITHUB_TOKEN]: trimmedGithub,
     };
 
     chrome.storage.sync.set(settings, () => {
-      setStoredValues({ apiKey: trimmedKey, githubToken: trimmedGithub });
+      setStoredValues({ provider, apiKey: trimmedKey, modelName: trimmedModel, githubToken: trimmedGithub });
       setSaved(true);
       setTimeout(() => window.close(), 2000);
     });
@@ -45,11 +85,19 @@ export function PopupApp() {
 
   const handleClear = () => {
     chrome.storage.sync.remove(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.PROXY_URL, STORAGE_KEYS.GITHUB_TOKEN],
+      [
+        STORAGE_KEYS.API_KEY,
+        STORAGE_KEYS.LLM_PROVIDER,
+        STORAGE_KEYS.MODEL_NAME,
+        STORAGE_KEYS.PROXY_URL,
+        STORAGE_KEYS.GITHUB_TOKEN,
+      ],
       () => {
+        setProvider("anthropic");
         setApiKey("");
+        setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
-        setStoredValues({ apiKey: "", githubToken: "" });
+        setStoredValues({ provider: "anthropic", apiKey: "", modelName: DEFAULT_MODELS.anthropic, githubToken: "" });
         setSaved(false);
       },
     );
@@ -76,6 +124,15 @@ export function PopupApp() {
   const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
 
+  const meta = PROVIDER_META[provider];
+
+  const providerTabClass = (p: LLMProvider) =>
+    `flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+      provider === p
+        ? "bg-background text-foreground shadow-sm"
+        : "text-muted-foreground hover:text-foreground"
+    }`;
+
   return (
     <div className="w-80">
       {/* Branded header */}
@@ -93,13 +150,34 @@ export function PopupApp() {
       </div>
 
       <div className="px-5 pb-5">
+        {/* Provider selector */}
+        <label className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+          LLM Provider
+        </label>
+        <div className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50">
+          <button
+            type="button"
+            className={providerTabClass("anthropic")}
+            onClick={() => handleProviderChange("anthropic")}
+          >
+            Anthropic
+          </button>
+          <button
+            type="button"
+            className={providerTabClass("openai")}
+            onClick={() => handleProviderChange("openai")}
+          >
+            OpenAI
+          </button>
+        </div>
+
         <a
-          href="https://platform.claude.com/settings/keys"
+          href={meta.keyUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70 hover:opacity-100 transition-opacity w-fit"
         >
-          Anthropic API Key
+          {meta.label}
           <ExternalLink className="size-2.5 opacity-40" />
         </a>
         <input
@@ -109,7 +187,21 @@ export function PopupApp() {
             setApiKey(e.target.value);
             setSaved(false);
           }}
-          placeholder="sk-ant-..."
+          placeholder={meta.placeholder}
+          className={inputClass}
+        />
+
+        <label className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+          Model
+        </label>
+        <input
+          type="text"
+          value={modelName}
+          onChange={(e) => {
+            setModelName(e.target.value);
+            setSaved(false);
+          }}
+          placeholder={DEFAULT_MODELS[provider]}
           className={inputClass}
         />
 

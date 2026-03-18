@@ -1,5 +1,5 @@
 export const DEFAULT_PROXY_URL: string =
-  import.meta.env.VITE_PROXY_URL || "https://pr-sidekick-proxy.sgunturi.workers.dev";
+  import.meta.env.VITE_PROXY_URL || "https://probe-proxy.sgunturi.workers.dev";
 
 export type LLMProvider = "anthropic" | "openai";
 

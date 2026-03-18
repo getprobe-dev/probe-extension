@@ -261,5 +261,5 @@ The Outfit variable font is registered via the `FontFace` API using a `chrome-ex
 | `cookies` | Not used. Authentication uses API keys stored in `chrome.storage`, not cookies. |
 | `identity` | Not used. No OAuth flow is implemented. |
 | `notifications` | Not used. The extension has no notification UI. |
-| `https://api.anthropic.com/*` | Not used as a host permission. The Anthropic API is accessed through the CORS proxy (`pr-sidekick-proxy.sgunturi.workers.dev`), which is a first-party URL and does not require a separate host permission. |
+| `https://api.anthropic.com/*` | Not used as a host permission. The Anthropic API is accessed through the CORS proxy (`probe-proxy.sgunturi.workers.dev`), which is a first-party URL and does not require a separate host permission. |
 | `https://api.openai.com/*` | Not used as a host permission. OpenAI API calls are routed through the same CORS proxy (via the `/openai/` path prefix), so no additional host permission is needed. |

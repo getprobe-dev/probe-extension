@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PRobe",
   "description": "AI review companion for GitHub PRs",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "icons": {
     "16": "icon-16.png",
     "48": "icon-48.png",
@@ -21,12 +21,20 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/pull/*"],
-      "js": ["src/content/index.tsx"],
-      "css": ["src/styles/content.css"]
+      "matches": [
+        "https://github.com/*/*/pull/*"
+      ],
+      "js": [
+        "src/content/index.tsx"
+      ],
+      "css": [
+        "src/styles/content.css"
+      ]
     }
   ],
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://github.com/*/*/pull/*",
     "https://patch-diff.githubusercontent.com/raw/*",
@@ -43,7 +51,9 @@
         "icon-128.png",
         "fonts/outfit-latin-wght-normal.woff2"
       ],
-      "matches": ["https://github.com/*"]
+      "matches": [
+        "https://github.com/*"
+      ]
     }
   ]
 }

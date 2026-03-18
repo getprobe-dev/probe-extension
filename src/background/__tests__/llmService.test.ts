@@ -4,7 +4,7 @@ import {
   buildOpenAIRequest,
   extractTextFromResponse,
   extractStreamDelta,
-} from "../llmService";
+} from "../llmProviders";
 
 describe("buildAnthropicRequest", () => {
   const result = buildAnthropicRequest("sk-ant-test", "https://proxy.example.com", {

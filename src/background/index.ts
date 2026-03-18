@@ -2,7 +2,8 @@ import { dispatchAsync } from "./helpers";
 import { handlePostComment, handlePostReviewComment, handleSubmitReview } from "./githubComments";
 import { handleFetchEnrichedContext } from "./githubEnrichedContext";
 import { handleFetchPRStats } from "./githubStats";
-import { handleChat, handleGeneratePRSummary, handleFetchModels } from "./llmService";
+import { handleChat, handleGeneratePRSummary } from "./llmService";
+import { handleFetchModels } from "./llmModels";
 import { apiBase } from "./githubHelpers";
 import type {
   BackgroundMessage,

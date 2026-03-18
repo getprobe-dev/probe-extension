@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
-import { ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS, DEFAULT_MODELS, MODELS_CACHE_TTL_MS } from "../shared/config";
+import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/config";
 import type { LLMProvider } from "../shared/config";
-import type { FetchModelsResponse } from "../shared/types";
+import { useModels } from "./hooks/useModels";
+import { ProviderSelector } from "./components/ProviderSelector";
+import { ModelSelector } from "./components/ModelSelector";
 
 const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
   anthropic: {
@@ -18,10 +20,8 @@ const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeh
   },
 };
 
-interface ModelsCacheEntry {
-  models: string[];
-  cachedAt: number;
-}
+const inputClass =
+  "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
 
 export function PopupApp() {
   const [provider, setProvider] = useState<LLMProvider>("anthropic");
@@ -37,47 +37,8 @@ export function PopupApp() {
     githubToken: "",
   });
 
-  const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(false);
-  const [modelsFetchFailed, setModelsFetchFailed] = useState(false);
-
-  const fetchModels = useCallback((forProvider: LLMProvider, forKey: string, bustCache = false) => {
-    if (!forKey.trim()) return;
-
-    const cacheKey = STORAGE_KEYS.modelsCache(forProvider);
-
-    chrome.storage.local.get([cacheKey], (result) => {
-      const cached = result[cacheKey] as ModelsCacheEntry | undefined;
-      if (
-        !bustCache &&
-        cached &&
-        Date.now() - cached.cachedAt < MODELS_CACHE_TTL_MS &&
-        cached.models.length > 0
-      ) {
-        setAvailableModels(cached.models);
-        return;
-      }
-
-      setModelsLoading(true);
-      setModelsFetchFailed(false);
-
-      chrome.runtime.sendMessage(
-        { type: "fetch-models", provider: forProvider, apiKey: forKey },
-        (response: FetchModelsResponse) => {
-          setModelsLoading(false);
-          if (response?.ok && response.models && response.models.length > 0) {
-            setAvailableModels(response.models);
-            setModelsFetchFailed(false);
-            chrome.storage.local.set({
-              [cacheKey]: { models: response.models, cachedAt: Date.now() },
-            });
-          } else {
-            setModelsFetchFailed(true);
-          }
-        },
-      );
-    });
-  }, []);
+  const { availableModels, modelsLoading, modelsFetchFailed, fetchModels, clearModels } =
+    useModels();
 
   useEffect(() => {
     chrome.storage.sync.get(
@@ -114,8 +75,7 @@ export function PopupApp() {
   const handleProviderChange = (p: LLMProvider) => {
     setProvider(p);
     setModelName(DEFAULT_MODELS[p]);
-    setAvailableModels([]);
-    setModelsFetchFailed(false);
+    clearModels();
     setSaved(false);
     if (apiKey.trim()) fetchModels(p, apiKey.trim());
   };
@@ -163,8 +123,7 @@ export function PopupApp() {
         setApiKey("");
         setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
-        setAvailableModels([]);
-        setModelsFetchFailed(false);
+        clearModels();
         setStoredValues({
           provider: "anthropic",
           apiKey: "",
@@ -190,37 +149,16 @@ export function PopupApp() {
     );
   }
 
-  const logoUrl = chrome.runtime.getURL("icon-48.png");
-  const inputClass =
-    "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
-  const selectClass =
-    "w-full pl-3 pr-8 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all appearance-none cursor-pointer";
-
+  const meta = PROVIDER_META[provider];
   const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
-
-  const meta = PROVIDER_META[provider];
-
-  const providerTabClass = (p: LLMProvider) =>
-    `flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-      provider === p
-        ? "bg-background text-foreground shadow-sm"
-        : "text-muted-foreground hover:text-foreground"
-    }`;
-
-  const showDropdown = availableModels.length > 0;
-  const modelsToShow = showDropdown
-    ? availableModels.includes(modelName)
-      ? availableModels
-      : [modelName, ...availableModels]
-    : [];
 
   return (
     <div className="w-80">
       {/* Branded header */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 bg-[#1a2e2b] text-white rounded-b-2xl mb-4">
         <img
-          src={logoUrl}
+          src={chrome.runtime.getURL("icon-48.png")}
           alt="PRobe"
           width={30}
           height={30}
@@ -230,30 +168,7 @@ export function PopupApp() {
       </div>
 
       <div className="px-5 pb-5">
-        {/* Provider selector */}
-        <span className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
-          LLM Provider
-        </span>
-        <div
-          className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50"
-          role="group"
-          aria-label="LLM Provider"
-        >
-          <button
-            type="button"
-            className={providerTabClass("anthropic")}
-            onClick={() => handleProviderChange("anthropic")}
-          >
-            Anthropic
-          </button>
-          <button
-            type="button"
-            className={providerTabClass("openai")}
-            onClick={() => handleProviderChange("openai")}
-          >
-            OpenAI
-          </button>
-        </div>
+        <ProviderSelector provider={provider} onChange={handleProviderChange} />
 
         <a
           href={meta.keyUrl}
@@ -276,74 +191,19 @@ export function PopupApp() {
           className={inputClass}
         />
 
-        {/* Model selector */}
-        <div className="flex items-center justify-between mb-1.5 mt-4">
-          <label
-            htmlFor="model-name"
-            className="text-xs font-semibold text-foreground tracking-wide uppercase opacity-70"
-          >
-            Model
-          </label>
-          {apiKey.trim() && (
-            <button
-              type="button"
-              onClick={() => fetchModels(provider, apiKey.trim(), true)}
-              disabled={modelsLoading}
-              aria-label="Refresh models"
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-            >
-              <RefreshCw className={`size-3 ${modelsLoading ? "animate-spin" : ""}`} />
-            </button>
-          )}
-        </div>
-
-        {showDropdown ? (
-          <div className="relative">
-            <select
-              id="model-name"
-              value={modelName}
-              onChange={(e) => {
-                setModelName(e.target.value);
-                setSaved(false);
-              }}
-              className={selectClass}
-            >
-              {modelsToShow.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
-              aria-hidden
-            />
-          </div>
-        ) : (
-          <input
-            id="model-name"
-            type="text"
-            value={modelName}
-            onChange={(e) => {
-              setModelName(e.target.value);
-              setSaved(false);
-            }}
-            placeholder={
-              modelsLoading
-                ? "Loading models…"
-                : modelsFetchFailed
-                  ? DEFAULT_MODELS[provider]
-                  : DEFAULT_MODELS[provider]
-            }
-            disabled={modelsLoading}
-            className={inputClass}
-          />
-        )}
-        {modelsFetchFailed && !showDropdown && (
-          <p className="mt-1 text-[0.62rem] text-muted-foreground">
-            Could not fetch models — enter a model name manually.
-          </p>
-        )}
+        <ModelSelector
+          provider={provider}
+          modelName={modelName}
+          availableModels={availableModels}
+          modelsLoading={modelsLoading}
+          modelsFetchFailed={modelsFetchFailed}
+          apiKey={apiKey}
+          onModelChange={(m) => {
+            setModelName(m);
+            setSaved(false);
+          }}
+          onRefresh={() => fetchModels(provider, apiKey.trim(), true)}
+        />
 
         <a
           href="https://github.com/settings/tokens/new?scopes=repo&description=PRobe"

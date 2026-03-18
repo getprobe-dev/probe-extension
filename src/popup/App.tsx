@@ -3,6 +3,9 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/config";
 import type { LLMProvider } from "../shared/config";
+import { useModels } from "./hooks/useModels";
+import { ProviderSelector } from "./components/ProviderSelector";
+import { ModelSelector } from "./components/ModelSelector";
 
 const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
   anthropic: {
@@ -17,6 +20,9 @@ const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeh
   },
 };
 
+const inputClass =
+  "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
+
 export function PopupApp() {
   const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
@@ -30,6 +36,9 @@ export function PopupApp() {
     modelName: DEFAULT_MODELS.anthropic,
     githubToken: "",
   });
+
+  const { availableModels, modelsLoading, modelsFetchFailed, fetchModels, clearModels } =
+    useModels();
 
   useEffect(() => {
     chrome.storage.sync.get(
@@ -50,9 +59,10 @@ export function PopupApp() {
         setGithubToken(token);
         setStoredValues({ provider: prov, apiKey: key, modelName: model, githubToken: token });
         setLoading(false);
+        if (key) fetchModels(prov, key);
       },
     );
-  }, []);
+  }, [fetchModels]);
 
   const hasDelta =
     provider !== storedValues.provider ||
@@ -65,7 +75,13 @@ export function PopupApp() {
   const handleProviderChange = (p: LLMProvider) => {
     setProvider(p);
     setModelName(DEFAULT_MODELS[p]);
+    clearModels();
     setSaved(false);
+    if (apiKey.trim()) fetchModels(p, apiKey.trim());
+  };
+
+  const handleApiKeyBlur = () => {
+    if (apiKey.trim()) fetchModels(provider, apiKey.trim());
   };
 
   const handleSave = () => {
@@ -107,6 +123,7 @@ export function PopupApp() {
         setApiKey("");
         setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
+        clearModels();
         setStoredValues({
           provider: "anthropic",
           apiKey: "",
@@ -132,28 +149,16 @@ export function PopupApp() {
     );
   }
 
-  const logoUrl = chrome.runtime.getURL("icon-48.png");
-  const inputClass =
-    "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
-
+  const meta = PROVIDER_META[provider];
   const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
-
-  const meta = PROVIDER_META[provider];
-
-  const providerTabClass = (p: LLMProvider) =>
-    `flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-      provider === p
-        ? "bg-background text-foreground shadow-sm"
-        : "text-muted-foreground hover:text-foreground"
-    }`;
 
   return (
     <div className="w-80">
       {/* Branded header */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 bg-[#1a2e2b] text-white rounded-b-2xl mb-4">
         <img
-          src={logoUrl}
+          src={chrome.runtime.getURL("icon-48.png")}
           alt="PRobe"
           width={30}
           height={30}
@@ -163,30 +168,7 @@ export function PopupApp() {
       </div>
 
       <div className="px-5 pb-5">
-        {/* Provider selector */}
-        <span className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
-          LLM Provider
-        </span>
-        <div
-          className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50"
-          role="group"
-          aria-label="LLM Provider"
-        >
-          <button
-            type="button"
-            className={providerTabClass("anthropic")}
-            onClick={() => handleProviderChange("anthropic")}
-          >
-            Anthropic
-          </button>
-          <button
-            type="button"
-            className={providerTabClass("openai")}
-            onClick={() => handleProviderChange("openai")}
-          >
-            OpenAI
-          </button>
-        </div>
+        <ProviderSelector provider={provider} onChange={handleProviderChange} />
 
         <a
           href={meta.keyUrl}
@@ -204,26 +186,23 @@ export function PopupApp() {
             setApiKey(e.target.value);
             setSaved(false);
           }}
+          onBlur={handleApiKeyBlur}
           placeholder={meta.placeholder}
           className={inputClass}
         />
 
-        <label
-          htmlFor="model-name"
-          className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70"
-        >
-          Model
-        </label>
-        <input
-          id="model-name"
-          type="text"
-          value={modelName}
-          onChange={(e) => {
-            setModelName(e.target.value);
+        <ModelSelector
+          provider={provider}
+          modelName={modelName}
+          availableModels={availableModels}
+          modelsLoading={modelsLoading}
+          modelsFetchFailed={modelsFetchFailed}
+          apiKey={apiKey}
+          onModelChange={(m) => {
+            setModelName(m);
             setSaved(false);
           }}
-          placeholder={DEFAULT_MODELS[provider]}
-          className={inputClass}
+          onRefresh={() => fetchModels(provider, apiKey.trim(), true)}
         />
 
         <a

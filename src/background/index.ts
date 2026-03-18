@@ -3,6 +3,7 @@ import { handlePostComment, handlePostReviewComment, handleSubmitReview } from "
 import { handleFetchEnrichedContext } from "./githubEnrichedContext";
 import { handleFetchPRStats } from "./githubStats";
 import { handleChat, handleGeneratePRSummary } from "./llmService";
+import { handleFetchModels } from "./llmModels";
 import { apiBase } from "./githubHelpers";
 import type {
   BackgroundMessage,
@@ -18,6 +19,7 @@ import type {
   SubmitReviewRequest,
   FetchPRStatsRequest,
   GeneratePRSummaryRequest,
+  FetchModelsRequest,
 } from "../shared/types";
 
 type IncomingMessage =
@@ -30,7 +32,8 @@ type IncomingMessage =
   | PostReviewCommentRequest
   | SubmitReviewRequest
   | FetchPRStatsRequest
-  | GeneratePRSummaryRequest;
+  | GeneratePRSummaryRequest
+  | FetchModelsRequest;
 
 // ── Enriched‑context cancellation registry ──
 
@@ -120,6 +123,10 @@ const messageHandlers: Record<string, MessageHandler> = {
     dispatchAsync(handleFetchPRStats(msg as FetchPRStatsRequest), sendResponse),
   "generate-pr-summary": (msg, sendResponse) =>
     dispatchAsync(handleGeneratePRSummary(msg as GeneratePRSummaryRequest), sendResponse),
+  "fetch-models": (msg, sendResponse) => {
+    const m = msg as FetchModelsRequest;
+    return dispatchAsync(handleFetchModels(m.provider, m.apiKey), sendResponse);
+  },
 };
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {

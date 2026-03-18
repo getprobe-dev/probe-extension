@@ -122,6 +122,65 @@ export function extractStreamDelta(
   return null;
 }
 
+const NON_CHAT_PREFIXES = [
+  "text-embedding",
+  "text-moderation",
+  "text-search",
+  "text-similarity",
+  "text-davinci",
+  "code-search",
+  "code-davinci",
+  "whisper",
+  "tts",
+  "dall-e",
+  "babbage",
+  "davinci",
+  "ada",
+  "curie",
+  "omni-moderation",
+];
+
+function isLikelyChatModel(id: string): boolean {
+  return !NON_CHAT_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+
+export async function fetchModels(
+  provider: LLMProvider,
+  apiKey: string,
+  proxyUrl: string,
+): Promise<string[]> {
+  const endpoint =
+    provider === "openai"
+      ? `${proxyUrl.replace(/\/$/, "")}/openai/v1/models`
+      : `${proxyUrl.replace(/\/$/, "")}/v1/models`;
+
+  const headers: Record<string, string> =
+    provider === "openai"
+      ? { Authorization: `Bearer ${apiKey}` }
+      : { "x-api-key": apiKey, "anthropic-version": ANTHROPIC_API_VERSION };
+
+  const response = await fetch(endpoint, { method: "GET", headers });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const data = (await response.json()) as { data: { id: string }[] };
+  const ids = data.data.map((m) => m.id);
+
+  return provider === "openai" ? ids.filter(isLikelyChatModel) : ids;
+}
+
+export async function handleFetchModels(
+  provider: LLMProvider,
+  apiKey: string,
+): Promise<{ ok: boolean; models?: string[]; error?: string }> {
+  try {
+    const { proxyUrl } = await getSettings();
+    const models = await fetchModels(provider, apiKey, proxyUrl);
+    return { ok: true, models };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to fetch models" };
+  }
+}
+
 export async function handleGeneratePRSummary(
   msg: GeneratePRSummaryRequest,
 ): Promise<GeneratePRSummaryResponse> {

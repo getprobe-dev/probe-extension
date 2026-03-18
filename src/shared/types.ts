@@ -264,6 +264,18 @@ export interface GeneratePRSummaryResponse {
   error?: string;
 }
 
+export interface FetchModelsRequest {
+  type: "fetch-models";
+  provider: import("./config").LLMProvider;
+  apiKey: string;
+}
+
+export interface FetchModelsResponse {
+  ok: boolean;
+  models?: string[];
+  error?: string;
+}
+
 export interface ReviewPendingComment {
   path: string;
   body: string;

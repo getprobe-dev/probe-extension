@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STORAGE_KEYS, DEFAULT_MODELS } from "../shared/config";
+import { STORAGE_KEYS, DEFAULT_MODELS, MODELS_CACHE_TTL_MS } from "../shared/config";
 import type { LLMProvider } from "../shared/config";
+import type { FetchModelsResponse } from "../shared/types";
 
 const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeholder: string }> = {
   anthropic: {
@@ -17,6 +18,11 @@ const PROVIDER_META: Record<LLMProvider, { label: string; keyUrl: string; placeh
   },
 };
 
+interface ModelsCacheEntry {
+  models: string[];
+  cachedAt: number;
+}
+
 export function PopupApp() {
   const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
@@ -30,6 +36,48 @@ export function PopupApp() {
     modelName: DEFAULT_MODELS.anthropic,
     githubToken: "",
   });
+
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsFetchFailed, setModelsFetchFailed] = useState(false);
+
+  const fetchModels = useCallback((forProvider: LLMProvider, forKey: string, bustCache = false) => {
+    if (!forKey.trim()) return;
+
+    const cacheKey = STORAGE_KEYS.modelsCache(forProvider);
+
+    chrome.storage.local.get([cacheKey], (result) => {
+      const cached = result[cacheKey] as ModelsCacheEntry | undefined;
+      if (
+        !bustCache &&
+        cached &&
+        Date.now() - cached.cachedAt < MODELS_CACHE_TTL_MS &&
+        cached.models.length > 0
+      ) {
+        setAvailableModels(cached.models);
+        return;
+      }
+
+      setModelsLoading(true);
+      setModelsFetchFailed(false);
+
+      chrome.runtime.sendMessage(
+        { type: "fetch-models", provider: forProvider, apiKey: forKey },
+        (response: FetchModelsResponse) => {
+          setModelsLoading(false);
+          if (response?.ok && response.models && response.models.length > 0) {
+            setAvailableModels(response.models);
+            setModelsFetchFailed(false);
+            chrome.storage.local.set({
+              [cacheKey]: { models: response.models, cachedAt: Date.now() },
+            });
+          } else {
+            setModelsFetchFailed(true);
+          }
+        },
+      );
+    });
+  }, []);
 
   useEffect(() => {
     chrome.storage.sync.get(
@@ -50,9 +98,10 @@ export function PopupApp() {
         setGithubToken(token);
         setStoredValues({ provider: prov, apiKey: key, modelName: model, githubToken: token });
         setLoading(false);
+        if (key) fetchModels(prov, key);
       },
     );
-  }, []);
+  }, [fetchModels]);
 
   const hasDelta =
     provider !== storedValues.provider ||
@@ -65,7 +114,14 @@ export function PopupApp() {
   const handleProviderChange = (p: LLMProvider) => {
     setProvider(p);
     setModelName(DEFAULT_MODELS[p]);
+    setAvailableModels([]);
+    setModelsFetchFailed(false);
     setSaved(false);
+    if (apiKey.trim()) fetchModels(p, apiKey.trim());
+  };
+
+  const handleApiKeyBlur = () => {
+    if (apiKey.trim()) fetchModels(provider, apiKey.trim());
   };
 
   const handleSave = () => {
@@ -107,6 +163,8 @@ export function PopupApp() {
         setApiKey("");
         setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
+        setAvailableModels([]);
+        setModelsFetchFailed(false);
         setStoredValues({
           provider: "anthropic",
           apiKey: "",
@@ -135,6 +193,8 @@ export function PopupApp() {
   const logoUrl = chrome.runtime.getURL("icon-48.png");
   const inputClass =
     "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all";
+  const selectClass =
+    "w-full px-3 py-2.5 text-sm border border-input rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/40 transition-all appearance-none cursor-pointer";
 
   const showSave = hasDelta && apiKey.trim().length > 0 && githubToken.trim().length > 0;
   const showClear = hasStored || apiKey.trim().length > 0;
@@ -147,6 +207,13 @@ export function PopupApp() {
         ? "bg-background text-foreground shadow-sm"
         : "text-muted-foreground hover:text-foreground"
     }`;
+
+  const showDropdown = availableModels.length > 0;
+  const modelsToShow = showDropdown
+    ? availableModels.includes(modelName)
+      ? availableModels
+      : [modelName, ...availableModels]
+    : [];
 
   return (
     <div className="w-80">
@@ -204,27 +271,73 @@ export function PopupApp() {
             setApiKey(e.target.value);
             setSaved(false);
           }}
+          onBlur={handleApiKeyBlur}
           placeholder={meta.placeholder}
           className={inputClass}
         />
 
-        <label
-          htmlFor="model-name"
-          className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70"
-        >
-          Model
-        </label>
-        <input
-          id="model-name"
-          type="text"
-          value={modelName}
-          onChange={(e) => {
-            setModelName(e.target.value);
-            setSaved(false);
-          }}
-          placeholder={DEFAULT_MODELS[provider]}
-          className={inputClass}
-        />
+        {/* Model selector */}
+        <div className="flex items-center justify-between mb-1.5 mt-4">
+          <label
+            htmlFor="model-name"
+            className="text-xs font-semibold text-foreground tracking-wide uppercase opacity-70"
+          >
+            Model
+          </label>
+          {apiKey.trim() && (
+            <button
+              type="button"
+              onClick={() => fetchModels(provider, apiKey.trim(), true)}
+              disabled={modelsLoading}
+              aria-label="Refresh models"
+              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+            >
+              <RefreshCw className={`size-3 ${modelsLoading ? "animate-spin" : ""}`} />
+            </button>
+          )}
+        </div>
+
+        {showDropdown ? (
+          <select
+            id="model-name"
+            value={modelName}
+            onChange={(e) => {
+              setModelName(e.target.value);
+              setSaved(false);
+            }}
+            className={selectClass}
+          >
+            {modelsToShow.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id="model-name"
+            type="text"
+            value={modelName}
+            onChange={(e) => {
+              setModelName(e.target.value);
+              setSaved(false);
+            }}
+            placeholder={
+              modelsLoading
+                ? "Loading models…"
+                : modelsFetchFailed
+                  ? DEFAULT_MODELS[provider]
+                  : DEFAULT_MODELS[provider]
+            }
+            disabled={modelsLoading}
+            className={inputClass}
+          />
+        )}
+        {modelsFetchFailed && !showDropdown && (
+          <p className="mt-1 text-[0.62rem] text-muted-foreground">
+            Could not fetch models — enter a model name manually.
+          </p>
+        )}
 
         <a
           href="https://github.com/settings/tokens/new?scopes=repo&description=PRobe"

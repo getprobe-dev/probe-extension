@@ -53,11 +53,17 @@ export default {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    if (request.method !== "POST") {
+    const url = new URL(request.url);
+
+    if (request.method === "GET") {
+      // Only allow GET for models listing endpoints.
+      if (!url.pathname.endsWith("/models")) {
+        return new Response("Method not allowed", { status: 405, headers: cors });
+      }
+    } else if (request.method !== "POST") {
       return new Response("Method not allowed", { status: 405, headers: cors });
     }
 
-    const url = new URL(request.url);
     const route = resolveRoute(url.pathname);
 
     const upstreamPath = url.pathname.startsWith(OPENAI_PREFIX)
@@ -73,9 +79,9 @@ export default {
     }
 
     const response = await fetch(target, {
-      method: "POST",
+      method: request.method,
       headers,
-      body: request.body,
+      body: request.method === "GET" ? undefined : request.body,
     });
 
     const responseHeaders = new Headers(response.headers);

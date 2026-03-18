@@ -17,4 +17,7 @@ export const STORAGE_KEYS = {
   chatHistory: (owner: string, repo: string, number: number) => `chat:${owner}/${repo}#${number}`,
   pendingReview: (owner: string, repo: string, number: number) =>
     `review:${owner}/${repo}#${number}`,
+  modelsCache: (provider: string) => `models_cache_${provider}`,
 } as const;
+
+export const MODELS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours

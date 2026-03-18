@@ -40,13 +40,10 @@ export function ChatPanel({
   const [hasGithubToken, setHasGithubToken] = useState<boolean | null>(null);
 
   const checkKeys = useCallback(() => {
-    chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN],
-      (result) => {
-        setHasApiKey(!!result[STORAGE_KEYS.API_KEY]);
-        setHasGithubToken(!!result[STORAGE_KEYS.GITHUB_TOKEN]);
-      },
-    );
+    chrome.storage.sync.get([STORAGE_KEYS.API_KEY, STORAGE_KEYS.GITHUB_TOKEN], (result) => {
+      setHasApiKey(!!result[STORAGE_KEYS.API_KEY]);
+      setHasGithubToken(!!result[STORAGE_KEYS.GITHUB_TOKEN]);
+    });
   }, []);
 
   useEffect(() => {

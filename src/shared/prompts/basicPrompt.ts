@@ -10,7 +10,11 @@ import {
   RESPONSE_RULES,
 } from "./shared";
 
-export function buildSystemPrompt(context: PRContext, skills?: ResolvedSkill[], modelId?: string): string {
+export function buildSystemPrompt(
+  context: PRContext,
+  skills?: ResolvedSkill[],
+  modelId?: string,
+): string {
   const diffTruncated =
     context.diff.length > MAX_DIFF_CHARS
       ? context.diff.slice(0, MAX_DIFF_CHARS) + "\n\n... [diff truncated due to length] ..."

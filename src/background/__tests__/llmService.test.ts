@@ -7,11 +7,11 @@ import {
 } from "../llmService";
 
 describe("buildAnthropicRequest", () => {
-  const result = buildAnthropicRequest(
-    "sk-ant-test",
-    "https://proxy.example.com",
-    { model: "claude-opus-4-6", max_tokens: 500, messages: [{ role: "user", content: "hi" }] },
-  );
+  const result = buildAnthropicRequest("sk-ant-test", "https://proxy.example.com", {
+    model: "claude-opus-4-6",
+    max_tokens: 500,
+    messages: [{ role: "user", content: "hi" }],
+  });
 
   it("routes through the proxy to /v1/messages", () => {
     expect(result.endpoint).toBe("https://proxy.example.com/v1/messages");
@@ -42,17 +42,22 @@ describe("buildAnthropicRequest", () => {
 
   it("passes through signal when provided", () => {
     const controller = new AbortController();
-    const r = buildAnthropicRequest("key", "https://proxy.example.com", { model: "x" }, controller.signal);
+    const r = buildAnthropicRequest(
+      "key",
+      "https://proxy.example.com",
+      { model: "x" },
+      controller.signal,
+    );
     expect(r.init.signal).toBe(controller.signal);
   });
 });
 
 describe("buildOpenAIRequest", () => {
-  const result = buildOpenAIRequest(
-    "sk-test",
-    "https://proxy.example.com",
-    { model: "gpt-4o", max_tokens: 500, messages: [{ role: "user", content: "hi" }] },
-  );
+  const result = buildOpenAIRequest("sk-test", "https://proxy.example.com", {
+    model: "gpt-4o",
+    max_tokens: 500,
+    messages: [{ role: "user", content: "hi" }],
+  });
 
   it("routes through the proxy with /openai/ prefix", () => {
     expect(result.endpoint).toBe("https://proxy.example.com/openai/v1/chat/completions");
@@ -77,7 +82,12 @@ describe("buildOpenAIRequest", () => {
 
   it("passes through signal when provided", () => {
     const controller = new AbortController();
-    const r = buildOpenAIRequest("key", "https://proxy.example.com", { model: "x" }, controller.signal);
+    const r = buildOpenAIRequest(
+      "key",
+      "https://proxy.example.com",
+      { model: "x" },
+      controller.signal,
+    );
     expect(r.init.signal).toBe(controller.signal);
   });
 });

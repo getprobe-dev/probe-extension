@@ -33,7 +33,12 @@ export function PopupApp() {
 
   useEffect(() => {
     chrome.storage.sync.get(
-      [STORAGE_KEYS.API_KEY, STORAGE_KEYS.LLM_PROVIDER, STORAGE_KEYS.MODEL_NAME, STORAGE_KEYS.GITHUB_TOKEN],
+      [
+        STORAGE_KEYS.API_KEY,
+        STORAGE_KEYS.LLM_PROVIDER,
+        STORAGE_KEYS.MODEL_NAME,
+        STORAGE_KEYS.GITHUB_TOKEN,
+      ],
       (result) => {
         const prov = (result[STORAGE_KEYS.LLM_PROVIDER] as LLMProvider) || "anthropic";
         const key = (result[STORAGE_KEYS.API_KEY] as string) ?? "";
@@ -77,7 +82,12 @@ export function PopupApp() {
     };
 
     chrome.storage.sync.set(settings, () => {
-      setStoredValues({ provider, apiKey: trimmedKey, modelName: trimmedModel, githubToken: trimmedGithub });
+      setStoredValues({
+        provider,
+        apiKey: trimmedKey,
+        modelName: trimmedModel,
+        githubToken: trimmedGithub,
+      });
       setSaved(true);
       setTimeout(() => window.close(), 2000);
     });
@@ -97,7 +107,12 @@ export function PopupApp() {
         setApiKey("");
         setModelName(DEFAULT_MODELS.anthropic);
         setGithubToken("");
-        setStoredValues({ provider: "anthropic", apiKey: "", modelName: DEFAULT_MODELS.anthropic, githubToken: "" });
+        setStoredValues({
+          provider: "anthropic",
+          apiKey: "",
+          modelName: DEFAULT_MODELS.anthropic,
+          githubToken: "",
+        });
         setSaved(false);
       },
     );
@@ -149,10 +164,14 @@ export function PopupApp() {
 
       <div className="px-5 pb-5">
         {/* Provider selector */}
-        <label className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+        <span className="block mb-1.5 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
           LLM Provider
-        </label>
-        <div className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50">
+        </span>
+        <div
+          className="flex gap-1 p-1 mb-4 rounded-xl bg-muted/60 border border-border/50"
+          role="group"
+          aria-label="LLM Provider"
+        >
           <button
             type="button"
             className={providerTabClass("anthropic")}
@@ -189,10 +208,14 @@ export function PopupApp() {
           className={inputClass}
         />
 
-        <label className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70">
+        <label
+          htmlFor="model-name"
+          className="block mb-1.5 mt-4 text-xs font-semibold text-foreground tracking-wide uppercase opacity-70"
+        >
           Model
         </label>
         <input
+          id="model-name"
           type="text"
           value={modelName}
           onChange={(e) => {

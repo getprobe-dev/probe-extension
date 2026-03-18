@@ -95,7 +95,7 @@ This starts Vite in watch mode. Changes hot-reload into the `dist/` folder — j
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The **content script** renders inside a Shadow DOM to avoid CSS conflicts with GitHub. The **background service worker** handles all network requests (GitHub API, Anthropic API) and streams SSE chunks back to the UI over a long-lived `chrome.runtime.connect` port. The **proxy** is a lightweight Cloudflare Worker that adds CORS headers — your API key is passed through and never stored server-side.
+The **content script** renders inside a Shadow DOM to avoid CSS conflicts with GitHub. The **background service worker** handles all network requests (GitHub API, LLM APIs) and streams SSE chunks back to the UI over a long-lived `chrome.runtime.connect` port. The **proxy** is a lightweight Cloudflare Worker that adds CORS headers — your API key is passed through and never stored server-side.
 
 ---
 

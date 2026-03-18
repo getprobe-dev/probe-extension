@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { SetupGuide } from "./SetupGuide";
@@ -174,29 +174,43 @@ export function ChatPanel({
     if (storageKeyRef.current) chrome.storage.local.remove(storageKeyRef.current);
   }, [setStreamError, setFollowUpSuggestions, storageKeyRef]);
 
-  const viewerLogin = scrapeViewerLogin();
+  const viewerLogin = useMemo(() => scrapeViewerLogin(), []);
   const isSelfReview = !!(prContext?.author && viewerLogin && prContext.author === viewerLogin);
   const primaryFile = focusedItems.length > 0 ? focusedItems[0].file : null;
-  const fileLine =
-    prContext && primaryFile
-      ? extractFirstChangedLine(prContext.diff, primaryFile)
-      : { line: 1, side: "RIGHT" as const };
+  const fileLine = useMemo(
+    () =>
+      prContext && primaryFile
+        ? extractFirstChangedLine(prContext.diff, primaryFile)
+        : { line: 1, side: "RIGHT" as const },
+    [prContext, primaryFile],
+  );
 
   const displayError = streamError ?? contextError;
   const isEmpty = messages.length === 0;
 
+  const reviewContextValue = useMemo(
+    () => ({
+      prOwner: prContext?.owner ?? "",
+      prRepo: prContext?.repo ?? "",
+      prNumber: prContext?.number ?? 0,
+      focusedFile: primaryFile,
+      fileLine: fileLine.line,
+      fileSide: fileLine.side,
+      onAddToReview: handleAddToReview,
+    }),
+    [
+      prContext?.owner,
+      prContext?.repo,
+      prContext?.number,
+      primaryFile,
+      fileLine.line,
+      fileLine.side,
+      handleAddToReview,
+    ],
+  );
+
   return (
-    <ReviewContext.Provider
-      value={{
-        prOwner: prContext?.owner ?? "",
-        prRepo: prContext?.repo ?? "",
-        prNumber: prContext?.number ?? 0,
-        focusedFile: primaryFile,
-        fileLine: fileLine.line,
-        fileSide: fileLine.side,
-        onAddToReview: handleAddToReview,
-      }}
-    >
+    <ReviewContext.Provider value={reviewContextValue}>
       <div className="flex flex-col h-full bg-background text-foreground">
         <ChatHeader
           prContext={prContext}

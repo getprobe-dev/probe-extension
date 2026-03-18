@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type {
   ChatMessage,
   PRContext,
@@ -51,6 +51,13 @@ export function useChatStreaming({
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const lastAssistantContentRef = useRef<string>("");
+
+  useEffect(() => {
+    return () => {
+      portRef.current?.disconnect();
+      portRef.current = null;
+    };
+  }, []);
 
   const handleSend = useCallback(
     async (content: string) => {

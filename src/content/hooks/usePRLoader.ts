@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type {
   PRContext,
   EnrichedPRContext,
@@ -96,6 +96,10 @@ export function usePRLoader(
     };
   }, [needsSetup]);
 
+  const setInitialMessages = useCallback((callback: (stored: Record<string, unknown>) => void) => {
+    setInitialMessagesRef.current = callback;
+  }, []);
+
   return {
     prContext,
     enrichedContext,
@@ -103,8 +107,6 @@ export function usePRLoader(
     error,
     storageKeyRef,
     reviewKeyRef,
-    setInitialMessages: (callback) => {
-      setInitialMessagesRef.current = callback;
-    },
+    setInitialMessages,
   };
 }

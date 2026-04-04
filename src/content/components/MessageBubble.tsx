@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useEffect } from "react";
 import { CommentComposer } from "./CommentComposer";
 import { MarkdownContent } from "./MarkdownContent";
+import { SimulatedTestRun } from "./SimulatedTestRun";
 import { Copy, Check, MessageSquare } from "lucide-react";
 import { useReviewContext } from "../context/ReviewContext";
 import type { ChatMessage } from "../../shared/types";
@@ -8,11 +9,13 @@ import type { ChatMessage } from "../../shared/types";
 interface MessageBubbleProps {
   message: ChatMessage;
   isStreaming?: boolean;
+  onSend?: (message: string) => void;
 }
 
 export const MessageBubble = memo(function MessageBubble({
   message,
   isStreaming,
+  onSend,
 }: MessageBubbleProps) {
   const { prOwner, prRepo, prNumber, focusedFile, fileLine, fileSide, onAddToReview } =
     useReviewContext();
@@ -40,6 +43,10 @@ export const MessageBubble = memo(function MessageBubble({
     }
   };
 
+  const handleSuggestFix = (functionName: string) => {
+    onSend?.(`Suggest a fix for the failing test case in ${functionName}`);
+  };
+
   return (
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-3 animate-fade-in`}>
       <div className="msg-bubble-wrapper">
@@ -59,10 +66,18 @@ export const MessageBubble = memo(function MessageBubble({
               <span className="size-1.5 rounded-full bg-[#5eead4] animate-bounce [animation-delay:300ms]" />
             </div>
           ) : (
-            <MarkdownContent
-              content={message.content}
-              className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}
-            />
+            <>
+              <MarkdownContent
+                content={message.content}
+                className={`prose-chat max-w-none ${isStreaming ? "prose-chat-streaming" : ""}`}
+              />
+              {!isStreaming && message.simTestData && (
+                <SimulatedTestRun
+                  data={message.simTestData}
+                  onSuggestFix={onSend ? handleSuggestFix : undefined}
+                />
+              )}
+            </>
           )}
         </div>
 

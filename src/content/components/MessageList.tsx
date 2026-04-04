@@ -8,6 +8,7 @@ interface MessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   prContext?: PRContext | null;
+  onSend?: (message: string) => void;
   onSummaryLoading?: () => void;
   onSummaryReady?: (bullets: PromptSuggestion[]) => void;
 }
@@ -16,6 +17,7 @@ export const MessageList = memo(function MessageList({
   messages,
   isStreaming,
   prContext,
+  onSend,
   onSummaryLoading,
   onSummaryReady,
 }: MessageListProps) {
@@ -49,6 +51,7 @@ export const MessageList = memo(function MessageList({
           key={`${msg.role}-${msg.timestamp}-${i}`}
           message={msg}
           isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
+          onSend={onSend}
         />
       ))}
       <div ref={bottomRef} />

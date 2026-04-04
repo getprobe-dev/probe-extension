@@ -1,10 +1,11 @@
-import { ArrowUp, Square, X } from "lucide-react";
+import { ArrowUp, Square, X, Play } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import type { FocusedItem, PromptSuggestion } from "../../shared/types";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   onStop: () => void;
+  onSimTest?: () => void;
   disabled: boolean;
   isStreaming: boolean;
   showStarters?: boolean;
@@ -68,6 +69,7 @@ const LINE_STARTERS: PromptSuggestion[] = [
 export function ChatInput({
   onSend,
   onStop,
+  onSimTest,
   disabled,
   isStreaming,
   showStarters,
@@ -174,6 +176,16 @@ export function ChatInput({
       )}
 
       <div className="p-3 border-t border-border">
+        {hasLineRange && onSimTest && (
+          <button
+            onClick={onSimTest}
+            disabled={disabled || isStreaming}
+            className="w-full mb-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#166534] border border-[#14532d] text-white hover:bg-[#14532d] active:bg-[#052e16] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <Play className="size-3" />
+            Simulated Test Run
+          </button>
+        )}
         {focusedItems.length > 0 && (
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             {focusedItems.map((item, idx) => (

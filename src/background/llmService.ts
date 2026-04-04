@@ -21,6 +21,9 @@ import type {
   GeneratePRSummaryRequest,
   GeneratePRSummaryResponse,
   PromptSuggestion,
+  SimTestRequest,
+  SimTestResponse,
+  SimulatedTestRunData,
 } from "../shared/types";
 
 const SUMMARY_MAX_TOKENS = 500;
@@ -134,6 +137,136 @@ Each label must be 2–4 words and start with an action verb (e.g. Analyze, Veri
     return { ok: true, bullets };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "LLM call failed" };
+  }
+}
+
+export async function handleSimTest(msg: SimTestRequest): Promise<SimTestResponse> {
+  const { provider, apiKey, modelName, proxyUrl } = await getSettings();
+  if (!apiKey) return { ok: false, error: "No API key configured." };
+
+  const contextSnippet = msg.fileContent.slice(0, 4000);
+
+  const prompt = `You are simulating code execution for a pull request reviewer.
+
+File: ${msg.filePath}
+
+Surrounding file context (for function signatures and variable types):
+\`\`\`
+${contextSnippet}
+\`\`\`
+
+Selected code block to simulate:
+\`\`\`
+${msg.lineContent}
+\`\`\`
+
+Instructions:
+- Identify the function/logic being tested.
+- Generate 3 representative test cases: 1 happy path, 1-2 edge cases.
+- For each test case, simulate input → expected output → actual output.
+- If a test case reveals a bug, set passed=false and provide rootCause.
+- If the code looks correct, all cases should pass.
+
+Return ONLY a JSON object matching this exact schema, no other text:
+{
+  "totalCases": 3,
+  "passedCases": 3,
+  "codeSnippet": "<the selected code being tested>",
+  "functionName": "<name of the function or logic block>",
+  "testCases": [
+    {
+      "id": 1,
+      "passed": true,
+      "input": [{"label": "paramName", "value": "'hello'", "type": "string"}],
+      "expectedOutput": [{"label": "result", "value": "5", "type": "number"}],
+      "actualOutput": [{"label": "result", "value": "5", "type": "number"}],
+      "explanation": "optional short note"
+    },
+    {
+      "id": 2,
+      "passed": false,
+      "input": [{"label": "paramName", "value": "null", "type": "object"}],
+      "expectedOutput": [{"label": "result", "value": "0", "type": "number"}],
+      "actualOutput": [{"label": "result", "value": "TypeError", "type": "string"}],
+      "explanation": "null is not handled",
+      "rootCause": "The function does not check for null input before accessing .length property"
+    }
+  ]
+}`;
+
+  const systemContent = "You are a precise code execution simulator. Output only valid JSON.";
+  const SIM_TEST_MAX_TOKENS = 2048;
+
+  let endpoint: string;
+  let init: RequestInit;
+
+  if (provider === "openai") {
+    ({ endpoint, init } = buildOpenAIRequest(apiKey, proxyUrl, {
+      model: modelName,
+      max_tokens: SIM_TEST_MAX_TOKENS,
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: prompt },
+      ],
+    }));
+  } else {
+    ({ endpoint, init } = buildAnthropicRequest(apiKey, proxyUrl, {
+      model: modelName,
+      max_tokens: SIM_TEST_MAX_TOKENS,
+      system: systemContent,
+      messages: [{ role: "user", content: prompt }],
+    }));
+  }
+
+  try {
+    const response = await fetch(endpoint, init);
+
+    if (!response.ok) return { ok: false, error: `LLM error (${response.status})` };
+
+    const result = await response.json();
+    const text = extractTextFromResponse(provider, result);
+
+    let data: SimulatedTestRunData | undefined;
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const isValidValue = (v: unknown): boolean =>
+          typeof v === "object" &&
+          v !== null &&
+          typeof (v as Record<string, unknown>).label === "string" &&
+          typeof (v as Record<string, unknown>).value === "string";
+
+        if (
+          typeof parsed.totalCases === "number" &&
+          typeof parsed.passedCases === "number" &&
+          typeof parsed.codeSnippet === "string" &&
+          typeof parsed.functionName === "string" &&
+          Array.isArray(parsed.testCases) &&
+          parsed.testCases.length > 0 &&
+          parsed.testCases.every(
+            (tc: Record<string, unknown>) =>
+              typeof tc.id === "number" &&
+              typeof tc.passed === "boolean" &&
+              Array.isArray(tc.input) &&
+              tc.input.every(isValidValue) &&
+              Array.isArray(tc.expectedOutput) &&
+              tc.expectedOutput.every(isValidValue) &&
+              Array.isArray(tc.actualOutput) &&
+              tc.actualOutput.every(isValidValue),
+          )
+        ) {
+          data = parsed as SimulatedTestRunData;
+        }
+      }
+    } catch {
+      /* malformed JSON */
+    }
+
+    if (!data) return { ok: false, error: "Failed to parse test results" };
+    return { ok: true, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Sim test failed" };
   }
 }
 

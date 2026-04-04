@@ -2,7 +2,7 @@ import { dispatchAsync } from "./helpers";
 import { handlePostComment, handlePostReviewComment, handleSubmitReview } from "./githubComments";
 import { handleFetchEnrichedContext } from "./githubEnrichedContext";
 import { handleFetchPRStats } from "./githubStats";
-import { handleChat, handleGeneratePRSummary } from "./llmService";
+import { handleChat, handleGeneratePRSummary, handleSimTest } from "./llmService";
 import { handleFetchModels } from "./llmModels";
 import { apiBase } from "./githubHelpers";
 import type {
@@ -20,6 +20,7 @@ import type {
   FetchPRStatsRequest,
   GeneratePRSummaryRequest,
   FetchModelsRequest,
+  SimTestRequest,
 } from "../shared/types";
 
 type IncomingMessage =
@@ -33,7 +34,8 @@ type IncomingMessage =
   | SubmitReviewRequest
   | FetchPRStatsRequest
   | GeneratePRSummaryRequest
-  | FetchModelsRequest;
+  | FetchModelsRequest
+  | SimTestRequest;
 
 // ── Enriched‑context cancellation registry ──
 
@@ -127,6 +129,8 @@ const messageHandlers: Record<string, MessageHandler> = {
     const m = msg as FetchModelsRequest;
     return dispatchAsync(handleFetchModels(m.provider, m.apiKey), sendResponse);
   },
+  "sim-test": (msg, sendResponse) =>
+    dispatchAsync(handleSimTest(msg as SimTestRequest), sendResponse),
 };
 
 chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {

@@ -124,10 +124,50 @@ export interface FetchEnrichedContextResponse {
   error?: string;
 }
 
+// ── Simulated Test Run ──
+
+export interface SimTestCaseValue {
+  label: string;
+  value: string;
+  type?: string;
+}
+
+export interface SimulatedTestCase {
+  id: number;
+  passed: boolean;
+  input: SimTestCaseValue[];
+  expectedOutput: SimTestCaseValue[];
+  actualOutput: SimTestCaseValue[];
+  rootCause?: string;
+  explanation?: string;
+}
+
+export interface SimulatedTestRunData {
+  totalCases: number;
+  passedCases: number;
+  codeSnippet: string;
+  functionName: string;
+  testCases: SimulatedTestCase[];
+}
+
+export interface SimTestRequest {
+  type: "sim-test";
+  lineContent: string;
+  fileContent: string;
+  filePath: string;
+}
+
+export interface SimTestResponse {
+  ok: boolean;
+  data?: SimulatedTestRunData;
+  error?: string;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  simTestData?: SimulatedTestRunData;
 }
 
 export type BackgroundMessage =

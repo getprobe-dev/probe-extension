@@ -10,13 +10,15 @@ import { getIconUrl } from "../utils/iconUtils";
 import { usePRLoader } from "../hooks/usePRLoader";
 import { useChatStreaming } from "../hooks/useChatStreaming";
 import { ReviewContext } from "../context/ReviewContext";
-import { extractFirstChangedLine, scrapeViewerLogin } from "../../shared/context";
+import { extractFirstChangedLine, scrapeViewerLogin, fetchFileContent } from "../../shared/context";
+import { sendMessage } from "../../shared/messaging";
 import { STORAGE_KEYS } from "../../shared/config";
 import type {
   ChatMessage,
   ReviewPendingComment,
   FocusedItem,
   PromptSuggestion,
+  SimTestResponse,
 } from "../../shared/types";
 
 const MAX_STORED_MESSAGES = 100;
@@ -166,6 +168,75 @@ export function ChatPanel({
     setStreamError(null);
   }, [focusKey, setStreamError]);
 
+  const handleSimTest = useCallback(async () => {
+    if (!prContext || isStreaming) return;
+
+    const lineItem = focusedItems.find((it) => it.lineRange);
+    if (!lineItem?.lineRange) return;
+
+    const { startLine, endLine, content: lineContent } = lineItem.lineRange;
+    const label =
+      startLine === endLine ? `L${startLine}` : `L${startLine}\u2013L${endLine}`;
+    const assembledPrompt = `Simulated Test Run \u2014 ${lineItem.file.split("/").pop()} ${label}\n\n${lineContent}`;
+
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: assembledPrompt,
+      timestamp: Date.now(),
+    };
+    const placeholderMsg: ChatMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, userMsg, placeholderMsg]);
+    // Use a local flag — isStreaming from the hook is for chat streaming
+    setStreamError(null);
+
+    let response: SimTestResponse;
+    try {
+      const fileContent =
+        (await fetchFileContent(
+          prContext.owner,
+          prContext.repo,
+          prContext.headBranch,
+          lineItem.file,
+        )) ?? "";
+
+      response = await sendMessage<SimTestResponse>({
+        type: "sim-test",
+        lineContent,
+        fileContent,
+        filePath: lineItem.file,
+      });
+    } catch (err) {
+      setStreamError(err instanceof Error ? err.message : "Sim test failed");
+      setMessages((prev) => prev.slice(0, -2));
+      return;
+    }
+
+    if (response.ok && response.data) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          content: `Analyzed **${response.data!.functionName}** with ${response.data!.totalCases} test cases.`,
+          simTestData: response.data,
+        };
+        persistMessages(updated);
+        return updated;
+      });
+    } else {
+      setStreamError(response.error ?? "Sim test returned no results");
+      setMessages((prev) => {
+        const trimmed = prev.slice(0, -2);
+        persistMessages(trimmed);
+        return trimmed;
+      });
+    }
+  }, [prContext, isStreaming, focusedItems, persistMessages, setStreamError]);
+
   const handleClear = useCallback(() => {
     setShowInspector(false);
     setMessages([]);
@@ -253,6 +324,7 @@ export function ChatPanel({
                 messages={messages}
                 isStreaming={isStreaming}
                 prContext={prContext}
+                onSend={handleSend}
                 onSummaryLoading={handleSummaryLoading}
                 onSummaryReady={handleSummaryReady}
               />
@@ -261,6 +333,7 @@ export function ChatPanel({
             <ChatInput
               onSend={handleSend}
               onStop={handleStop}
+              onSimTest={handleSimTest}
               disabled={isLoading || !prContext}
               isStreaming={isStreaming}
               showStarters={isEmpty && !isLoading}

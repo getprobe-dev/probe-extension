@@ -217,12 +217,13 @@ export function ChatPanel({
     }
 
     if (response.ok && response.data) {
+      const simData = response.data;
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
-          content: `Analyzed **${response.data!.functionName}** with ${response.data!.totalCases} test cases.`,
-          simTestData: response.data,
+          content: `Analyzed **${simData.functionName}** with ${simData.totalCases} test cases.`,
+          simTestData: simData,
         };
         persistMessages(updated);
         return updated;

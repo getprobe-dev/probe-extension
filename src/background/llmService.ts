@@ -177,7 +177,7 @@ Return ONLY a JSON object matching this exact schema, no other text:
     {
       "id": 1,
       "passed": true,
-      "input": [{"label": "paramName", "value": "\"hello\"", "type": "string"}],
+      "input": [{"label": "paramName", "value": "'hello'", "type": "string"}],
       "expectedOutput": [{"label": "result", "value": "5", "type": "number"}],
       "actualOutput": [{"label": "result", "value": "5", "type": "number"}],
       "explanation": "optional short note"
@@ -231,16 +231,29 @@ Return ONLY a JSON object matching this exact schema, no other text:
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        const isValidValue = (v: unknown): boolean =>
+          typeof v === "object" &&
+          v !== null &&
+          typeof (v as Record<string, unknown>).label === "string" &&
+          typeof (v as Record<string, unknown>).value === "string";
+
         if (
+          typeof parsed.totalCases === "number" &&
+          typeof parsed.passedCases === "number" &&
+          typeof parsed.codeSnippet === "string" &&
+          typeof parsed.functionName === "string" &&
           Array.isArray(parsed.testCases) &&
           parsed.testCases.length > 0 &&
           parsed.testCases.every(
             (tc: Record<string, unknown>) =>
-              Array.isArray(tc.input) &&
-              Array.isArray(tc.expectedOutput) &&
-              Array.isArray(tc.actualOutput) &&
               typeof tc.id === "number" &&
-              typeof tc.passed === "boolean",
+              typeof tc.passed === "boolean" &&
+              Array.isArray(tc.input) &&
+              tc.input.every(isValidValue) &&
+              Array.isArray(tc.expectedOutput) &&
+              tc.expectedOutput.every(isValidValue) &&
+              Array.isArray(tc.actualOutput) &&
+              tc.actualOutput.every(isValidValue),
           )
         ) {
           data = parsed as SimulatedTestRunData;

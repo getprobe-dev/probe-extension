@@ -175,23 +175,26 @@ export function ChatPanel({
     if (!lineItem?.lineRange) return;
 
     const { startLine, endLine, content: lineContent } = lineItem.lineRange;
-    const label =
-      startLine === endLine ? `L${startLine}` : `L${startLine}\u2013L${endLine}`;
+    const label = startLine === endLine ? `L${startLine}` : `L${startLine}\u2013L${endLine}`;
     const assembledPrompt = `Simulated Test Run \u2014 ${lineItem.file.split("/").pop()} ${label}\n\n${lineContent}`;
 
+    const userTs = Date.now();
+    const placeholderTs = userTs + 1;
     const userMsg: ChatMessage = {
       role: "user",
       content: assembledPrompt,
-      timestamp: Date.now(),
+      timestamp: userTs,
     };
     const placeholderMsg: ChatMessage = {
       role: "assistant",
       content: "",
-      timestamp: Date.now(),
+      timestamp: placeholderTs,
     };
 
+    const removePair = (prev: ChatMessage[]) =>
+      prev.filter((m) => m.timestamp !== userTs && m.timestamp !== placeholderTs);
+
     setMessages((prev) => [...prev, userMsg, placeholderMsg]);
-    // Use a local flag — isStreaming from the hook is for chat streaming
     setStreamError(null);
 
     let response: SimTestResponse;
@@ -212,26 +215,29 @@ export function ChatPanel({
       });
     } catch (err) {
       setStreamError(err instanceof Error ? err.message : "Sim test failed");
-      setMessages((prev) => prev.slice(0, -2));
+      setMessages(removePair);
       return;
     }
 
     if (response.ok && response.data) {
       const simData = response.data;
       setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          ...updated[updated.length - 1],
-          content: `Analyzed **${simData.functionName}** with ${simData.totalCases} test cases.`,
-          simTestData: simData,
-        };
+        const updated = prev.map((m) =>
+          m.timestamp === placeholderTs
+            ? {
+                ...m,
+                content: `Analyzed **${simData.functionName}** with ${simData.totalCases} test cases.`,
+                simTestData: simData,
+              }
+            : m,
+        );
         persistMessages(updated);
         return updated;
       });
     } else {
       setStreamError(response.error ?? "Sim test returned no results");
       setMessages((prev) => {
-        const trimmed = prev.slice(0, -2);
+        const trimmed = removePair(prev);
         persistMessages(trimmed);
         return trimmed;
       });

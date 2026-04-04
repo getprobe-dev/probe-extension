@@ -48,7 +48,7 @@ function inferType(value: string): string {
 export function SimulatedTestRun({ data, onSuggestFix }: SimulatedTestRunProps) {
   const firstFailIdx = data.testCases.findIndex((c) => !c.passed);
   const [activeTab, setActiveTab] = useState(firstFailIdx >= 0 ? firstFailIdx : 0);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
   const activeCase = data.testCases[activeTab];
   const allPassed = data.passedCases === data.totalCases;
@@ -56,10 +56,11 @@ export function SimulatedTestRun({ data, onSuggestFix }: SimulatedTestRunProps) 
   const handleCopyCode = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(data.codeSnippet);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 1500);
     } catch {
-      /* clipboard not available */
+      setCopyState("failed");
+      setTimeout(() => setCopyState("idle"), 1500);
     }
   }, [data.codeSnippet]);
 
@@ -73,9 +74,7 @@ export function SimulatedTestRun({ data, onSuggestFix }: SimulatedTestRunProps) 
         <span className="text-[12px] font-semibold text-[#1a2e2b]">Simulated test run</span>
         <span
           className={`ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-            allPassed
-              ? "bg-[#dcfce7] text-[#166534]"
-              : "bg-[#fee2e2] text-[#991b1b]"
+            allPassed ? "bg-[#dcfce7] text-[#166534]" : "bg-[#fee2e2] text-[#991b1b]"
           }`}
         >
           {data.passedCases}/{data.totalCases} passed
@@ -127,9 +126,7 @@ export function SimulatedTestRun({ data, onSuggestFix }: SimulatedTestRunProps) 
           </div>
           <div
             className={`rounded-md px-2.5 py-2 font-mono text-[12px] leading-relaxed ${
-              activeCase.passed
-                ? "bg-[#e2e8f0]"
-                : "bg-[#fef2f2] border-l-[3px] border-l-[#ef4444]"
+              activeCase.passed ? "bg-[#e2e8f0]" : "bg-[#fef2f2] border-l-[3px] border-l-[#ef4444]"
             }`}
           >
             {activeCase.actualOutput.map((v, i) => (
@@ -162,8 +159,14 @@ export function SimulatedTestRun({ data, onSuggestFix }: SimulatedTestRunProps) 
           onClick={handleCopyCode}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium bg-[#e2e8f0] text-[#475569] hover:bg-[#cbd5e1] transition-colors cursor-pointer"
         >
-          {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-          {copied ? "Copied" : "Copy code"}
+          {copyState === "copied" ? (
+            <Check className="size-3" />
+          ) : copyState === "failed" ? (
+            <AlertTriangle className="size-3" />
+          ) : (
+            <Copy className="size-3" />
+          )}
+          {copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy code"}
         </button>
         {!activeCase.passed && onSuggestFix && (
           <button

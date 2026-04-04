@@ -231,7 +231,18 @@ Return ONLY a JSON object matching this exact schema, no other text:
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed.testCases)) {
+        if (
+          Array.isArray(parsed.testCases) &&
+          parsed.testCases.length > 0 &&
+          parsed.testCases.every(
+            (tc: Record<string, unknown>) =>
+              Array.isArray(tc.input) &&
+              Array.isArray(tc.expectedOutput) &&
+              Array.isArray(tc.actualOutput) &&
+              typeof tc.id === "number" &&
+              typeof tc.passed === "boolean",
+          )
+        ) {
           data = parsed as SimulatedTestRunData;
         }
       }
